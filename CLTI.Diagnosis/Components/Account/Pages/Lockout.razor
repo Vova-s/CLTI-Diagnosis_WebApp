@@ -1,0 +1,30 @@
+﻿@page "/Account/Lockout"
+
+<PageTitle>Locked out</PageTitle>
+
+<div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md text-center">
+        <svg class="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+        </svg>
+
+        <h1 class="text-2xl font-bold text-red-600 mb-4">Account Locked</h1>
+
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6">
+            <p class="text-red-700" role="alert">
+                This account has been locked out due to too many failed login attempts.
+                Please try again later or contact support.
+            </p>
+        </div>
+
+        <div class="text-sm text-gray-600 mb-6">
+            <p>Your account will be automatically unlocked after a period of time.</p>
+        </div>
+
+        <div class="mt-6">
+            <a href="/" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded transition duration-200">
+                Return to Home
+            </a>
+        </div>
+    </div>
+</div>

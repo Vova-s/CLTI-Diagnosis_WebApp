@@ -1,0 +1,135 @@
+﻿@page "/Algoritm/Pages/Wifi"
+@rendermode InteractiveServer
+@using CLTI.Diagnosis.Client.Algoritm.Shared
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+
+<div class="page-container">
+        <NavMenu />
+    <div class="main-content">
+    <div class="page-title">
+        Оцінка критерію <span>W</span> (WIFI)
+    </div>
+
+    <!-- Блок з вибором "Некроз на нижній кінцівці" -->
+    <div class="frame-2147223206">
+        <label class="nekroz-label">Некроз на нижній кінцівці</label>
+
+        <div class="checkbox-group">
+            <!-- Перша радіокнопка: "Відсутній" -->
+            <div class="radio-button-group">
+                <label class="radio-button">
+                    <input type="radio" name="necrosis"
+                           value="false"
+                           checked="@(!StateService.HasNecrosis)"
+                           @onchange="() => SetNecrosis(false)" />
+                    <span class="custom-indicator"></span>
+                </label>
+                <label class="radio-label">Відсутній</label>
+            </div>
+
+            <!-- Друга радіокнопка: "Присутній" -->
+            <div class="radio-button-group">
+                <label class="radio-button">
+                    <input type="radio" name="necrosis"
+                           value="true"
+                           checked="@(StateService.HasNecrosis)"
+                           @onchange="() => SetNecrosis(true)" />
+                    <span class="custom-indicator"></span>
+                </label>
+                <label class="radio-label">Присутній</label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Якщо вибрано "Присутній", показуємо додаткові налаштування -->
+    @if (StateService.HasNecrosis)
+    {
+        <div style="margin-top: 16px;">
+            <label class="inner-label">Тип некрозу</label>
+            <select @onchange="OnNecrosisTypeChange" class="select-basic">
+                <option disabled selected value>Виберіть значення</option>
+                <option value="Гангрена">Гангрена</option>
+                <option value="Виразка">Виразка</option>
+            </select>
+        </div>
+
+        @if (StateService.NecrosisType == "Гангрена")
+        {
+            <div style="margin-top: 16px;">
+                <label class="inner-label">Поширення гангрени</label>
+                <select @onchange="OnGangreneSpreadChange" class="select-basic">
+                    <option disabled selected value>Виберіть значення</option>
+                    <option value="Поширюється на плесно">Поширюється на плесно</option>
+                    <option value="Поширюється лише на пальці">Поширюється лише на пальці</option>
+                </select>
+            </div>
+        }
+        else if (StateService.NecrosisType == "Виразка")
+        {
+            <div style="margin-top: 16px;">
+                <label class="inner-label">Тип виразки</label>
+                <select @onchange="OnUlcerLocationChange" class="select-basic">
+                    <option disabled selected value>Виберіть значення</option>
+                    <option value="На п’яті">На п’яті</option>
+                    <option value="Не на п’яті">Не на п’яті</option>
+                </select>
+            </div>
+        }
+    }
+
+    <!-- Показати поточний рівень W, якщо він розрахований -->
+    @if (StateService.WLevelValue is not null)
+    {
+        <div class="w-level-result">
+            <strong>Рівень W:</strong> W@StateService.WLevelValue
+        </div>
+    }
+
+        <div class="fixed-bottom-right">
+            @if (StateService.CanContinue)
+            {
+                <button @onclick="Continue" class="fixed-btn continue-btn">Продовжити</button>
+            }
+            else
+            {
+                <button disabled class="fixed-btn disabled-btn">Продовжити</button>
+            }
+        </div>
+</div>
+</div>
+
+
+
+@code {
+    private void SetNecrosis(bool present)
+    {
+        StateService.HasNecrosis = present;
+        StateService.NecrosisType = null;
+        StateService.GangreneSpread = null;
+        StateService.UlcerLocation = null;
+    }
+
+    private void OnNecrosisTypeChange(ChangeEventArgs e)
+    {
+        StateService.NecrosisType = e.Value?.ToString();
+        StateService.GangreneSpread = null;
+        StateService.UlcerLocation = null;
+    }
+
+    private void OnGangreneSpreadChange(ChangeEventArgs e)
+    {
+        StateService.GangreneSpread = e.Value?.ToString();
+    }
+
+    private void OnUlcerLocationChange(ChangeEventArgs e)
+    {
+        StateService.UlcerLocation = e.Value?.ToString();
+    }
+
+    private async void Continue()
+    {
+        await InvokeAsync(StateHasChanged);
+        NavigationManager.NavigateTo("/Algoritm/NextStep", forceLoad: true);
+    }
+}

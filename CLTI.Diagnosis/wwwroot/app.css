@@ -1,0 +1,658 @@
+/* ===================================== */
+/* 1. Глобальні та базові стилі         */
+/* ===================================== */
+
+/* Скидання фокуса для заголовків */
+h1:focus {
+    outline: none;
+}
+
+/* Базові стилі для сторінки та тіла */
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Inter, sans-serif;
+}
+
+
+/* ===================================== */
+/* 2. Стилі валідації форм та обробки помилок */
+/* ===================================== */
+
+/* Правильне заповнення (окреслення зеленим) */
+.valid.modified:not([type=checkbox]) {
+    outline: 1px solid #26b050;
+}
+
+/* Некоректне заповнення (окреслення червоним) */
+.invalid {
+    outline: 1px solid #e50000;
+}
+
+/* Повідомлення про помилку */
+.validation-message {
+    color: #e50000;
+}
+
+/* Стилі для Blazor Error Boundary */
+.blazor-error-boundary {
+    background: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNDkiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiIG92ZXJmbG93PSJoaWRkZW4iPjxkZWZzPjxjbGlwUGF0aCBpZD0iY2xpcDAiPjxyZWN0IHg9IjIzNSIgeT0iNTEiIHdpZHRoPSI1NiIgaGVpZ2h0PSI0OSIvPjwvY2xpcFBhdGg+PC9kZWZzPjxnIGNsaXAtcGF0aD0idXJsKCNjbGlwMCkiIHRyYW5zZm9ybT0idHJhbnNsYXRlKC0yMzUgLTUxKSI+PHBhdGggZD0iTTI2My41MDYgNTFDMjY0LjcxNyA1MSAyNjUuODEzIDUxLjQ4MzcgMjY2LjYwNiA1Mi4yNjU4TDI2Ny4wNTIgNTIuNzk4NyAyNjcuNTM5IDUzLjYyODMgMjkwLjE4NSA5Mi4xODMxIDI5MC41NDUgOTIuNzk1IDI5MC42NTYgOTIuOTk2QzI5MC44NzcgOTMuNTEzIDI5MSA5NC4wODE1IDI5MSA5NC42NzgyIDI5MSA5Ny4wNjUxIDI4OS4wMzggOTkgMjg2LjYxNyA5OVwyNDAuMzgzIDk5QzIzNy45NjMgOTkgMjM2IDk3LjA2NTEgMjM2IDk0LjY3ODIgMjM2IDk0LjM3OTkgMjM2LjAzMSA5NC4wODg2IDIzNi4wODkgOTMuODA3MkwyMzYuMzM4IDkzLjAxNjIgMjM2Ljg1OCA5Mi4xMzE0IDI1OS40NzMgNTMuNjI5NCAyNTkuOTYxIDUyLjc5ODUgMjYwLjQwNyA1Mi4yNjU4QzI2MS4yIDUxLjQ4MzcgMjYyLjI5NiA1MSAyNjMuNTA2IDUxWk0yNjMuNTg2IDY2LjAxODNDMjYwLjczNyA2Ni4wMTgzIDI1OS4zMTMgNjcuMTI0NSAyNTkuMzEzIDY5LjMzNyAyNTkuMzEzIDY5LjYxMDIgMjU5LjMzMiA2OS44NjA4IDI1OS4zNzEgNzAuMDg4N0wyNjEuNzk1IDg0LjAxNjEgMjY1LjM4IDg0LjAxNjEgMjY3LjgyMSA2OS43NDc1QzI2Ny44NiA2OS43MzA5IDI2Ny44NzkgNjkuNTg3NyAyNjcuODc5IDY5LjMxNzkgMjY3Ljg3OSA2Ny4xMTgyIDI2Ni40NDggNjYuMDE4MyAyNjMuNTg2IDY2LjAxODNaTTI2My41NzYgODYuMDU0N0MyNjEuMDQ5IDg2LjA1NDcgMjU5Ljc4NiA4Ny4zMDA1IDI1OS43ODYgODkuNzkyMSAyNTkuNzg2IDkyLjI4MzcgMjYxLjA0OSA5My41Mjk1IDI2My41NzYgOTMuNTI5NSAyNjYuMTE2IDkzLjUyOTUgMjY3LjM4NyA5Mi4yODM3IDI2Ny4zODcgODkuNzkyMSAyNjcuMzg3IDg3LjMwMDUgMjY2LjExNiA4Ni4wNTQ3IDI2My41NzYgODYuMDU0N1oiIGZpbGw9IiNGRkU1MDAiIGZpbGwtcnVsZT0iZXZlbm9kZCIvPjwvZz48L3N2Zz4=) no-repeat 1rem/1.8rem, #b32121;
+    padding: 1rem 1rem 1rem 3.7rem;
+    color: white;
+}
+
+    .blazor-error-boundary::after {
+        content: "An error has occurred.";
+    }
+
+/* Інші стилі форм (placeholder-и) */
+.form-floating > .form-control-plaintext::placeholder,
+.form-floating > .form-control::placeholder {
+    color: var(--bs-secondary-color);
+    text-align: end;
+}
+
+.form-floating > .form-control-plaintext:focus::placeholder,
+.form-floating > .form-control:focus::placeholder {
+    text-align: start;
+}
+
+
+/* ===================================== */
+/* 3. Стилі меню та користувацького інтерфейсу */
+/* ===================================== */
+
+.menu-container {
+    width: 18%;
+    min-height: 100vh;
+    background: #DADFEA;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.menu-content {
+    position: relative;
+    left: 20px;
+    top: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+/* Контейнер логотипу (для меню) */
+.logo-menu-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Секції меню */
+.section-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 304px;
+}
+
+.divider {
+    width: 100%;
+    height: 1px;
+    background: #EEEEF0;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    cursor: pointer;
+}
+
+.section-title {
+    font-family: 'Inter';
+    font-weight: 600;
+    font-size: 14px;
+    color: #191919;
+    margin: 0;
+}
+
+/* Анімація стрілки */
+.arrow-icon {
+    transition: transform 0.2s ease;
+}
+
+.rotated {
+    transform: rotate(180deg);
+}
+
+/* Стилізація чекбоксів у меню */
+.checkbox-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-left: 8px;
+}
+
+.checkbox-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.checkbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #C0C0C0;
+}
+
+    .checkbox.active {
+        background: #057CFF;
+    }
+
+.checkbox-label {
+    font-family: 'Inter';
+    font-size: 12px;
+    color: #000;
+}
+
+/* Стилі футера користувача */
+.user-footer {
+    padding: 20px;
+    border-top: 1px solid #EEEEF0;
+    position: relative;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+.user-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: #057CFF;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.username {
+    font-family: 'Inter';
+    font-weight: 600;
+    font-size: 12px;
+    color: #191919;
+}
+
+.useremail {
+    font-family: 'Inter';
+    font-size: 10px;
+    color: #646464;
+}
+
+.user-menu-arrow {
+    margin-left: auto;
+    transition: transform 0.2s ease;
+}
+
+/* Стилі випадаючого меню користувача */
+.dropdown-menu {
+    position: absolute;
+    bottom: 70px;
+    left: 0;
+    width: 100%;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    z-index: 10;
+}
+
+.menu-item {
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+}
+
+    .menu-item:hover {
+        background: #f8f9fa;
+    }
+
+.menu-item-text {
+    font-family: 'Inter';
+    font-size: 14px;
+    color: #191919;
+}
+
+.menu-divider {
+    width: 100%;
+    height: 1px;
+    background: #EEEEF0;
+}
+
+.logout-text {
+    font-family: 'Inter';
+    font-size: 14px;
+    color: #dc2626;
+}
+
+
+/* ===================================== */
+/* 4. Стилі для завантаження (Loading Screen) */
+/* ===================================== */
+
+/* Екран завантаження */
+#loading-screen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: #f5f5f5;
+    z-index: 9999;
+    transition: opacity 0.5s ease-out;
+}
+
+/* Логотип у завантаженні */
+.logo-container {
+    margin-bottom: 0px;
+}
+
+.logo-image {
+    max-width: 5000px;
+}
+
+.logo-image-menu {
+    max-width: 50%;
+}
+
+/* Фіксована кнопка у нижньому правому куті */
+.fixed-bottom-right {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 320px;
+    height: 50px;
+    background-color: #057CFF;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+    .fixed-bottom-right:disabled {
+        background-color: #C0C0C0;
+        cursor: not-allowed;
+    }
+
+/* Анімація для спінера */
+.loading-spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid rgba(0, 123, 255, 0.2);
+    border-top: 5px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+/* Контейнер додатку, який показується після завантаження */
+#app {
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.5s ease-in;
+}
+
+    #app.loaded {
+        visibility: visible;
+        opacity: 1;
+    }
+
+
+/* ===================================== */
+/* 5. Стилі сторінки WiFi (Algoritm/Pages/Wifi) */
+/* ===================================== */
+
+
+
+/* Заголовок сторінки */
+.page-title {
+    font-weight: 600;
+    font-size: 18px;
+    color: #191919;
+    margin-bottom: 32px;
+}
+
+/* Секція "Некроз на нижній кінцівці" */
+.frame-2147223206 {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0;
+    gap: 16px;
+    width: 640px;
+}
+
+.nekroz-label {
+    width: 640px;
+    font-family: Inter, sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 17px;
+    color: #191919;
+}
+
+/* Група для радіокнопок вибору стану */
+.checkbox-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0;
+    gap: 14px;
+    width: 88px;
+    height: 46px;
+}
+
+/* Рядок з однією радіокнопкою та її міткою */
+.radio-button-group {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    gap: 10px;
+    width: 88px;
+    height: 16px;
+}
+
+/* Контейнер для кастомної радіокнопки */
+.radio-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    /* Сховування стандартного інпуту радіокнопки */
+    .radio-button input[type="radio"] {
+        display: none;
+    }
+
+/* Кастомний індикатор для невибраного стану */
+.custom-indicator {
+    box-sizing: border-box;
+    width: 16px;
+    height: 16px;
+    border: 1px solid #057CFF;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Стилізація вибраного стану — кастомний індикатор */
+.radio-button input[type="radio"]:checked + .custom-indicator {
+    padding: 4px;
+    gap: 10px;
+    width: 16px;
+    height: 16px;
+    border: 4px solid #057CFF;
+    border-radius: 8px;
+    background-color: transparent;
+}
+
+/* Мітка для радіокнопки */
+.radio-label {
+    width: 62px;
+    height: 15px;
+    font-family: Inter, sans-serif;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 15px;
+    color: #000000;
+}
+
+/* Лейбли для елементів select */
+.inner-label {
+    font-weight: 600;
+    font-size: 14px;
+    color: #191919;
+    display: block;
+    margin-bottom: 8px;
+}
+
+/* Стилізація стандартного select */
+.select-basic {
+    width: 400px;
+    height: 46px;
+    padding: 0 0px;
+    border-radius: 8px;
+    border: 2px solid #E0E0E0;
+    font-size: 14px;
+    font-family: Inter, sans-serif;
+    outline: none;
+    background: #EEEEF0;
+}
+
+/* Результат обчислення рівня W */
+.w-level-result {
+    margin-top: 24px;
+    padding: 16px 20px;
+    background-color: #f0f4ff;
+    border: 1px solid #b0c9f8;
+    border-radius: 8px;
+    color: #191919;
+    font-size: 14px;
+}
+
+/* Контейнер для кнопки "Продовжити" */
+.button-container {
+    margin-top: 40px;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Кнопка "Продовжити" */
+.continue-button {
+    width: 200px;
+    height: 44px;
+    background: #057CFF;
+    border-radius: 8px;
+    border: none;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+    .continue-button:disabled {
+        background-color: #C0C0C0;
+        cursor: not-allowed;
+    }
+
+
+/* ===================================== */
+/* 6. Стилі для сторінки KPI-PPI           */
+/* ===================================== */
+
+/* Контейнер для KPI-PPI */
+.page-container {
+    position: relative;
+    width: auto;
+    height: auto;
+    background: #EEEEF0;
+}
+
+.main-content {
+    position: absolute;
+    left: 382px;
+    top: 72px;
+    width: 640px;
+    display: flex; /* Замість display: block */
+    flex-direction: column; /* Щоб елементи йшли зверху вниз */
+    gap: 24px;
+}
+
+/* Блок введення значення KPI */
+.input-group {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 16px;
+}
+
+.item-title {
+    font-weight: 600;
+    font-size: 14px;
+    color: #191919;
+}
+
+.input-container {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 12px 20px;
+    width: 400px;
+    height: 46px;
+    background: #EEEEF0;
+    border: 1px solid #E0E0E0;
+    border-radius: 8px;
+}
+
+.input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    font-family: Inter, sans-serif;
+    outline: none;
+    line-height: 100%;
+    letter-spacing: 0%;
+    font-size: 14px;
+    color: #646464;
+}
+
+/* Блок виведення результатів KPI та PPI */
+.results-container {
+    margin-top: 20px;
+}
+
+.normal-message {
+    margin-top: 16px;
+    padding: 16px 20px;
+    background-color: #e9f1ef;
+    border: 1px solid #c8e2d4;
+    border-radius: 8px;
+    color: #191919;
+}
+
+/* Блок введення та повідомлень PPI */
+.ppi-warning-message {
+    /* Додаткові стилі за потребою */
+}
+
+.ppi-title {
+    margin-top: 24px;
+    font-weight: 600;
+    font-size: 14px;
+    color: #191919;
+}
+
+
+.normal-message {
+    margin-top: 16px;
+    padding: 16px 20px;
+    background-color: #e9f1ef;
+    border: 1px solid #c8e2d4;
+    border-radius: 8px;
+    color: #191919;
+}
+
+.ppi-low-message {
+    margin-top: 16px;
+    padding: 16px 20px;
+    background-color: #fff8e1;
+    border: 1px solid #ffe082;
+    border-radius: 8px;
+    color: #191919;
+}
+
+/* Повідомлення для комбінованих результатів KPI та PPI */
+.kpi-ppi-normal-message {
+    margin-top: 24px;
+    padding: 16px 20px;
+    background-color: #e9f1ef;
+    border: 1px solid #c8e2d4;
+    border-radius: 8px;
+    color: #191919;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+
+/* ===================================== */
+/* 7. Фіксована кнопка в нижньому правому куті   */
+/* ===================================== */
+
+.fixed-bottom-right {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 320px;
+    height: 50px;
+    z-index: 1000;
+}
+
+.fixed-btn {
+    width: 100%;
+    height: 100%;
+    border-radius: 8px;
+    border: none;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+}
+
+.continue-btn,
+.finish-btn {
+    background: #057CFF;
+}
+
+.disabled-btn {
+    background: #C0C0C0;
+}

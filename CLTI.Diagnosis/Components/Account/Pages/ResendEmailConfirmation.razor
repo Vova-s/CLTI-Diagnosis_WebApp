@@ -1,0 +1,87 @@
+﻿@page "/Account/ResendEmailConfirmation"
+@using System.ComponentModel.DataAnnotations
+@using System.Text
+@using System.Text.Encodings.Web
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using CLTI.Diagnosis.Data
+@inject UserManager<ApplicationUser> UserManager
+@inject IEmailSender<ApplicationUser> EmailSender
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Resend email confirmation</PageTitle>
+
+<div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md">
+        <h1 class="text-2xl font-bold text-center mb-2">Resend email confirmation</h1>
+        <h2 class="text-lg text-center text-gray-600 mb-6">Enter your email.</h2>
+
+        @if (!string.IsNullOrEmpty(message))
+        {
+            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-4" role="alert">
+                <p>@message</p>
+            </div>
+        }
+
+        <EditForm Model="Input" FormName="resend-email-confirmation" OnValidSubmit="OnValidSubmitAsync" method="post">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-red-500 mb-4" role="alert" />
+
+            <div class="mb-4">
+                <label for="Input.Email" class="block text-gray-700 text-sm font-bold mb-2">Email *</label>
+                <InputText @bind-Value="Input.Email"
+                           id="Input.Email"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           aria-required="true"
+                           placeholder="name@example.com" />
+                <ValidationMessage For="() => Input.Email" class="text-red-500 text-sm mt-1" />
+            </div>
+
+            <button type="submit"
+                    class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded w-full transition duration-200">
+                Resend
+            </button>
+        </EditForm>
+
+        <div class="mt-4 text-center text-sm text-gray-600">
+            <a href="/Account/Login" class="text-blue-500 hover:underline font-medium">
+                Return to login
+            </a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? message;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    private async Task OnValidSubmitAsync()
+    {
+        var user = await UserManager.FindByEmailAsync(Input.Email!);
+        if (user is null)
+        {
+            message = "Verification email sent. Please check your email.";
+            return;
+        }
+
+        var userId = await UserManager.GetUserIdAsync(user);
+        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
+        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
+        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
+            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
+            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code });
+
+        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+        message = "Verification email sent. Please check your email.";
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+    }
+}

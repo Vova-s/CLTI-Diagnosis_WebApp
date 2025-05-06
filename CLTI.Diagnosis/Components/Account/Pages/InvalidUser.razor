@@ -1,0 +1,25 @@
+﻿@page "/Account/InvalidUser"
+
+<PageTitle>Invalid user</PageTitle>
+
+<div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md text-center">
+        <svg class="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+        </svg>
+
+        <h1 class="text-2xl font-bold mb-4">Invalid User</h1>
+
+        <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-6 text-left">
+            <p class="text-red-700">The requested user could not be found or is invalid.</p>
+        </div>
+
+        <StatusMessage />
+
+        <div class="mt-6">
+            <a href="/Account/Login" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded transition duration-200">
+                Return to Login
+            </a>
+        </div>
+    </div>
+</div>

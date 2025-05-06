@@ -1,0 +1,157 @@
+﻿@page "/Account/Login"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using CLTI.Diagnosis.Data
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Login> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Log in</PageTitle>
+
+<div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md mb-4">
+        <h2 class="text-2xl font-bold text-center mb-6">Log in</h2>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+                <p>@errorMessage</p>
+            </div>
+        }
+
+        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-red-500 mb-4" role="alert" />
+
+            <!-- Email field -->
+            <div class="mb-4">
+                <label for="Input.Email" class="block text-gray-700 text-sm font-bold mb-2">Email *</label>
+                <InputText @bind-Value="Input.Email"
+                           id="Input.Email"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           autocomplete="username"
+                           aria-required="true"
+                           placeholder="name@example.com" />
+                <ValidationMessage For="() => Input.Email" class="text-red-500 text-sm mt-1" />
+            </div>
+
+            <!-- Password field -->
+            <div class="mb-4">
+                <label for="Input.Password" class="block text-gray-700 text-sm font-bold mb-2">Password *</label>
+                <InputText type="password"
+                           @bind-Value="Input.Password"
+                           id="Input.Password"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           autocomplete="current-password"
+                           aria-required="true"
+                           placeholder="Enter your password" />
+                <ValidationMessage For="() => Input.Password" class="text-red-500 text-sm mt-1" />
+            </div>
+
+            <!-- Remember me checkbox -->
+            <div class="mb-4">
+                <label class="flex items-center">
+                    <InputCheckbox @bind-Value="Input.RememberMe"
+                                   class="mr-2 border-gray-300 rounded" />
+                    <span class="text-sm text-gray-700">Remember me</span>
+                </label>
+            </div>
+
+            <!-- Login button -->
+            <div class="mb-6">
+                <button type="submit"
+                        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded w-full transition duration-200">
+                    Log in
+                </button>
+            </div>
+
+            <!-- Links section -->
+            <div class="text-center text-sm">
+                <p class="mb-2">
+                    <a href="Account/ForgotPassword" class="text-blue-500 hover:underline">Forgot your password?</a>
+                </p>
+                <p class="mb-2">
+                    <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))"
+                       class="text-blue-500 hover:underline">Register as a new user</a>
+                </p>
+                <p>
+                    <a href="Account/ResendEmailConfirmation" class="text-blue-500 hover:underline">Resend email confirmation</a>
+                </p>
+            </div>
+        </EditForm>
+    </div>
+
+    <!-- External login options section -->
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md">
+        <h3 class="text-xl font-semibold mb-4 text-center">Use another service to log in</h3>
+        <hr class="mb-4" />
+        <ExternalLoginPicker />
+    </div>
+</div>
+
+@code {
+    private string? errorMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            // Clear the existing external cookie to ensure a clean login process
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        // This doesn't count login failures towards account lockout
+        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User logged in.");
+            RedirectManager.RedirectTo(ReturnUrl);
+        }
+        else if (result.RequiresTwoFactor)
+        {
+            RedirectManager.RedirectTo(
+                "Account/LoginWith2fa",
+                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account locked out.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            errorMessage = "Error: Invalid login attempt.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Display(Name = "Remember me?")]
+        public bool RememberMe { get; set; }
+    }
+}

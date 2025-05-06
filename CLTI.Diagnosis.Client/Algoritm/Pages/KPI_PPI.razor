@@ -1,0 +1,159 @@
+﻿@page "/Algoritm/Pages/KPI-PPI"
+@rendermode InteractiveServer
+@implements IDisposable
+@using CLTI.Diagnosis.Client.Algoritm.Shared
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+
+<div class="page-container">
+    <NavMenu />
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <div class="input-group">
+            <div class="item-title">
+                Значення КПІ (кісточково-плечовий індекс)
+            </div>
+            <div class="input-container">
+                <input type="text"
+                       @bind-value="kpiValueString"
+                       @oninput="HandleKpiInput"
+                       placeholder="Введіть значення"
+                       class="input" />
+            </div>
+        </div>
+        
+        @if (HasKpiValue())
+        {
+@*             <div class="results-container">
+                @if (StateService.ShowKpiNormal && StateService.PpiValue == 0)
+                {
+                    <div class="normal-message">
+                        Значення КПІ є в нормі
+                    </div>
+                }
+            </div> *@
+                @if (StateService.ShowPpiField)
+                {
+                    @* <div class="warning-message">
+                        Можлива кальцифікація артерій, необхідно додатково виміряти ППІ
+                    </div> *@ 
+
+                    <div class="input-group">
+                        <div class="item-title">
+                            Значення ППІ (пальце-плечовий індекс)
+                        </div>
+                        <div class="input-container">
+                            <input type="text"
+                                   @bind-value="ppiValue"
+                                   @oninput="UpdatePpiValue"
+                                   placeholder="Введіть значення"
+                                   class="input" />
+                        </div>
+                    </div>
+
+                    @if (StateService.ShowPpiNormal)
+                    {
+                        <div class="normal-message">
+                            Значення ППІ в межах норми
+                        </div>
+                    }
+                    @if (StateService.ShowPpiLow)
+                    {
+                        <div class="low-message">
+                            Значення ППІ нижче норми. Необхідна додаткова діагностика.
+                        </div>
+                    }
+                }
+
+                @if (StateService.ShowKpiNormal && StateService.ShowPpiNormal)
+                {
+                    <div class="normal-message">
+                        <span>Комбінація значень КПІ та ППІ є в межах норми</span>
+                    </div>
+                }
+          
+        }
+
+        <div class="fixed-bottom-right">
+            @if (StateService.CanContinue)
+            {
+                <button @onclick="Continue" class="fixed-btn continue-btn">Продовжити</button>
+            }
+            else if (!StateService.CanContinue)
+            {
+                <button @onclick="Finish" class="fixed-btn finish-btn">Закінчити</button>
+            }
+            else
+            {
+                <button disabled class="fixed-btn disabled-btn">Продовжити</button>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    private string kpiValueString = "";
+    private string ppiValue = "";
+    private Action? onStateChanged;
+
+    protected override void OnInitialized()
+    {
+        onStateChanged = () => InvokeAsync(StateHasChanged);
+        StateService.OnChange += onStateChanged;
+    }
+
+    private bool HasKpiValue() => StateService.KpiValue > 0;
+
+    private void HandleKpiInput(ChangeEventArgs e)
+    {
+        kpiValueString = e.Value?.ToString() ?? "";
+        ProcessKpiValue();
+    }
+
+    private void ProcessKpiValue()
+    {
+        if (double.TryParse(kpiValueString.Replace(',', '.'), System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out double value))
+        {
+            StateService.UpdateKpiValue(value);
+        }
+        else
+        {
+            StateService.UpdateKpiValue(0);
+        }
+    }
+
+    private void UpdatePpiValue(ChangeEventArgs e)
+    {
+        ppiValue = e.Value?.ToString() ?? "";
+        if (double.TryParse(ppiValue.Replace(',', '.'), System.Globalization.NumberStyles.Any,
+            System.Globalization.CultureInfo.InvariantCulture, out double value))
+        {
+            StateService.UpdatePpiValue(value);
+        }
+        else
+        {
+            StateService.UpdatePpiValue(0);
+        }
+    }
+
+    private async void Continue()
+    {
+        await InvokeAsync(StateHasChanged);
+        NavigationManager.NavigateTo("/Algoritm/Pages/Wifi", forceLoad: true);
+    }
+
+    private void Finish()
+    {
+        kpiValueString = "";
+        ppiValue = "";
+        StateService.Reset();
+    }
+
+    public void Dispose()
+    {
+        if (onStateChanged is not null)
+            StateService.OnChange -= onStateChanged;
+    }
+}

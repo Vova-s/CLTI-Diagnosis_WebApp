@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.13.35919.96
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CLTI.Diagnosis", "CLTI.Diagnosis\CLTI.Diagnosis.csproj", "{C7FBD3AB-ED0B-485B-8C46-47F9BF010A78}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CLTI.Diagnosis.Client", "CLTI.Diagnosis.Client\CLTI.Diagnosis.Client.csproj", "{A94E099B-CAA9-4347-9D35-B823116E7EBF}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C7FBD3AB-ED0B-485B-8C46-47F9BF010A78}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C7FBD3AB-ED0B-485B-8C46-47F9BF010A78}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C7FBD3AB-ED0B-485B-8C46-47F9BF010A78}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C7FBD3AB-ED0B-485B-8C46-47F9BF010A78}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A94E099B-CAA9-4347-9D35-B823116E7EBF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A94E099B-CAA9-4347-9D35-B823116E7EBF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A94E099B-CAA9-4347-9D35-B823116E7EBF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A94E099B-CAA9-4347-9D35-B823116E7EBF}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {2732DE8C-6064-48BA-88A4-D118EDA8612E}
+	EndGlobalSection
+EndGlobal

@@ -1,0 +1,87 @@
+﻿﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- Meta tags and base URL -->
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="/" />
+    <meta charset="utf-8" />
+    <title>CLTI Diagnosis</title>
+    <link rel="icon" href="Photo/logoWeb.ico">
+    <link rel="stylesheet" href="@Assets["app.css"]" />
+    <link rel="stylesheet" href="@Assets["CLTI.Diagnosis.styles.css"]" />
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet" />
+
+
+    <!-- Blazor Head Outlet -->
+    <HeadOutlet />
+    <ImportMap />
+
+</head>
+
+<body class="bg-gray-100">
+    <Routes />
+    <!-- Loading Screen displayed while Blazor initializes -->
+    <div id="loading-screen">
+        <div class="logo-container">
+            <img src="Photo/logo.png" alt="CLTI Diagnosis Logo" class="logo-image" />
+        </div>
+        <div class="loading-spinner"></div>
+        <p class="mt-3">Loading...</p>
+    </div>
+
+    <!-- Blazor App Root Element -->
+    <div id="app"></div>
+
+    <!-- Blazor WebAssembly Script -->
+    <script src="_framework/blazor.server.js"></script>
+
+    <!-- Transition Script: Hides the loading screen and displays the app -->
+    <script>
+        // Function to fade out the loading screen and reveal the Blazor app
+        function showApp() {
+            const loadingScreen = document.getElementById('loading-screen');
+            const app = document.getElementById('app');
+
+            // Fade out the loading screen
+            loadingScreen.style.opacity = '0';
+
+            // Reveal the app
+            app.classList.add('loaded');
+
+            // Remove the loading screen element after the transition completes
+            setTimeout(() => {
+                loadingScreen.style.display = 'none';
+            }, 100);
+        }
+
+        // Wait for the DOM to load and Blazor to initialize
+        document.addEventListener('DOMContentLoaded', function () {
+            // Use Blazor's event if available
+            if (window.Blazor) {
+                Blazor.addEventListener('afterStarted', showApp);
+            } else {
+                // Fallback: Check periodically if Blazor has initialized
+                setTimeout(() => {
+                    if (document.querySelector('.blazor-error-ui')) {
+                        showApp();
+                    } else {
+                        const checkInterval = setInterval(() => {
+                            if (document.querySelector('.blazor-error-ui') || window._blazorInitialized) {
+                                clearInterval(checkInterval);
+                                showApp();
+                            }
+                        }, 100);
+                    }
+                }, 100);
+            }
+            // Safety timeout: Show the app after 10 seconds regardless
+            setTimeout(showApp, 350);
+        });
+    </script>
+</body>
+</html>
+
+
+

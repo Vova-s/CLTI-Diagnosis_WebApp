@@ -1,0 +1,107 @@
+﻿@page "/Account/ConfirmEmailChange"
+@using System.Text
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+@using CLTI.Diagnosis.Data
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Confirm email change</PageTitle>
+
+<div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+    <div class="bg-white shadow-md rounded-lg p-8 max-w-md w-full text-center">
+        <h1 class="text-2xl font-bold mb-4">Confirm Email Change</h1>
+
+        @if (message == null)
+        {
+            <div class="mb-6">
+                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                <p class="mt-4 text-gray-600">Processing your request...</p>
+            </div>
+        }
+        else if (message.Contains("Thank you"))
+        {
+            <div class="mb-6">
+                <svg class="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="text-green-600 font-medium">@message</p>
+            </div>
+
+            <div class="mt-6">
+                <a href="/Account/Manage" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded transition duration-200">
+                    Back to Profile
+                </a>
+            </div>
+        }
+        else
+        {
+            <div class="mb-6">
+                <svg class="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <p class="text-red-600 font-medium">@message</p>
+            </div>
+
+            <div class="mt-6">
+                <a href="/Account/Manage/Email" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded transition duration-200">
+                    Try Again
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string? message;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? UserId { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Email { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Code { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserId is null || Email is null || Code is null)
+        {
+            RedirectManager.RedirectToWithStatus(
+                "Account/Login", "Error: Invalid email change confirmation link.", HttpContext);
+            return;
+        }
+
+        var user = await UserManager.FindByIdAsync(UserId);
+        if (user is null)
+        {
+            message = "Unable to find user with Id '{userId}'";
+            return;
+        }
+
+        var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+        var result = await UserManager.ChangeEmailAsync(user, Email, code);
+        if (!result.Succeeded)
+        {
+            message = "Error changing email.";
+            return;
+        }
+
+        // In our UI email and user name are one and the same, so when we update the email
+        // we need to update the user name.
+        var setUserNameResult = await UserManager.SetUserNameAsync(user, Email);
+        if (!setUserNameResult.Succeeded)
+        {
+            message = "Error changing user name.";
+            return;
+        }
+
+        await SignInManager.RefreshSignInAsync(user);
+        message = "Thank you for confirming your email change.";
+    }
+}

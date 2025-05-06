@@ -1,0 +1,89 @@
+﻿@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using CLTI.Diagnosis.Data
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityRedirectManager RedirectManager
+
+@if (externalLogins.Length == 0)
+{
+    <div class="text-center text-gray-600 py-4">
+        <p>
+            There are no external authentication services configured. See this
+            <a href="https://go.microsoft.com/fwlink/?LinkID=532715" class="text-blue-500 hover:underline">
+                article about setting up this ASP.NET application to support logging in via external services
+            </a>.
+        </p>
+    </div>
+}
+else
+{
+    <form class="w-full" action="Account/PerformExternalLogin" method="post">
+        <div>
+            <AntiforgeryToken />
+            <input type="hidden" name="ReturnUrl" value="@ReturnUrl" />
+
+            <div class="space-y-2">
+                @foreach (var provider in externalLogins)
+                {
+                    @if (provider.Name.ToLower().Contains("google"))
+                    {
+                        <button type="submit" name="provider" value="@provider.Name"
+                                class="flex items-center justify-center w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50 transition duration-200">
+                            <svg class="h-5 w-5 mr-2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12.24 10.285V14.4h6.806c-.275 1.765-2.056 5.174-6.806 5.174-4.095 0-7.439-3.389-7.439-7.574s3.345-7.574 7.439-7.574c2.33 0 3.891.989 4.785 1.849l3.254-3.138C18.189 1.186 15.479 0 12.24 0c-6.635 0-12 5.365-12 12s5.365 12 12 12c6.926 0 11.52-4.869 11.52-11.726 0-.788-.085-1.39-.189-1.989H12.24z"
+                                      fill="#4285F4" fill-rule="evenodd"></path>
+                            </svg>
+                            <span class="text-gray-700 font-medium">Continue with @provider.DisplayName</span>
+                        </button>
+                    }
+                    else if (provider.Name.ToLower().Contains("facebook"))
+                    {
+                        <button type="submit" name="provider" value="@provider.Name"
+                                class="flex items-center justify-center w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-[#1877F2] hover:bg-[#166fe5] text-white transition duration-200">
+                            <svg class="h-5 w-5 mr-2" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M23.9981 11.9991C23.9981 5.37216 18.626 0 11.9991 0C5.37216 0 0 5.37216 0 11.9991C0 17.9882 4.38789 22.9522 10.1242 23.8524V15.4676H7.07758V11.9991H10.1242V9.35553C10.1242 6.34826 11.9156 4.68714 14.6564 4.68714C15.9692 4.68714 17.3424 4.92149 17.3424 4.92149V7.87439H15.8294C14.3388 7.87439 13.8739 8.79933 13.8739 9.74824V11.9991H17.2018L16.6698 15.4676H13.8739V23.8524C19.6103 22.9522 23.9981 17.9882 23.9981 11.9991Z"
+                                      fill="white"></path>
+                            </svg>
+                            <span class="font-medium">Continue with @provider.DisplayName</span>
+                        </button>
+                    }
+                    else if (provider.Name.ToLower().Contains("microsoft"))
+                    {
+                        <button type="submit" name="provider" value="@provider.Name"
+                                class="flex items-center justify-center w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-white hover:bg-gray-50 transition duration-200">
+                            <svg class="h-5 w-5 mr-2" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M0 0h11v11H0V0z" fill="#F25022"></path>
+                                <path d="M12 0h11v11H12V0z" fill="#7FBA00"></path>
+                                <path d="M0 12h11v11H0V12z" fill="#00A4EF"></path>
+                                <path d="M12 12h11v11H12V12z" fill="#FFB900"></path>
+                            </svg>
+                            <span class="text-gray-700 font-medium">Continue with @provider.DisplayName</span>
+                        </button>
+                    }
+                    else
+                    {
+                        <button type="submit" name="provider" value="@provider.Name"
+                                class="flex items-center justify-center w-full py-2 px-4 border border-gray-300 rounded-md shadow-sm bg-gray-800 hover:bg-gray-700 text-white transition duration-200">
+                            <svg class="h-5 w-5 mr-2" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                            </svg>
+                            <span class="font-medium">Continue with @provider.DisplayName</span>
+                        </button>
+                    }
+                }
+            </div>
+        </div>
+    </form>
+}
+
+@code {
+    private AuthenticationScheme[] externalLogins = [];
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        externalLogins = (await SignInManager.GetExternalAuthenticationSchemesAsync()).ToArray();
+    }
+}

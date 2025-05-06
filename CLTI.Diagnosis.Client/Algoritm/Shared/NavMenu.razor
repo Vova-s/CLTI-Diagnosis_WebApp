@@ -1,0 +1,153 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+
+<div class="menu-container">
+    <div>
+        <div class="menu-content">
+            <!-- Логотип -->
+            <div class="logo-menu-container">
+                <img src="Photo/logo-menu.png" alt="CLTI Diagnosis Logo" class="logo-image-menu" />
+            </div>
+            <!-- Секція "Значущість" -->
+            <div class="section-container">
+                <!-- Розділювач -->
+                <div class="divider"></div>
+                <!-- Заголовок + стрілка -->
+                <div @onclick="ToggleHemodynamicSection" class="section-header">
+                    <h3 class="section-title">
+                        Значущість гемодинамічних змін
+                    </h3>
+                    <svg width="18" height="18" class="@(showHemodynamic ? "arrow-icon rotated" : "arrow-icon")" viewBox="0 0 18 18" fill="none">
+                        <path d="M14.25 11.25L9 6L3.75 11.25" stroke="#646464" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                </div>
+                @if (showHemodynamic)
+                {
+                    <!-- Чекбокси -->
+                    <div class="checkbox-container">
+                        <!-- KPI Checkbox -->
+                        <div class="checkbox-row">
+                            <div class="@(StateService.KpiValue > 0 ? "checkbox active" : "checkbox")">
+                                @if (StateService.KpiValue > 0)
+                                {
+                                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                        <path d="M10 3L4.5 8.5L2 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                }
+                            </div>
+                            <span class="checkbox-label">КПІ</span>
+                        </div>
+                        @if (StateService.IsPpiVisible)
+                        {
+                            <div class="checkbox-row">
+                                <div class="@(StateService.PpiValue > 0 ? "checkbox active" : "checkbox")">
+                                    @if (StateService.PpiValue > 0)
+                                    {
+                                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                                            <path d="M10 3L4.5 8.5L2 6" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                                        </svg>
+                                    }
+                                </div>
+                                <span class="checkbox-label">ППІ</span>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+    <!-- Футер з інформацією про користувача -->
+    <div class="user-footer">
+        <div @onclick="ToggleUserMenu" class="user-info">
+            <div class="user-avatar">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                    <path d="M8 8C10.21 8 12 6.21 12 4C12 1.79 10.21 0 8 0C5.79 0 4 1.79 4 4C4 6.21 5.79 8 8 8ZM8 10C5.33 10 0 11.34 0 14V16H16V14C16 11.34 10.67 10 8 10Z" fill="white" />
+                </svg>
+            </div>
+            <div class="user-details">
+                <span class="username">@username</span>
+                <span class="useremail">@useremail</span>
+            </div>
+            <svg width="16" height="16" class="@(showUserMenu ? "user-menu-arrow rotated" : "user-menu-arrow")" viewBox="0 0 16 16" fill="none">
+                <path d="M12 6L8 10L4 6" stroke="#646464" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+        </div>
+        <!-- Випадаюче меню користувача -->
+        @if (showUserMenu)
+        {
+            <div class="dropdown-menu">
+                <div @onclick="NavigateToSettings" class="menu-item">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M8 10C9.10457 10 10 9.10457 10 8C10 6.89543 9.10457 6 8 6C6.89543 6 6 6.89543 6 8C6 9.10457 6.89543 10 8 10Z" stroke="#646464" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M12.9332 8.00004C12.9332 8.00004 12.9999 7.33337 12.9999 6.66671C12.9999 6.00004 12.9332 5.33337 12.9332 5.33337M3.06654 8.00004C3.06654 8.00004 2.99988 7.33337 2.99988 6.66671C2.99988 6.00004 3.06654 5.33337 3.06654 5.33337" stroke="#646464" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span class="menu-item-text">Налаштування</span>
+                </div>
+                <div class="menu-divider"></div>
+                <div @onclick="Logout" class="menu-item">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                        <path d="M6 14H3.33333C2.97971 14 2.64057 13.8595 2.39052 13.6095C2.14048 13.3594 2 13.0203 2 12.6667V3.33333C2 2.97971 2.14048 2.64057 2.39052 2.39052C2.64057 2.14048 2.97971 2 3.33333 2H6" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M10.6666 11.3333L14 8L10.6666 4.66667" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                        <path d="M14 8H6" stroke="#dc2626" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                    <span class="logout-text">Вийти</span>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+
+@code {
+    private bool showHemodynamic = true;
+    private bool showUserMenu = false;
+    private string username = "Користувач";
+    private string useremail = "user@example.com";
+
+    protected override void OnInitialized()
+    {
+        // Підписуємося на подію зміни стану
+        StateService.OnChange += HandleStateChange;
+        base.OnInitialized();
+    }
+
+    private void HandleStateChange()
+    {
+        // Використовуйте InvokeAsync для забезпечення потоку UI
+        InvokeAsync(() => StateHasChanged());
+    }
+
+    public void ToggleHemodynamicSection()
+    {
+        showHemodynamic = !showHemodynamic;
+        StateHasChanged();
+    }
+
+    public void ToggleUserMenu()
+    {
+        showUserMenu = !showUserMenu;
+        StateHasChanged();
+    }
+
+    public void NavigateToSettings()
+    {
+        NavigationManager.NavigateTo("/settings");
+        showUserMenu = false;
+    }
+
+    public void Logout()
+    {
+        NavigationManager.NavigateTo("/Account/Login", forceLoad:true);
+        showUserMenu = false;
+    }
+
+    public void Dispose()
+    {
+        // Відписуємось від події при знищенні компонента
+        StateService.OnChange -= HandleStateChange;
+    }
+}
