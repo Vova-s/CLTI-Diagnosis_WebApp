@@ -64,7 +64,7 @@ body {
 
 .menu-container {
     width: 18%;
-    min-height: 100vh;
+    height: 100vh;
     background: #DADFEA;
     display: flex;
     flex-direction: column;
