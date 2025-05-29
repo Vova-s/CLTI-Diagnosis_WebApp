@@ -4,8 +4,8 @@
 {
     <div class="context-menu-overlay" @onclick="Hide" style="top:@menuTopPx; left:@menuLeftPx;">
         <div class="frame-parent context-menu" @onclick:stopPropagation>
-            <div class="subtitle-container" @onclick="OnEditProfile">
-                <div class="subtitle">Налаштування профілю</div>
+            <div class="subtitle-wrapper" @onclick="OnEditProfile">
+                <div class="subtitle">Налаштування</div>
             </div>
             <div class="subtitle-frame" @onclick="OnExit">
                 <div class="subtitle">Вийти</div>
@@ -13,4 +13,3 @@
         </div>
     </div>
 }
-

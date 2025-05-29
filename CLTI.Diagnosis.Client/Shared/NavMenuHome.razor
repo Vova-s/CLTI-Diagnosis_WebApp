@@ -1,4 +1,5 @@
 ﻿@using CLTI.Diagnosis.Client.Algoritm
+@using CLTI.Diagnosis.Client.Components
 @using Microsoft.AspNetCore.Components.Authorization
 
 @inject StateService StateService
@@ -9,8 +10,9 @@
     <div class="logo-menu-1-parent">
 
         <!-- Логотип -->
-        <img class="logo-menu-1-icon" src="Photo/logo-menu.png" alt="CLTI Diagnosis Logo">
-
+        <a href="/" class="btn btn-primary">
+            <img class="logo-menu-1-icon" src="Photo/logo-menu.png" alt="CLTI Diagnosis Logo">
+        </a>
         <div class="frame-wrapper">
             <div class="frame-group">
 
@@ -84,18 +86,18 @@
                     <div class="frame-child"></div>
 
                     <!-- Інформація про користувача -->
-                    <div class="frame-container">
+                    <div class="frame-container" @onclick="ToggleUserMenu">
                         <div class="frame-div">
-                            <img class="frame-icon" alt="User Icon" src="Photo/userIcon.png">
-
+                            <img class="frame-icon" alt="User Icon" src="Photo/userIcon.png" />
                             <div class="parent">
-                                <div class="div7">Користувач</div>
-                                <div class="usergmailcom">user@gmail.com</div>
+                                <div class="div7">@username</div>
+                                <div class="usergmailcom">@useremail</div>
                             </div>
                         </div>
-
-                        <img class="caretdown-icon" alt="caret" src="Photo/CaretDown.png">
+                        <img class="caretdown-icon @(showUserMenu ? "rotated" : "")" alt="caret" src="Photo/CaretDown.png" />
                     </div>
+
+                    <UserContexMenu @ref="userContextMenuRef" OnClose="CloseUserMenu" />
                 </div>
 
             </div>

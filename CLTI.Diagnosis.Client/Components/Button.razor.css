@@ -1,0 +1,40 @@
+﻿.div {
+    font-weight: 600;
+}
+
+.typeprimary-stateactive-th,
+.typeprimary-statedisabled,
+.typeprimary-stateactive-th1,
+.typeprimary-statedisabled1 {
+    border-radius: 8px;
+    width: 320px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    font-family: Inter;
+    font-size: 16px;
+}
+
+.typeprimary-stateactive-th {
+    background-color: #057cff;
+    color: white;
+    cursor: pointer;
+}
+
+.typeprimary-statedisabled {
+    background-color: #d1d6e2;
+    color: #646464;
+}
+
+.typeprimary-stateactive-th1 {
+    background-color: #057cff;
+    color: #000;
+    cursor: pointer;
+}
+
+.typeprimary-statedisabled1 {
+    background-color: #252525;
+    color: #777;
+}

@@ -8,6 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Include="..\CLTI.Diagnosis.Client\Algoritm\Pages\Component.razor" Link="Component.razor" />
     <None Include="wwwroot\Photo\logo-menu.png" />
   </ItemGroup>
 

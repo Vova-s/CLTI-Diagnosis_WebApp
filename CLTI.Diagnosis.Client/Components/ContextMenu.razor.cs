@@ -1,4 +1,4 @@
-﻿namespace CLTI.Diagnosis.Client.Shared
+﻿namespace CLTI.Diagnosis.Client.Components
 {
     public partial class ContextMenu
     {
@@ -6,7 +6,7 @@
         private string menuTopPx = "0px";
         private string menuLeftPx = "0px";
 
-        private string targetName;
+        private string? targetName;
 
         public void Show(double x, double y, string name)
         {

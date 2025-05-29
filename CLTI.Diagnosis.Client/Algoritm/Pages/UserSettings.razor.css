@@ -1,0 +1,108 @@
+﻿.main-content {
+    padding: 20px;
+    margin-left: 20px;
+}
+
+.title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #191919;
+    margin-bottom: 30px;
+    font-family: Inter;
+}
+
+.frame-parent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 35px;
+    color: #191919;
+}
+
+.parent {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 30px;
+}
+
+.e-mail {
+    width: 210px;
+    font-weight: 600;
+}
+
+.text-field {
+    width: 400px;
+    height: 46px;
+    border-radius: 8px;
+    background-color: #eeeef0;
+    border: 1px solid #e0e0e0;
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    font-size: 14px;
+    color: #000;
+}
+
+.button-group {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top:15px;
+}
+
+.btn {
+    border-radius: 8px;
+    width: 320px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-family: Inter;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.btn-primary {
+    background-color: #057cff;
+    color: white;
+}
+
+    .btn-primary:hover {
+        background-color: #056ce0;
+    }
+
+.btn-danger {
+    background-color: #ff3b6b;
+    color: white;
+}
+
+    .btn-danger:hover {
+        background-color: #e23360;
+    }
+
+.back-wrapper {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 320px;
+    height: 50px;
+    background-color: #057CFF;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.btn-back {
+    background-color: #057cff;
+    color: white;
+    width: 200px;
+}

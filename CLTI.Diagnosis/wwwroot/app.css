@@ -207,17 +207,7 @@ body {
     transition: transform 0.2s ease;
 }
 
-/* Стилі випадаючого меню користувача */
-.dropdown-menu {
-    position: absolute;
-    bottom: 70px;
-    left: 0;
-    width: 100%;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    z-index: 10;
-}
+
 
 .menu-item {
     padding: 12px 20px;
@@ -518,7 +508,6 @@ body {
     position: absolute;
     left: 382px;
     top: 72px;
-    width: 640px;
     display: flex; /* Замість display: block */
     flex-direction: column; /* Щоб елементи йшли зверху вниз */
     gap: 24px;

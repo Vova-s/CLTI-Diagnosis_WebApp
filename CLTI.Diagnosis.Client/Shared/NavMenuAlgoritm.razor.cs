@@ -5,13 +5,13 @@ namespace CLTI.Diagnosis.Client.Shared
 {
     public partial class NavMenuAlgoritm
     {
-        private bool showHemodynamic = true;
-        private bool showUserMenu = false;
-        private string username = "Користувач";
-        private string useremail = "user@example.com";
-        private ElementReference userMenuAnchorRef;
-        private string menuTopPx = "0px";
-        private string menuLeftPx = "0px";
+        private bool? showHemodynamic = true;
+        private bool? showUserMenu = false;
+        private string? username = "Користувач";
+        private string? useremail = "user@example.com";
+        private ElementReference? userMenuAnchorRef;
+        private string? menuTopPx = "0px";
+        private string? menuLeftPx = "0px";
         protected override void OnInitialized()
         {
             // Підписуємося на подію зміни стану

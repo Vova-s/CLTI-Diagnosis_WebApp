@@ -1,0 +1,63 @@
+﻿.text-field-input {
+    width: 400px;
+    position: relative;
+    border-radius: 5px;
+    box-sizing: border-box;
+    height: auto;
+    overflow: hidden;
+    text-align: left;
+    font-size: 14px;
+    font-family: Inter;
+}
+
+input.theme-light-statedefault,
+input.theme-light-statefocus,
+input.theme-light-statefilled,
+input.theme-light-statetyping,
+input.theme-dark-statedefault,
+input.theme-dark-statefocus,
+input.theme-dark-statefilled,
+input.theme-dark-statetyping {
+    border-radius: 8px;
+    width: 400px;
+    height: 46px;
+    padding: 12px 20px;
+    box-sizing: border-box;
+    font-size: 14px;
+    font-family: Inter;
+    outline: none;
+    border: 1px solid #e0e0e0;
+    transition: all 0.2s ease;
+}
+
+/* LIGHT THEME */
+input.theme-light-statedefault {
+    background-color: #eeeef0;
+    color: #646464;
+}
+
+input.theme-light-statefocus,
+input.theme-light-statetyping {
+    background-color: #ffffff;
+    color: #000;
+}
+
+input.theme-light-statefilled {
+    background-color: #f9f9f9;
+    color: #000;
+}
+
+/* DARK THEME */
+input.theme-dark-statedefault,
+input.theme-dark-statefilled {
+    background-color: #1e1e1e;
+    border: 1px solid #3c3c3c;
+    color: #dedede;
+}
+
+input.theme-dark-statefocus,
+input.theme-dark-statetyping {
+    background-color: #2a2a2a;
+    border: 1px solid #5a5a5a;
+    color: #fff;
+}

@@ -55,7 +55,19 @@
     border-radius: 100px;
     max-height: 100%;
 }
+.caretdown-icon {
+    width: 20px;
+    position: relative;
+    height: 20px;
+    overflow: hidden;
+    flex-shrink: 0;
+    object-fit: contain;
+    transition: transform 0.2s ease;
+}
 
+    .caretdown-icon.rotated {
+        transform: rotate(180deg);
+    }
 .div7 {
     align-self: stretch;
     position: relative;

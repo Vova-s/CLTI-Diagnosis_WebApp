@@ -1,4 +1,6 @@
-﻿namespace CLTI.Diagnosis.Client.Shared
+﻿using Microsoft.AspNetCore.Components;
+
+namespace CLTI.Diagnosis.Client.Components
 {
     public partial class UserContexMenu
     {
@@ -7,6 +9,9 @@
         private string menuLeftPx = "0px";
 
         private string targetName;
+
+        [Parameter]
+        public EventCallback OnClose { get; set; }
 
         public void Show(double x, double y, string name)
         {
@@ -17,9 +22,10 @@
             StateHasChanged();
         }
 
-        public void Hide()
+        public async void Hide()
         {
             Hidden = true;
+            await OnClose.InvokeAsync();
             StateHasChanged();
         }
 
@@ -29,11 +35,9 @@
             Hide();
         }
 
-
-
         private async Task OnEditProfile()
         {
-            NavigationManager.NavigateTo("/settings");
+            NavigationManager.NavigateTo("/Pages/UserSettings", forceLoad: true);
             Hide();
         }
 
