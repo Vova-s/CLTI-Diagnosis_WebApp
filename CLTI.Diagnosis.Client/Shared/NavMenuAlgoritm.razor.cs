@@ -1,20 +1,24 @@
 ﻿using Microsoft.AspNetCore.Components;
+using Microsoft.JSInterop;
 
-namespace CLTI.Diagnosis.Client.Algoritm.Shared
+namespace CLTI.Diagnosis.Client.Shared
 {
-    public partial class NavMenuHome
+    public partial class NavMenuAlgoritm
     {
         private bool showHemodynamic = true;
         private bool showUserMenu = false;
         private string username = "Користувач";
         private string useremail = "user@example.com";
-
+        private ElementReference userMenuAnchorRef;
+        private string menuTopPx = "0px";
+        private string menuLeftPx = "0px";
         protected override void OnInitialized()
         {
             // Підписуємося на подію зміни стану
             StateService.OnChange += HandleStateChange;
             base.OnInitialized();
         }
+
 
         private void HandleStateChange()
         {
@@ -55,4 +59,3 @@ namespace CLTI.Diagnosis.Client.Algoritm.Shared
 
     }
 }
-

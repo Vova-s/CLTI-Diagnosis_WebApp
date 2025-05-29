@@ -1,0 +1,18 @@
+﻿using CLTI.Diagnosis.Client.Shared;
+using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Components.Web;
+using Microsoft.JSInterop;
+
+namespace CLTI.Diagnosis.Components.Pages
+{
+    public partial class Home : ComponentBase
+    {
+        public ContextMenu contextMenuRef;
+        public string selectedName;
+        public void OpenContextMenu(double x, double y, string name)
+        {
+            selectedName = name;
+            contextMenuRef?.Show(x, y, name);
+        }
+    }
+}

@@ -1,0 +1,17 @@
+﻿@if (!Hidden)
+{
+    <div class="context-menu-overlay" @onclick="Hide" style="top:@menuTopPx; left:@menuLeftPx;">
+        <div class="frame-parent context-menu" @onclick:stopPropagation>
+            <div class="subtitle-wrapper" @onclick="OnView">
+                <div class="subtitle">Переглянути</div>
+            </div>
+            <div class="subtitle-container" @onclick="OnEdit">
+                <div class="subtitle">Редагувати</div>
+            </div>
+            <div class="subtitle-frame" @onclick="OnDelete">
+                <div class="subtitle">Видалити</div>
+            </div>
+        </div>
+    </div>
+}
+

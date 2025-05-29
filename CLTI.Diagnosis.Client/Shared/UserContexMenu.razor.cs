@@ -1,0 +1,46 @@
+﻿namespace CLTI.Diagnosis.Client.Shared
+{
+    public partial class UserContexMenu
+    {
+        private bool Hidden { get; set; } = true;
+        private string menuTopPx = "0px";
+        private string menuLeftPx = "0px";
+
+        private string targetName;
+
+        public void Show(double x, double y, string name)
+        {
+            menuLeftPx = $"{x}px";
+            menuTopPx = $"{y}px";
+            targetName = name;
+            Hidden = false;
+            StateHasChanged();
+        }
+
+        public void Hide()
+        {
+            Hidden = true;
+            StateHasChanged();
+        }
+
+        private void OnActionClick(string action)
+        {
+            Console.WriteLine($"Обрана дія: {action}");
+            Hide();
+        }
+
+
+
+        private async Task OnEditProfile()
+        {
+            NavigationManager.NavigateTo("/settings");
+            Hide();
+        }
+
+        private async Task OnExit()
+        {
+            NavigationManager.NavigateTo("/Account/Login", forceLoad: true);
+            Hide();
+        }
+    }
+}

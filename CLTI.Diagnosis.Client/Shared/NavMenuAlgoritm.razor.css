@@ -1,0 +1,236 @@
+﻿.logo-menu-1-icon {
+    width: 304px;
+    position: relative;
+    object-fit: cover;
+}
+
+.component-1-child {
+    width: 304px;
+    position: relative;
+    background-color: #eeeef0;
+    height: 1px;
+}
+
+.placeholder {
+    align-self: stretch;
+    width: 256px;
+    position: relative;
+    font-weight: 600;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.caretdown-icon {
+    width: 18px;
+    position: relative;
+    height: 18px;
+    overflow: hidden;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+.placeholder-parent {
+    width: 284px;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 0px;
+}
+
+.checkbox {
+    width: 16px;
+    border-radius: 4px;
+    border: 1px solid #057cff;
+    box-sizing: border-box;
+    height: 16px;
+}
+/* Поворот стрілки */
+.rotated {
+    transform: rotate(180deg);
+    transition: transform 0.2s ease;
+}
+
+/* Контекстне меню */
+.context-menu-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 999;
+}
+
+.context-menu {
+    z-index: 1000;
+    position: absolute;
+    background-color: #dadfea;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    width: 180px;
+    display: flex;
+    flex-direction: column;
+}
+
+.subtitle {
+    position: relative;
+    line-height: 22px;
+}
+
+.subtitle-wrapper, .subtitle-frame {
+    background-color: #dadfea;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    padding: 9px 14px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+    .subtitle-wrapper:hover {
+        background-color: #c5cbda;
+    }
+
+.subtitle-frame {
+    color: #ff3b3e;
+    border-top: 0.5px solid #fff;
+}
+
+    .subtitle-frame:hover {
+        background-color: #ffebeb;
+    }
+
+.label {
+    position: relative;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 10px;
+    font-size: 12px;
+    color: #000;
+}
+
+.instance-parent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 16px;
+}
+
+.component-1 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.frame-child {
+    align-self: stretch;
+    position: relative;
+    background-color: #eeeef0;
+    height: 1px;
+}
+
+.frame-item {
+    width: 36px;
+    border-radius: 100px;
+}
+
+.div {
+    align-self: stretch;
+    position: relative;
+    font-weight: 600;
+}
+
+.usergmailcom {
+    align-self: stretch;
+    position: relative;
+    font-size: 12px;
+}
+
+.parent {
+    width: 94px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 3px;
+}
+
+.frame-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.caretdown-icon {
+    width: 20px;
+    position: relative;
+    height: 20px;
+    overflow: hidden;
+    flex-shrink: 0;
+    object-fit: contain;
+}
+
+.frame-group {
+    align-self: stretch;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0px;
+}
+
+.rectangle-parent {
+    align-self: stretch;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 20px;
+}
+
+.component-1-parent {
+    width: 304px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0px;
+}
+
+.logo-menu-1-parent {
+    align-self: stretch;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 24px;
+}
+
+.frame-parent {
+    width: 344px;
+    position: relative;
+    background-color: #dadfea;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: left;
+    font-size: 14px;
+    color: #191919;
+    font-family: Inter;
+}

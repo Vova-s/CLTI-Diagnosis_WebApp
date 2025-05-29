@@ -1,0 +1,55 @@
+﻿@using CLTI.Diagnosis.Client.Algoritm
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<div class="frame-parent">
+    <div class="logo-menu-1-parent">
+        <!-- Логотип -->
+        <a href="/" class="btn btn-primary">
+            <img class="logo-menu-1-icon" src="Photo/logo-menu.png" alt="CLTI Diagnosis Logo">
+        </a>
+
+        <!-- Основний блок з фільтром і користувачем -->
+        <div class="component-1-parent">
+
+            <!-- Фільтр: KPI -->
+            <div class="component-1">
+                <div class="component-1-child"></div>
+
+                <div class="instance-parent">
+                    <div class="placeholder-parent">
+                        <div class="placeholder">Значущість гемодинамісних змін</div>
+                        <img class="caretdown-icon" alt="caret" src="Photo/CaretDown.png">
+                    </div>
+
+                    <div class="checkbox-group">
+                        <div class="checkbox"></div>
+                        <div class="label">КПІ</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Інформація про користувача -->
+            <div class="rectangle-parent">
+                <div class="frame-child"></div>
+
+                <div class="frame-group">
+                    <div class="frame-container">
+                        <img class="frame-item" alt="User Icon" src="Photo/userIcon.png">
+
+                        <div class="parent">
+                            <div class="div">Користувач</div>
+                            <div class="usergmailcom">user@gmail.com</div>
+                        </div>
+                    </div>
+
+                    <img class="caretdown-icon" alt="caret" src="Photo/CaretDown.png">
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>

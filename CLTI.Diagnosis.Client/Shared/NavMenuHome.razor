@@ -1,0 +1,105 @@
+﻿@using CLTI.Diagnosis.Client.Algoritm
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<div class="frame-parent">
+    <div class="logo-menu-1-parent">
+
+        <!-- Логотип -->
+        <img class="logo-menu-1-icon" src="Photo/logo-menu.png" alt="CLTI Diagnosis Logo">
+
+        <div class="frame-wrapper">
+            <div class="frame-group">
+
+                <!-- Основний блок кнопок -->
+                <div class="rectangle-parent">
+
+                    <div class="frame-child"></div>
+
+                    <!-- Кнопка New patient -->
+                    <a href="/Algoritm/Pages/KPI-PPI" class="btn btn-primary">
+                        <div class="component-7">
+                            <div class="div">New patient</div>
+                        </div>
+                    </a>
+
+                    <div class="frame-child"></div>
+
+                    <!-- Посилання на WiFI / CRAB / 2YLE / GLASS -->
+                    <div class="component-8-parent">
+                        <div class="frame-child"></div>
+
+                        <a href="https://www.jvascsurg.org/article/S0741-5214(25)00360-X/abstract#:~:text=The%20Society%20for%20Vascular%20Surgery%20Wound%2C%20Ischemia%2C%20and,of%20major%20amputation%20after%20lower%20extremity%20revascularization%20%28LER%29."
+                           class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                            <div class="component-7">
+                                <div class="div">What is WiFI</div>
+                            </div>
+                        </a>
+
+                        <a href="https://pubmed.ncbi.nlm.nih.gov/23375435/"
+                           class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                            <div class="component-7">
+                                <div class="div">What is CRAB</div>
+                            </div>
+                        </a>
+
+                        <a href="https://www.jacc.org/doi/10.1016/j.jcin.2014.06.018"
+                           class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                            <div class="component-7">
+                                <div class="div">What is 2YLE</div>
+                            </div>
+                        </a>
+
+                        <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC8396876/"
+                           class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                            <div class="component-7">
+                                <div class="div">What is GLASS</div>
+                            </div>
+                        </a>
+                    </div>
+
+                    <div class="frame-child"></div>
+
+                    <!-- Кнопка Ask Assistant -->
+                    <div class="component-7">
+                        <div class="div">Ask assistent</div>
+                    </div>
+
+                    <div class="frame-child"></div>
+                </div>
+
+                <!-- Блок користувача + джерело -->
+                <div class="component-12-parent">
+                    <!-- Посилання на джерело -->
+                    <a href="https://health-ua.com/hirurgiya/sudinna-xirurgiia/68240-metodologya-vprovadzhennya--uvtchiznyanu-klnchnu-praktiku-suchasnih-mzhnaro"
+                       class="btn btn-primary" target="_blank" rel="noopener noreferrer">
+                        <div class="component-7">
+                            <div class="div">Source</div>
+                        </div>
+                    </a>
+
+                    <div class="frame-child"></div>
+
+                    <!-- Інформація про користувача -->
+                    <div class="frame-container">
+                        <div class="frame-div">
+                            <img class="frame-icon" alt="User Icon" src="Photo/userIcon.png">
+
+                            <div class="parent">
+                                <div class="div7">Користувач</div>
+                                <div class="usergmailcom">user@gmail.com</div>
+                            </div>
+                        </div>
+
+                        <img class="caretdown-icon" alt="caret" src="Photo/CaretDown.png">
+                    </div>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>

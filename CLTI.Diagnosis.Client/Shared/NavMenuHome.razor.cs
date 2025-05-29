@@ -1,6 +1,8 @@
-﻿namespace CLTI.Diagnosis.Client.Algoritm.Shared
+﻿using Microsoft.AspNetCore.Components;
+
+namespace CLTI.Diagnosis.Client.Shared
 {
-    public partial class NavMenuAlgoritm
+    public partial class NavMenuHome
     {
         private bool showHemodynamic = true;
         private bool showUserMenu = false;
@@ -53,3 +55,4 @@
 
     }
 }
+
