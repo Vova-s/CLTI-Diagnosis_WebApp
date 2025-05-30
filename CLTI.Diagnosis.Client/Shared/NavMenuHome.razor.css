@@ -7,9 +7,9 @@
 
 .frame-child {
     align-self: stretch;
-    position: relative;
-    background-color: #eeeef0;
     height: 1px;
+    background-color: #eeeef0;
+    margin-bottom: 16px;
 }
 
 .div {
@@ -50,17 +50,18 @@
     gap: 20px;
 }
 
+/* Іконка користувача */
 .frame-icon {
     width: 36px;
-    border-radius: 100px;
-    max-height: 100%;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
 }
+
+/* Стрілка */
 .caretdown-icon {
     width: 20px;
-    position: relative;
     height: 20px;
-    overflow: hidden;
-    flex-shrink: 0;
     object-fit: contain;
     transition: transform 0.2s ease;
 }
@@ -68,51 +69,45 @@
     .caretdown-icon.rotated {
         transform: rotate(180deg);
     }
-.div7 {
-    align-self: stretch;
-    position: relative;
-    font-weight: 600;
-}
 
-.usergmailcom {
-    align-self: stretch;
-    position: relative;
-    font-size: 12px;
-}
-
+/* Контейнер з ім'ям і email */
 .parent {
-    width: 94px;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    justify-content: flex-start;
     gap: 3px;
+    flex-grow: 1;
+    width: 94px;
 }
 
+/* Ім'я */
+.div7 {
+    font-weight: 600;
+}
+
+/* Email */
+.usergmailcom {
+    font-size: 12px;
+    color: #000;
+}
+
+/* Контейнер користувача */
+.frame-container {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+}
+
+/* Внутрішній рядок (іконка + дані) */
 .frame-div {
     display: flex;
     flex-direction: row;
     align-items: center;
     justify-content: flex-start;
     gap: 10px;
-}
-
-.caretdown-icon {
-    width: 20px;
-    position: relative;
-    height: 20px;
-    overflow: hidden;
-    flex-shrink: 0;
-    object-fit: contain;
-}
-
-.frame-container {
-    align-self: stretch;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0px;
 }
 
 .component-12-parent {
@@ -130,6 +125,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    margin-bottom:20px;
     justify-content: space-between;
     gap: 0px;
 }

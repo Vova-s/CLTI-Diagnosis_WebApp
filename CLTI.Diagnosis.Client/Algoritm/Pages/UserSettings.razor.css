@@ -23,7 +23,7 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 30px;
+    gap: 50px;
 }
 
 .e-mail {

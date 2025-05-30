@@ -1,6 +1,7 @@
 ﻿@using CLTI.Diagnosis.Client.Algoritm
 @using Microsoft.AspNetCore.Components.Authorization
-
+@using CLTI.Diagnosis.Client.Components
+@using CLTI.Diagnosis.Client.Shared
 @inject StateService StateService
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
@@ -12,44 +13,35 @@
             <img class="logo-menu-1-icon" src="Photo/logo-menu.png" alt="CLTI Diagnosis Logo">
         </a>
 
+     
         <!-- Основний блок з фільтром і користувачем -->
-        <div class="component-1-parent">
+        <div class="instance-parent">
+            <SideBarDropDown Placeholder="Категорії"
+                             Items='@(new List<string> { "Опція 1", "Опція 2", "Опція 3" })' />
 
-            <!-- Фільтр: KPI -->
-            <div class="component-1">
-                <div class="component-1-child"></div>
+            <SideBarDropDown Placeholder="Категорії"
+                             Items='@(new List<string> { "Опція 1", "Опція 2", "Опція 3" })' />
 
-                <div class="instance-parent">
-                    <div class="placeholder-parent">
-                        <div class="placeholder">Значущість гемодинамісних змін</div>
-                        <img class="caretdown-icon" alt="caret" src="Photo/CaretDown.png">
-                    </div>
 
-                    <div class="checkbox-group">
-                        <div class="checkbox"></div>
-                        <div class="label">КПІ</div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Інформація про користувача -->
-            <div class="rectangle-parent">
-                <div class="frame-child"></div>
-
-                <div class="frame-group">
-                    <div class="frame-container">
-                        <img class="frame-item" alt="User Icon" src="Photo/userIcon.png">
-
-                        <div class="parent">
-                            <div class="div">Користувач</div>
-                            <div class="usergmailcom">user@gmail.com</div>
-                        </div>
-                    </div>
-
-                    <img class="caretdown-icon" alt="caret" src="Photo/CaretDown.png">
-                </div>
-            </div>
-
+            <SideBarDropDown Placeholder="Категорії"
+                             Items='@(new List<string> { "Опція 1", "Опція 2", "Опція 3" })' />
         </div>
     </div>
+    <!-- Інформація про користувача -->
+    <div class="component-1-child"></div>
+    <div class="frame-container" @onclick="ToggleUserMenu">
+
+        <div class="frame-div">
+            <img class="frame-icon" alt="User Icon" src="Photo/userIcon.png" />
+            <div class="parent">
+                <div class="div7">@username</div>
+                <div class="usergmailcom">@useremail</div>
+            </div>
+        </div>
+        <img class="caretdown-icon @(showUserMenu ? "rotated" : "")" alt="caret" src="Photo/CaretDown.png" />
+    </div>
+
+    <UserContexMenu @ref="userContextMenuRef" OnClose="CloseUserMenu" />
 </div>
+
+

@@ -1,0 +1,17 @@
+﻿<div class="sidebar-dropdown">
+    <div class="component-1-child"></div>
+    <div class="sidebar-toggle" @onclick="ToggleOpen">
+        @Placeholder
+        <img alt="caret" src="Photo/CaretDown.png" class="@(IsOpen ? "rotated" : "")" />
+    </div>
+
+    @if (IsOpen)
+    {
+        <div class="sidebar-dropdown-list">
+            @foreach (var item in Items)
+            {
+                <CheckBox Label="@item" IsChecked="@SelectedItems.GetValueOrDefault(item)"/>
+            }
+        </div>
+    }
+</div>

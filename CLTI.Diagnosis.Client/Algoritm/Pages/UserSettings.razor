@@ -9,41 +9,42 @@
 <div class="page-container">
     <NavMenuHome />
 
-    <div class="main-content">
+    <div class="main-content"
+        <!-- Title -->
         <div class="title">Налаштування профілю</div>
-
         <div class="frame-parent">
+            <!-- User Info Fields -->
             <div class="parent">
                 <div class="e-mail">Ім’я користувача</div>
-                <TextInput Placeholder="Приклад імені"
-                           Theme="light"
-                           State="default" />
+                <TextInput Placeholder="Приклад імені" Theme="light" State="default" />
             </div>
+
             <div class="parent">
                 <div class="e-mail">Прізвище користувача</div>
-
-                    <TextInput Placeholder="Приклад прізвища"
-                               Theme="light"
-                               State="default" />
- 
+                <TextInput Placeholder="Приклад прізвища" Theme="light" State="default" />
             </div>
+
             <div class="parent">
                 <div class="e-mail">E-mail користувача</div>
-                <TextInput Placeholder="user@example.com"
-                           Theme="light"
-                           State="default" />
+                <TextInput Placeholder="user@example.com" Theme="light" State="default" />
             </div>
+
             <div class="parent">
                 <div class="e-mail">Пароль користувача</div>
                 <TextInput Placeholder="••••••••••••••••••"
                            Theme="light"
-                           State="default" />
+                           State="default"
+                           Type="password" />
+
             </div>
 
+            <!-- Action Buttons -->
             <div class="button-group">
-                <Button Label="Змінити пароль" Variant="active"  />
+                <Button Label="Змінити пароль" Variant="active" />
                 <Button Label="Видалити користувача" Variant="active" Color="#ff3b6b" />
             </div>
+
+            <!-- Back Button -->
             <a href="/" class="back-wrapper">
                 <Button Label="Назад" Variant="active" Position="fixed" Bottom="24px" Right="24px" />
             </a>

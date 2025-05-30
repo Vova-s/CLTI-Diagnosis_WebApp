@@ -7,6 +7,7 @@ namespace CLTI.Diagnosis.Client.Components
         [Parameter] public string Placeholder { get; set; } = "Placeholder";
         [Parameter] public string Theme { get; set; } = "light"; // "light" | "dark"
         [Parameter] public string State { get; set; } = "default"; // "default" | "focus" | "filled" | "typing"
+        [Parameter] public string Type { get; set; } = "text"; // "text" | "password"
 
         [Parameter] public string Position { get; set; } = "static";
         [Parameter] public string? Top { get; set; }

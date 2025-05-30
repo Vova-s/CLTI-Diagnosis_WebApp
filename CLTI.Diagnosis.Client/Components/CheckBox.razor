@@ -1,0 +1,15 @@
+﻿<div class="checkbox-container" @onclick="ToggleChecked">
+    <div class="checkbox-box">
+        @if (IsChecked)
+        {
+            <div class="checkbox-checked">
+                <img src="Photo/Done.svg" class="done-icon" alt="✓" />
+            </div>
+        }
+        else
+        {
+            <div class="checkbox-empty"></div>
+        }
+    </div>
+    <div class="checkbox-label">@Label</div>
+</div>
