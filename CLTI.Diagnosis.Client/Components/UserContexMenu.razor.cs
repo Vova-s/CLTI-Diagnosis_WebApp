@@ -29,19 +29,13 @@ namespace CLTI.Diagnosis.Client.Components
             StateHasChanged();
         }
 
-        private void OnActionClick(string action)
-        {
-            Console.WriteLine($"Обрана дія: {action}");
-            Hide();
-        }
-
-        private async Task OnEditProfile()
+        private void OnEditProfile()
         {
             NavigationManager.NavigateTo("/Pages/UserSettings", forceLoad: true);
             Hide();
         }
 
-        private async Task OnExit()
+        private void OnExit()
         {
             NavigationManager.NavigateTo("/Account/Login", forceLoad: true);
             Hide();

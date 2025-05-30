@@ -1,0 +1,13 @@
+﻿<div class="radio-container" @onclick="Select">
+    <div class="radio-circle">
+        @if (IsSelected)
+        {
+            <div class="radio-selected"></div>
+        }
+        else
+        {
+            <div class="radio-not-selected"></div>
+        }
+    </div>
+    <div class="radio-label">@Label</div>
+</div>

@@ -1,0 +1,27 @@
+﻿.chat-bubble {
+    font-size: 14px;
+    font-family: 'Inter', sans-serif;
+    padding: 12px 16px;
+    max-width: 70%;
+    margin: 8px 0;
+    line-height: 1.4;
+    display: inline-block;
+    word-wrap: break-word;
+    height:fit-content;
+}
+
+    /* Стиль для AI-відповіді */
+    .chat-bubble.ai {
+        background-color: #057cff;
+        color: #f2f2f7;
+        border-radius: 12px 12px 12px 0px;
+        align-self: flex-start;
+    }
+
+    /* Стиль для користувача */
+    .chat-bubble.user {
+        background-color: #ffffff;
+        color: #000000;
+        border-radius: 12px 12px 0px 12px;
+        align-self: flex-end;
+    }

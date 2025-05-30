@@ -29,19 +29,19 @@
             Hide();
         }
 
-        private async Task OnView()
+        private void OnView()
         {
             Console.WriteLine($"Переглянути: {targetName}");
             Hide();
         }
 
-        private async Task OnEdit()
+        private void OnEdit()
         {
             Console.WriteLine("Редагувати");
             Hide();
         }
 
-        private async Task OnDelete()
+        private void OnDelete()
         {
             Console.WriteLine("Видалити");
             Hide();

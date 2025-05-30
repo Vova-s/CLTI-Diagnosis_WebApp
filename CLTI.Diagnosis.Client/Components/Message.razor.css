@@ -1,0 +1,83 @@
+﻿/* Base wrapper */
+.message-box {
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    text-align: center;
+    box-sizing: border-box;
+}
+
+/* Themes + States */
+.theme-light.state-success {
+    background-color: rgba(179, 215, 199, 0.2);
+    border: 1px solid #b3d7c7;
+    color: #000;
+}
+
+.theme-dark.state-success {
+    background-color: rgba(77, 129, 95, 0.1);
+    border: 1px solid #4d815f;
+    color: #fff;
+}
+
+.theme-light.state-default {
+    background-color: #eeeef0;
+    border: 1px solid #e0e0e0;
+    color: #000;
+}
+
+.theme-dark.state-default {
+    background-color: #1e1e1e;
+    border: 1px solid #3c3c3c;
+    color: #fff;
+}
+
+.theme-light.state-error {
+    background-color: rgba(255, 203, 189, 0.2);
+    border: 1px solid #ffcbbd;
+    color: #000;
+}
+
+.theme-dark.state-error {
+    background-color: rgba(255, 59, 107, 0.1);
+    border: 1px solid #ff3b6b;
+    color: #fff;
+}
+
+.theme-light.state-warning {
+    background-color: rgba(255, 215, 130, 0.2);
+    border: 1px solid #ffd782;
+    color: #000;
+}
+
+.theme-dark.state-warning {
+    background-color: rgba(255, 182, 83, 0.1);
+    border: 1px solid #ffb653;
+    color: #fff;
+}
+
+/* Size variants */
+.size-normal {
+    width: 440px;
+}
+
+.size-small {
+    width: 190px;
+}
+
+/* Message text size */
+.message-large {
+    line-height: 140%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+.message-small {
+    line-height: 140%;
+    display: inline-block;
+    flex-shrink: 0;
+}
