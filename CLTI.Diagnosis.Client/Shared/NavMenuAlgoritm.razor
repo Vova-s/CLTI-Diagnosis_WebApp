@@ -13,24 +13,29 @@
             <img class="logo-menu-1-icon" src="Photo/logo-menu.png" alt="CLTI Diagnosis Logo">
         </a>
 
-     
         <!-- Основний блок з фільтром і користувачем -->
         <div class="instance-parent">
-            <SideBarDropDown Placeholder="Категорії"
-                             Items='@(new List<string> { "Опція 1", "Опція 2", "Опція 3" })' />
+            <!-- Гемодинамічні дослідження - завжди видимі -->
+            @if (StateService.ShowHemodynamicSection)
+            {
+                <SideBarDropDown Placeholder="Гемодинамічні дослідження" DefaultOpen="true"
+                                 Items='@(GetHemodynamicItems())' />
+            }
 
-            <SideBarDropDown Placeholder="Категорії"
-                             Items='@(new List<string> { "Опція 1", "Опція 2", "Опція 3" })' />
+            <!-- WiFI секція - показується після завершення КПІ/ППІ -->
+            @if (StateService.ShowWifiSection)
+            {
+                <SideBarDropDown Placeholder="WiFI класифікація"
+                                 Items='@(new List<string> { "W - Рана", "I - Ішемія", "fI - Інфекція" })' />
+            }
 
-
-            <SideBarDropDown Placeholder="Категорії"
-                             Items='@(new List<string> { "Опція 1", "Опція 2", "Опція 3" })' />
+            <!-- Додаткові секції можна додати пізніше -->
         </div>
     </div>
+
     <!-- Інформація про користувача -->
     <div class="component-1-child"></div>
     <div class="frame-container" @onclick="ToggleUserMenu">
-
         <div class="frame-div">
             <img class="frame-icon" alt="User Icon" src="Photo/userIcon.png" />
             <div class="parent">
@@ -43,5 +48,3 @@
 
     <UserContexMenu @ref="userContextMenuRef" OnClose="CloseUserMenu" />
 </div>
-
-

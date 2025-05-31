@@ -2,7 +2,7 @@
 
 namespace CLTI.Diagnosis.Client.Algoritm.Pages
 {
-    public partial class KPI_PPI
+    public partial class KPI_PPI : IDisposable
     {
         private string kpiValueString = "";
         private string ppiValue = "";
@@ -16,9 +16,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
         private bool HasKpiValue() => StateService.KpiValue > 0;
 
-        private void HandleKpiInput(ChangeEventArgs e)
+        private void HandleKpiInputChanged(string value)
         {
-            kpiValueString = e.Value?.ToString() ?? "";
+            kpiValueString = value;
             ProcessKpiValue();
         }
 
@@ -35,9 +35,14 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             }
         }
 
-        private void UpdatePpiValue(ChangeEventArgs e)
+        private void HandlePpiInputChanged(string value)
         {
-            ppiValue = e.Value?.ToString() ?? "";
+            ppiValue = value;
+            ProcessPpiValue();
+        }
+
+        private void ProcessPpiValue()
+        {
             if (double.TryParse(ppiValue.Replace(',', '.'), System.Globalization.NumberStyles.Any,
                 System.Globalization.CultureInfo.InvariantCulture, out double value))
             {
@@ -55,11 +60,10 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             NavigationManager.NavigateTo("/Algoritm/Pages/Wifi", forceLoad: true);
         }
 
-        private void Finish()
+        private async void Exit()
         {
-            kpiValueString = "";
-            ppiValue = "";
-            StateService.Reset();
+            await InvokeAsync(StateHasChanged);
+            NavigationManager.NavigateTo("/", forceLoad: true);
         }
 
         public void Dispose()

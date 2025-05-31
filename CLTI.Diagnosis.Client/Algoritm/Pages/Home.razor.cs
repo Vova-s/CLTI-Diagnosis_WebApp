@@ -8,8 +8,8 @@ namespace CLTI.Diagnosis.Components.Pages
 {
     public partial class Home : ComponentBase
     {
-        public ContextMenu contextMenuRef;
-        public string selectedName;
+        public ContextMenu? contextMenuRef; // Made nullable
+        public string? selectedName;
         public void OpenContextMenu(double x, double y, string name)
         {
             selectedName = name;

@@ -10,7 +10,7 @@ namespace CLTI.Diagnosis.Client.Shared
         private bool showUserMenu = false;
         private string username = "Користувач";
         private string useremail = "user@example.com";
-        private UserContexMenu userContextMenuRef;
+        private UserContexMenu? userContextMenuRef;
 
         protected override void OnInitialized()
         {
@@ -18,7 +18,10 @@ namespace CLTI.Diagnosis.Client.Shared
             StateService.OnChange += HandleStateChange;
             base.OnInitialized();
         }
-
+        private void OnNewPatientClick()
+        {
+            StateService.Reset();
+        }
         private void HandleStateChange()
         {
             // Використовуйте InvokeAsync для забезпечення потоку UI

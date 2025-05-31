@@ -3,9 +3,13 @@
     flex-direction: row;
     align-items: center;
     gap: 10px;
-    cursor: pointer;
+    cursor: default; /* Змінюємо cursor, оскільки користувач не може взаємодіяти */
     user-select: none;
 }
+
+    .checkbox-container.interactive {
+        cursor: pointer; /* Для випадків коли потрібна взаємодія */
+    }
 
 .checkbox-box {
     position: relative;
@@ -44,3 +48,13 @@
     font-size: 14px;
     color: #000;
 }
+
+/* Стилі для неактивних елементів */
+.checkbox-container.disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+    .checkbox-container.disabled .checkbox-label {
+        color: #666;
+    }

@@ -3,6 +3,7 @@
 @implements IDisposable
 
 @using CLTI.Diagnosis.Client.Shared
+@using CLTI.Diagnosis.Client.Components
 @inject StateService StateService
 @inject NavigationManager NavigationManager
 
@@ -15,79 +16,96 @@
             <div class="item-title">
                 Значення КПІ (кісточково-плечовий індекс)
             </div>
-            <div class="input-container">
-                <input type="text"
-                       @bind-value="kpiValueString"
-                       @oninput="HandleKpiInput"
-                       placeholder="Введіть значення"
-                       class="input" />
-            </div>
+            <TextInput Value="@kpiValueString"
+            ValueChanged="HandleKpiInputChanged"
+            Placeholder="Введіть значення"
+            Theme="light"
+            State="default" />
         </div>
-        
+
         @if (HasKpiValue())
         {
-@*             <div class="results-container">
-                @if (StateService.ShowKpiNormal && StateService.PpiValue == 0)
-                {
-                    <div class="normal-message">
-                        Значення КПІ є в нормі
-                    </div>
-                }
-            </div> *@
-                @if (StateService.ShowPpiField)
-                {
-                    @* <div class="warning-message">
-                        Можлива кальцифікація артерій, необхідно додатково виміряти ППІ
-                    </div> *@ 
+            @if (StateService.ShowKpiNormal)
+            {
+                <Message Text="Значення КПІ є в нормі"
+                Theme="light"
+                State="success"
+                Size="normal" />
+            }
+            else if (StateService.ShowKpiLow)
+            {
+                <Message Text="Значення КПІ нижче норми. Виявлені стенози артерій."
+                Theme="light"
+                State="error"
+                Size="normal" />
+            }
+            else if (StateService.ShowKpiHigh)
+            {
+                <Message Text="Значення КПІ вище норми. Можлива кальцифікація артерій, необхідно додатково виміряти ППІ."
+                Theme="light"
+                State="warning"
+                Size="normal" />
+            }
 
-                    <div class="input-group">
-                        <div class="item-title">
-                            Значення ППІ (пальце-плечовий індекс)
-                        </div>
-                        <div class="input-container">
-                            <input type="text"
-                                   @bind-value="ppiValue"
-                                   @oninput="UpdatePpiValue"
-                                   placeholder="Введіть значення"
-                                   class="input" />
-                        </div>
+            @if (StateService.ShowPpiField)
+            {
+                <div class="input-group">
+                    <div class="item-title">
+                        Значення ППІ (пальце-плечовий індекс)
                     </div>
+                    <TextInput Value="@ppiValue"
+                    ValueChanged="HandlePpiInputChanged"
+                    Placeholder="Введіть значення"
+                    Theme="light"
+                    State="default" />
+                </div>
 
-                    @if (StateService.ShowPpiNormal)
-                    {
-                        <div class="normal-message">
-                            Значення ППІ в межах норми
-                        </div>
-                    }
-                    @if (StateService.ShowPpiLow)
-                    {
-                        <div class="low-message">
-                            Значення ППІ нижче норми. Необхідна додаткова діагностика.
-                        </div>
-                    }
-                }
-
-                @if (StateService.ShowKpiNormal && StateService.ShowPpiNormal)
+                @if (StateService.ShowPpiNormal)
                 {
-                    <div class="normal-message">
-                        <span>Комбінація значень КПІ та ППІ є в межах норми</span>
-                    </div>
+                    <Message Text="Значення ППІ в межах норми"
+                    Theme="light"
+                    State="success"
+                    Size="normal" />
                 }
-          
+                @if (StateService.ShowPpiLow)
+                {
+                    <Message Text="Значення ППІ нижче норми. Виявлена ішемія нижньої кінцівки."
+                    Theme="light"
+                    State="error"
+                    Size="normal" />
+                }
+            }
+
+            @if (StateService.ShowKpiNormal && StateService.ShowPpiNormal)
+            {
+                <Message Text="Комбінація значень КПІ та ППІ є в межах норми"
+                Theme="light"
+                State="success"
+                Size="normal" />
+            }
         }
 
         <div class="fixed-bottom-right">
             @if (StateService.CanContinue)
             {
-                <button @onclick="Continue" class="fixed-btn continue-btn">Продовжити</button>
+                <Button Label="Продовжити"
+                Variant="active"
+                OnClick="Continue"
+                Position="static" />
             }
-            else if (!StateService.CanContinue)
+            else if (StateService.NeedExit)
             {
-                <button @onclick="Finish" class="fixed-btn finish-btn">Закінчити</button>
+                <Button Label="Закінчити та вийти"
+                        Variant="active"
+                        OnClick="Exit"
+                        Position="static" />
             }
             else
             {
-                <button disabled class="fixed-btn disabled-btn">Продовжити</button>
+                <Button Label="Продовжити"
+                Variant="disabled"
+                        Disabled="true"
+                        Position="static" />
             }
         </div>
     </div>

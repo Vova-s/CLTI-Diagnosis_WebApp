@@ -5,13 +5,12 @@ using Microsoft.JSInterop;
 
 namespace CLTI.Diagnosis.Client.Shared
 {
-    public partial class NavMenuAlgoritm
+    public partial class NavMenuAlgoritm : IDisposable
     {
-        private bool showHemodynamic = true;
         private bool showUserMenu = false;
         private string username = "Користувач";
         private string useremail = "user@example.com";
-        private UserContexMenu userContextMenuRef;
+        private UserContexMenu? userContextMenuRef;
 
         protected override void OnInitialized()
         {
@@ -26,10 +25,17 @@ namespace CLTI.Diagnosis.Client.Shared
             InvokeAsync(() => StateHasChanged());
         }
 
-        public void ToggleHemodynamicSection()
+        private List<string> GetHemodynamicItems()
         {
-            showHemodynamic = !showHemodynamic;
-            StateHasChanged();
+            var items = new List<string> { "КПІ" };
+
+            // Додаємо ППІ тільки якщо він потрібен
+            if (StateService.ShowPpiInSidebar)
+            {
+                items.Add("ППІ");
+            }
+
+            return items;
         }
 
         public void ToggleUserMenu(MouseEventArgs e)
@@ -72,6 +78,5 @@ namespace CLTI.Diagnosis.Client.Shared
             // Відписуємось від події при знищенні компонента
             StateService.OnChange -= HandleStateChange;
         }
-
     }
 }

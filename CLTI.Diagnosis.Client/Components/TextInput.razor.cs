@@ -28,5 +28,11 @@ namespace CLTI.Diagnosis.Client.Components
             $"{(Left != null ? $"left:{Left};" : "")}" +
             $"{(Right != null ? $"right:{Right};" : "")}" +
             $"{(Bottom != null ? $"bottom:{Bottom};" : "")}";
+
+        private async Task OnValueChanged(ChangeEventArgs e)
+        {
+            Value = e.Value?.ToString() ?? string.Empty;
+            await ValueChanged.InvokeAsync(Value);
+        }
     }
 }

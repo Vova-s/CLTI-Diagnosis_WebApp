@@ -1,4 +1,6 @@
-﻿<div class="sidebar-dropdown">
+﻿@using CLTI.Diagnosis.Client.Components
+
+<div class="sidebar-dropdown">
     <div class="component-1-child"></div>
     <div class="sidebar-toggle" @onclick="ToggleOpen">
         @Placeholder
@@ -10,7 +12,11 @@
         <div class="sidebar-dropdown-list">
             @foreach (var item in Items)
             {
-                <CheckBox Label="@item" IsChecked="@SelectedItems.GetValueOrDefault(item)"/>
+                <div class="checkbox-item">
+                    <CheckBox Label="@item"
+                              IsChecked="@GetItemCompletedStatus(item)"
+                              IsCheckedChanged="@(async (bool value) => await OnItemStatusChanged(item, value))" />
+                </div>
             }
         </div>
     }

@@ -8,7 +8,8 @@ namespace CLTI.Diagnosis.Client.Components
         private string menuTopPx = "0px";
         private string menuLeftPx = "0px";
 
-        private string targetName;
+
+        private string? targetName;
 
         [Parameter]
         public EventCallback OnClose { get; set; }
