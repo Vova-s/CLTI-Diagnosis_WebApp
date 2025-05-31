@@ -9,7 +9,19 @@
     <NavMenuAlgoritm />
     <div class="main-content">
         <div class="page-title">
-            Оцінка критерію <span>W</span> (WIFI)
+            Оцінка критерію <span>I</span> (WIFI)
         </div>
+
+        <div class="input-group">
+            <div class="item-title">
+                Значення КПІ (кісточково-плечовий індекс)
+            </div>
+            <TextInput Value="@StateService.KpiValue.ToString()"
+                       Placeholder="Введіть значення"
+                       Theme="light"
+                       State="default"
+                       Disabled="true" />
+        </div>
+
     </div>
 </div>

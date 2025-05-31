@@ -1,9 +1,14 @@
-﻿.main-content {
-    padding: 20px;
-    margin-left: 20px;
+﻿.page-container {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
 }
-
-.title {
+.main-content {
+    flex: 1; /* Займає всю доступну ширину */
+    padding: 20px;
+    margin-left: 20px; /* Відступ від бічного меню */
+}
+    .title {
     font-size: 32px;
     font-weight: 700;
     color: #191919;

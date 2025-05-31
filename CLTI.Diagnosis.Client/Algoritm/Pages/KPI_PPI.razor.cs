@@ -4,7 +4,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 {
     public partial class KPI_PPI : IDisposable
     {
-        private string kpiValueString = "";
+        public string kpiValueString = "";
         private string ppiValue = "";
         private Action? onStateChanged;
 

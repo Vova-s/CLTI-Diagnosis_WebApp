@@ -4,6 +4,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
+    margin-bottom: 16px;
     padding: 20px;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
@@ -82,5 +83,6 @@
     line-height: 140%;
     display: inline-block;
     word-wrap: break-word;
+
 
 }
