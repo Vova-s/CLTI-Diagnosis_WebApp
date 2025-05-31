@@ -20,6 +20,8 @@
         public bool PpiStepCompleted { get; private set; }
         public bool WStepCompleted => WLevelValue.HasValue;
         public bool IsWCompleted { get; set; } = false;
+        public bool IsICompleted { get; set; } = false;
+        public bool IsfICompleted { get; set; } = false;
 
         public bool HasKpiValue => KpiValue > 0;
 
@@ -40,13 +42,7 @@
         public bool NeedExit =>
             (KpiValue >= 0.9 && KpiValue <= 1.4) || (KpiValue > 1.4 && PpiValue >= 0.7);
 
-        public List<string> GetWifiItems() => new()
-        {
-            "Оцінка критерію W",
-            "Оцінка ступеня критерію I",
-            "Оцінка критерію fІ",
-            "Оцінка клінічної стадії та ризику великої вище кісточки ампутації в межах 1 року"
-        };
+
 
         public event Action? OnChange;
 

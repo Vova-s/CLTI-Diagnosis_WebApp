@@ -24,6 +24,25 @@ namespace CLTI.Diagnosis.Client.Shared
             // Використовуйте InvokeAsync для забезпечення потоку UI
             InvokeAsync(() => StateHasChanged());
         }
+        public List<string> GetWifiItems() 
+        {
+            var WiFiItems = new List<string> { "Оцінка критерію W" };
+            // Додаємо ППІ тільки якщо він потрібен
+            if (StateService.IsWCompleted)
+            {
+                WiFiItems.Add("Оцінка ступеня критерію I");
+            }
+            if (StateService.IsICompleted)
+            {
+                WiFiItems.Add("Оцінка критерію fІ");
+            }
+            if (StateService.IsfICompleted)
+            {
+                WiFiItems.Add("Оцінка клінічної стадії та ризику великої вище кісточки ампутації в межах 1 року");
+            }
+           
+                       return WiFiItems;
+        }
 
         private List<string> GetHemodynamicItems()
         {

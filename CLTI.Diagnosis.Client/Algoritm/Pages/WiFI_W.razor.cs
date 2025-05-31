@@ -2,7 +2,7 @@
 
 namespace CLTI.Diagnosis.Client.Algoritm.Pages
 {
-    public partial class WiFI
+    public partial class WiFI_W
     {
         // Списки для DropDown компонентів
         private List<string> necrosisTypeItems = new() { "Гангрена", "Виразка" };
@@ -115,7 +115,8 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         private async Task Continue()
         {
             await InvokeAsync(StateHasChanged);
-            NavigationManager.NavigateTo("/Algoritm/NextStep", forceLoad: true);
+            NavigationManager.NavigateTo("/Algoritm/Pages/Wifi_I", forceLoad: true);
+            StateService.IsWCompleted = true;
         }
     }
 }
