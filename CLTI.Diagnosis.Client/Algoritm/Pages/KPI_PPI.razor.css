@@ -5,9 +5,11 @@
 }
 
 .main-content {
+    flex: 1; /* Займає всю доступну ширину */
     padding: 20px;
-    margin-left: 20px;
+    margin-left: 20px; /* Відступ від бічного меню */
 }
+
 
 .input-group {
     margin-bottom: 16px;

@@ -26,7 +26,7 @@
             @if (StateService.ShowWifiSection)
             {
                 <SideBarDropDown Placeholder="WiFI класифікація"
-                                 Items='@(new List<string> { "W - Рана", "I - Ішемія", "fI - Інфекція" })' />
+                                 Items='@(StateService.GetWifiItems())' />
             }
 
             <!-- Додаткові секції можна додати пізніше -->

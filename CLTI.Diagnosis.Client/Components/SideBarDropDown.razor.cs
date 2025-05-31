@@ -14,10 +14,12 @@ namespace CLTI.Diagnosis.Client.Components
         private bool IsOpen { get; set; } = false;
 
         private void ToggleOpen() => IsOpen = !IsOpen;
+
         protected override void OnInitialized()
         {
             IsOpen = DefaultOpen;
         }
+
         private bool GetItemCompletedStatus(string item)
         {
             if (StateService == null) return false;
@@ -27,6 +29,7 @@ namespace CLTI.Diagnosis.Client.Components
             {
                 "КПІ" => StateService.KpiStepCompleted,
                 "ППІ" => StateService.PpiStepCompleted,
+                "Оцінка критерію W" => StateService.WStepCompleted,
                 _ => false
             };
         }
