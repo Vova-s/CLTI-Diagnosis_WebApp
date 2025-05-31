@@ -1,7 +1,9 @@
 ﻿<div class="dropdown" @onclick:stopPropagation="true">
     <div class="dropdown-toggle @CssClass" style="@StyleString" @onclick="ToggleDropdown">
         <div class="placeholder-parent">
-            <div class="placeholder">@(!IsSelected ? Placeholder : SelectedItemInternal)</div>
+            <div class="placeholder" style="color: @(IsSelected ? "#000" : "inherit")">
+                @(!IsSelected ? Placeholder : SelectedItemInternal)
+            </div>
             <img class="caretdown-icon @(IsOpen ? "rotated" : "")" alt="caret" src="Photo/CaretDown.png" />
         </div>
     </div>
@@ -11,7 +13,9 @@
         <div class="dropdown-list @ListCssClass">
             @foreach (var item in Items)
             {
-                <div class="dropdown-item" @onclick="() => SelectItem(item)">@item</div>
+                <div class="dropdown-item" @onclick="() => SelectItem(item)">
+                    @item
+                </div>
             }
         </div>
     }

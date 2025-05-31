@@ -58,6 +58,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         {
             await InvokeAsync(StateHasChanged);
             NavigationManager.NavigateTo("/Algoritm/Pages/Wifi", forceLoad: true);
+            StateService.ShowWifiSection = true;
         }
 
         private async void Exit()

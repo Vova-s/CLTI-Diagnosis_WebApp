@@ -25,7 +25,7 @@
             <!-- WiFI секція - показується після завершення КПІ/ППІ -->
             @if (StateService.ShowWifiSection)
             {
-                <SideBarDropDown Placeholder="WiFI класифікація"
+                <SideBarDropDown Placeholder="WiFI класифікація" DefaultOpen="true"
                                  Items='@(StateService.GetWifiItems())' />
             }
 
