@@ -24,12 +24,13 @@ namespace CLTI.Diagnosis.Client.Components
         {
             if (StateService == null) return false;
 
-            // Автоматично визначаємо статус на основі StateService
             return item switch
             {
                 "КПІ" => StateService.KpiStepCompleted,
                 "ППІ" => StateService.PpiStepCompleted,
                 "Оцінка критерію W" => StateService.WStepCompleted,
+                "Оцінка критерію I" => StateService.IsICompleted,
+                "Оцінка критерію fI" => StateService.IsfICompleted,
                 _ => false
             };
         }

@@ -25,6 +25,7 @@
 
         public bool HasKpiValue => KpiValue > 0;
 
+        // WiFI W критерій
         public bool HasNecrosis { get; set; }
         public string? NecrosisType { get; set; }
         public string? GangreneSpread { get; set; }
@@ -33,16 +34,23 @@
         public string? UlcerDepth { get; set; }
         public string? UlcerLocation2 { get; set; }
 
+        // WiFI I критерій (нові властивості)
+        public string? PsatValue { get; set; }
+        public bool HasArterialCalcification { get; set; }
+        public double? TcPO2Value { get; set; }
+
         public int? WLevelValue => CalculateWLevelValue();
+        public int? ILevelValue => CalculateILevelValue();
 
         public bool CanContinue =>
             ((KpiValue < 0.9 && KpiValue > 0) || (KpiValue > 1.4 && PpiValue < 0.7))
             && WLevelValue.HasValue;
 
+        public bool CanContinueI =>
+            ILevelValue.HasValue;
+
         public bool NeedExit =>
             (KpiValue >= 0.9 && KpiValue <= 1.4) || (KpiValue > 1.4 && PpiValue >= 0.7);
-
-
 
         public event Action? OnChange;
 
@@ -63,7 +71,6 @@
                 {
                     ShowKpiLow = true;
                     KpiStepCompleted = true;
-
                 }
                 else if (value >= 0.9 && value <= 1.4)
                 {
@@ -100,7 +107,6 @@
                 {
                     ShowPpiLow = true;
                     PpiStepCompleted = true;
-
                 }
                 else if (value >= 0.7)
                 {
@@ -133,7 +139,10 @@
             KpiStepCompleted = false;
             PpiStepCompleted = false;
             IsWCompleted = false;
+            IsICompleted = false;
+            IsfICompleted = false;
 
+            // Скидання W критерію
             HasNecrosis = false;
             NecrosisType = null;
             GangreneSpread = null;
@@ -141,6 +150,11 @@
             UlcerAffectsBone = null;
             UlcerDepth = null;
             UlcerLocation2 = null;
+
+            // Скидання I критерію
+            PsatValue = null;
+            HasArterialCalcification = false;
+            TcPO2Value = null;
 
             NotifyStateChanged();
         }
@@ -191,6 +205,47 @@
             }
 
             return null;
+        }
+
+        private int? CalculateILevelValue()
+        {
+            // Базова логіка оцінки критерію I на основі таблиці з зображення
+            if (string.IsNullOrEmpty(PsatValue)) return null;
+
+            // Якщо є кальцифікація і вказано TcPO2
+            if (HasArterialCalcification && TcPO2Value.HasValue)
+            {
+                return TcPO2Value.Value switch
+                {
+                    >= 60 => 0,
+                    >= 40 and < 60 => 1,
+                    >= 30 and < 40 => 2,
+                    < 30 => 3,
+                    _ => null
+                };
+            }
+
+            // Оцінка на основі ПСАТ
+            return PsatValue switch
+            {
+                "≥0,6" => 0,
+                "40-59" => TcPO2Value.HasValue ? GetTcPO2Level(TcPO2Value.Value) : 1,
+                "30-39" => TcPO2Value.HasValue ? GetTcPO2Level(TcPO2Value.Value) : 2,
+                "<30" => 3,
+                _ => null
+            };
+        }
+
+        private int GetTcPO2Level(double tcPO2)
+        {
+            return tcPO2 switch
+            {
+                >= 60 => 0,
+                >= 40 and < 60 => 1,
+                >= 30 and < 40 => 2,
+                < 30 => 3,
+                _ => 0
+            };
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿<Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }">
+﻿@inject NavigationManager NavigationManager
+<Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }">
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
             <NotAuthorized>
@@ -7,4 +8,12 @@
         </AuthorizeRouteView>
         <FocusOnNavigate RouteData="routeData" Selector="h1" />
     </Found>
+    <NotFound>
+        <PageTitle>Page Not Found</PageTitle>
+        <LayoutView Layout="typeof(Layout.MainLayout)">
+            @{
+                NavigationManager.NavigateTo("/Error", forceLoad: true);
+            }
+        </LayoutView>
+    </NotFound>
 </Router>

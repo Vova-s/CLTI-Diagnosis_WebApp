@@ -12,6 +12,7 @@
             Оцінка критерію <span>I</span> (WIFI)
         </div>
 
+        <!-- Блок з відображенням значень КПІ та ППІ -->
         <div class="input-group">
             <div class="item-title">
                 Значення КПІ (кісточково-плечовий індекс)
@@ -23,5 +24,67 @@
                        Disabled="true" />
         </div>
 
+        @if (StateService.ShowPpiField)
+        {
+            <div class="input-group">
+                <div class="item-title">
+                    Значення ППІ (пальце-плечовий індекс)
+                </div>
+                <TextInput Value="@StateService.PpiValue.ToString()"
+                           Placeholder="Введіть значення"
+                           Theme="light"
+                           State="default"
+                           Disabled="true" />
+            </div>
+        }
+
+        <!-- Блок з ПСАТ (пальцьовий систолічний артеріальний тиск) -->
+        <div class="input-group">
+            <div class="item-title">Значення ПСАТ (пальцьовий систолічний артеріальний тиск)</div>
+            <DropDown Items="@psatItems"
+                      Placeholder="Виберіть значення"
+                      Theme="light"
+                      OnSelect="OnPsatSelect" />
+        </div>
+
+        @if (!string.IsNullOrEmpty(selectedPsatValue))
+        {
+            <div class="input-group">
+                <div class="checkbox-container">
+                    <CheckBox Label="Артеріальна кальцифікація перешкоджає надійному вимірюванню"
+                              IsChecked="@hasArterialCalcification"
+                              IsCheckedChanged="OnArterialCalcificationChanged" />
+                </div>
+            </div>
+        }
+
+        <!-- Блок з TcPO2 (черезшкірне вимірювання кисню) -->
+        @if (showTcPO2)
+        {
+            <div class="input-group">
+                <div class="item-title">Значення TcPO2 (черезшкірне вимірювання кисню)</div>
+                <TextInput Value="@tcPO2Value"
+                           ValueChanged="OnTcPO2Changed"
+                           Placeholder="Введіть значення"
+                           Theme="light"
+                           State="default" />
+            </div>
+        }
+
+        <!-- Відображення результату оцінки критерію I -->
+        @if (StateService.ILevelValue.HasValue)
+        {
+            <Message Text="@($"Рівень I: I{StateService.ILevelValue}")"
+                     Theme="light"
+                     State="success"
+                     Size="normal" />
+        }
+
+        <div class="fixed-bottom-right">
+            <Button Label="Продовжити"
+                    Variant="@((StateService.CanContinueI ? "active" : "disabled"))"
+                    Disabled="@(!StateService.CanContinueI)"
+                    OnClick="@(StateService.CanContinueI ? Continue : null)" />
+        </div>
     </div>
 </div>
