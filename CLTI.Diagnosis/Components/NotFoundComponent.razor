@@ -1,0 +1,38 @@
+﻿@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
+
+<div class="flex items-center justify-center min-h-screen bg-gray-100 p-4">
+    <div class="bg-white shadow-lg rounded-lg p-8 max-w-md w-full text-center">
+        <svg class="w-24 h-24 text-red-500 mx-auto mb-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path>
+        </svg>
+
+        <h1 class="text-4xl font-bold text-red-600 mb-4">404</h1>
+        <h2 class="text-xl text-gray-700 mb-6">Сторінку не знайдено</h2>
+
+        <p class="text-gray-600 mb-8">
+            Вибачте, але сторінка, яку ви шукаете, не існує або була переміщена.
+        </p>
+
+        <button @onclick="RedirectToServerError"
+                class="block w-full bg-blue-500 hover:bg-blue-600 text-white font-medium py-3 px-6 rounded-lg transition duration-200 mb-4">
+            Повідомити про помилку
+        </button>
+
+        <a href="/"
+           class="block w-full bg-gray-500 hover:bg-gray-600 text-white font-medium py-3 px-6 rounded-lg transition duration-200 text-decoration-none">
+            На головну сторінку
+        </a>
+    </div>
+</div>
+
+@code {
+    private async Task RedirectToServerError()
+    {
+        var currentPath = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        var baseUrl = NavigationManager.BaseUri;
+
+        // Use JavaScript to redirect to server-side error page
+        await JSRuntime.InvokeVoidAsync("window.location.href", $"{baseUrl}Error?path={Uri.EscapeDataString(currentPath)}&type=404");
+    }
+}

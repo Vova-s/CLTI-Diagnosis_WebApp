@@ -20,13 +20,11 @@ builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 builder.Services.AddSingleton<StateService>();
 
-
-
 builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultScheme = IdentityConstants.ApplicationScheme;
-        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-    })
+{
+    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+})
     .AddIdentityCookies();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -56,8 +54,6 @@ else
 }
 
 app.UseHttpsRedirection();
-
-
 app.UseAntiforgery();
 
 app.MapStaticAssets();
@@ -68,5 +64,26 @@ app.MapRazorComponents<App>()
 
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
+
+// Add fallback route for handling 404s - this should be LAST
+app.MapFallback(async context =>
+{
+    var path = context.Request.Path.Value ?? "/";
+
+    // Don't handle API calls, static files, etc.
+    if (path.StartsWith("/api") ||
+        path.StartsWith("/_framework") ||
+        path.StartsWith("/css") ||
+        path.StartsWith("/js") ||
+        path.StartsWith("/Photo") ||
+        path.Contains("."))
+    {
+        context.Response.StatusCode = 404;
+        return;
+    }
+
+    // Redirect to error page with path information
+    context.Response.Redirect($"/Error?path={Uri.EscapeDataString(path)}&type=404");
+});
 
 app.Run();

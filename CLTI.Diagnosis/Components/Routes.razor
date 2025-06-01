@@ -1,4 +1,5 @@
 ﻿@inject NavigationManager NavigationManager
+@inject IJSRuntime JSRuntime
 
 <Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }">
     <Found Context="routeData">
@@ -12,7 +13,23 @@
     <NotFound>
         <PageTitle>Page Not Found</PageTitle>
         <LayoutView Layout="typeof(Layout.MainLayout)">
-            <RedirectToError />
+            <NotFoundComponent />
         </LayoutView>
     </NotFound>
 </Router>
+
+@code {
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Check if current URL results in 404
+            var currentUrl = NavigationManager.Uri;
+            var baseUrl = NavigationManager.BaseUri;
+            var relativePath = NavigationManager.ToBaseRelativePath(currentUrl);
+            
+            // If we're on a route that doesn't exist, redirect to server error page
+            await JSRuntime.InvokeVoidAsync("window.location.replace", $"{baseUrl}Error?path={Uri.EscapeDataString(relativePath)}");
+        }
+    }
+}
