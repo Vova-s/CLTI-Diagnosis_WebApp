@@ -1,4 +1,5 @@
 ﻿@inject NavigationManager NavigationManager
+
 <Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }">
     <Found Context="routeData">
         <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
@@ -11,9 +12,7 @@
     <NotFound>
         <PageTitle>Page Not Found</PageTitle>
         <LayoutView Layout="typeof(Layout.MainLayout)">
-            @{
-                NavigationManager.NavigateTo("/Error", forceLoad: true);
-            }
+            <RedirectToError />
         </LayoutView>
     </NotFound>
 </Router>

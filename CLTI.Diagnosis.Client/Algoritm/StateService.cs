@@ -34,20 +34,24 @@
         public string? UlcerDepth { get; set; }
         public string? UlcerLocation2 { get; set; }
 
-        // WiFI I критерій (нові властивості)
+        // WiFI I критерій (оновлені властивості згідно з новою логікою)
         public string? PsatValue { get; set; }
         public bool HasArterialCalcification { get; set; }
         public double? TcPO2Value { get; set; }
+        public bool HasDiabetes { get; set; } = false; // Нова властивість для цукрового діабету
 
         public int? WLevelValue => CalculateWLevelValue();
         public int? ILevelValue => CalculateILevelValue();
+
+        // Логіка для показу полів у WiFI_I
+        public bool ShouldShowPsatField => KpiValue > 1.3; // Показувати ПСАТ тільки якщо КПІ > 1,3
+        public bool ShouldShowTcPO2Field => HasArterialCalcification; // Показувати TcPO2 тільки якщо є кальцифікація
 
         public bool CanContinue =>
             ((KpiValue < 0.9 && KpiValue > 0) || (KpiValue > 1.4 && PpiValue < 0.7))
             && WLevelValue.HasValue;
 
-        public bool CanContinueI =>
-            ILevelValue.HasValue;
+        public bool CanContinueI => ILevelValue.HasValue;
 
         public bool NeedExit =>
             (KpiValue >= 0.9 && KpiValue <= 1.4) || (KpiValue > 1.4 && PpiValue >= 0.7);
@@ -155,6 +159,7 @@
             PsatValue = null;
             HasArterialCalcification = false;
             TcPO2Value = null;
+            HasDiabetes = false;
 
             NotifyStateChanged();
         }
@@ -209,10 +214,9 @@
 
         private int? CalculateILevelValue()
         {
-            // Базова логіка оцінки критерію I на основі таблиці з зображення
-            if (string.IsNullOrEmpty(PsatValue)) return null;
+            // Новий алгоритм згідно з медичними рекомендаціями
 
-            // Якщо є кальцифікація і вказано TcPO2
+            // Якщо є кальцифікація і вказано TcPO2 - використовуємо TcPO2
             if (HasArterialCalcification && TcPO2Value.HasValue)
             {
                 return TcPO2Value.Value switch
@@ -225,27 +229,39 @@
                 };
             }
 
-            // Оцінка на основі ПСАТ
-            return PsatValue switch
+            // Якщо КПІ ≤ 1,3 - оцінюємо за КПІ
+            if (KpiValue <= 1.3)
             {
-                "≥0,6" => 0,
-                "40-59" => TcPO2Value.HasValue ? GetTcPO2Level(TcPO2Value.Value) : 1,
-                "30-39" => TcPO2Value.HasValue ? GetTcPO2Level(TcPO2Value.Value) : 2,
-                "<30" => 3,
-                _ => null
-            };
-        }
+                return KpiValue switch
+                {
+                    >= 0.9 => 0,
+                    >= 0.6 and < 0.9 => 1,
+                    >= 0.4 and < 0.6 => 2,
+                    < 0.4 and > 0 => 3,
+                    _ => null
+                };
+            }
 
-        private int GetTcPO2Level(double tcPO2)
-        {
-            return tcPO2 switch
+            // Якщо КПІ > 1,3 - потрібен ПСАТ
+            if (KpiValue > 1.3)
             {
-                >= 60 => 0,
-                >= 40 and < 60 => 1,
-                >= 30 and < 40 => 2,
-                < 30 => 3,
-                _ => 0
-            };
+                if (string.IsNullOrEmpty(PsatValue))
+                {
+                    return null; // Не можемо розрахувати без ПСАТ
+                }
+
+                // Оцінка на основі ПСАТ (основний показник при КПІ > 1,3)
+                return PsatValue switch
+                {
+                    "≥60" => 0,
+                    "40-59" => 1,
+                    "30-39" => 2,
+                    "<30" => 3,
+                    _ => null
+                };
+            }
+
+            return null;
         }
     }
 }
