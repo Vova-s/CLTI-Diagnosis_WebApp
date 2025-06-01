@@ -36,73 +36,61 @@
                       IsCheckedChanged="OnPusChanged" />
         </div>
 
-        <!-- Показуємо блок SIRS тільки якщо є хоча б одна ознака інфекції -->
-        @if (StateService.HasAnyInfectionSign)
+
+        <!-- Показуємо блок SIRS тільки якщо є хоча б дві ознаки інфекції -->
+        @if (StateService.HasTwoOrMoreInfectionSigns)
         {
             <div class="input-group">
-                <div class="item-title">Визначаємо чи є SIRS (синдром системної запальної відповіді)</div>          
+                <div class="item-title">Визначаємо чи є SIRS (синдром системної запальної відповіді)</div>
 
-            <CheckBox Label="Пульс > 90/хв (Мала ознака)"
-                      IsChecked="@StateService.HasTachycardia"
-                       IsCheckedChanged="OnTachycardiaChanged" />
+                <CheckBox Label="Пульс > 90/хв (Мала ознака)"
+                          IsChecked="@StateService.HasTachycardia"
+                          IsCheckedChanged="OnTachycardiaChanged" />
 
-            <CheckBox Label="Частота дихання > 20/хв (Мала ознака)"
-                      IsChecked="@StateService.HasTachypnea"
-                      IsCheckedChanged="OnTachypneaChanged" />
+                <CheckBox Label="Частота дихання > 20/хв (Мала ознака)"
+                          IsChecked="@StateService.HasTachypnea"
+                          IsCheckedChanged="OnTachypneaChanged" />
 
-            <CheckBox Label="Температура тіла > 38 або <36°C (Велика ознака)"
-                      IsChecked="@StateService.HasTemperatureChange"
-                      IsCheckedChanged="OnTemperatureChanged" />
+                <CheckBox Label="Температура тіла > 38 або <36°C (Велика ознака)"
+                          IsChecked="@StateService.HasTemperatureChange"
+                          IsCheckedChanged="OnTemperatureChanged" />
 
-            <CheckBox Label="Лейкоцити > 12 чи <4 × 10⁹/л чи незрілі форми >10% (Велика ознака)"
-                      IsChecked="@StateService.HasLeukocytosis"
-                      IsCheckedChanged="OnLeukocytosisChanged" />
+                <CheckBox Label="Лейкоцити > 12 чи <4 × 10⁹/л чи незрілі форми >10% (Велика ознака)"
+                          IsChecked="@StateService.HasLeukocytosis"
+                          IsCheckedChanged="OnLeukocytosisChanged" />
+            </div>
+        }
+
+        <!-- Показуємо тип ураження тільки якщо є рівно 2 малі ознаки SIRS і немає великих -->
+        @if (StateService.ShouldShowSirsAbsentSection)
+        {
+            <div class="input-group">
+                <div class="item-title">Визначте тип ураження</div>
+                <div class="radio-group">
+                    <RadioButton Label="Уражені лише шкіра та підшкірна жирова клітковина"
+                                 IsSelected="@(sirsAbsent == "Шкіра")"
+                                 IsSelectedChanged="@(async selected => await OnSirsAbsentChanged("Шкіра", selected))" />
+                    <RadioButton Label="Уражені кістки, суглоби або сухожилки"
+                                 IsSelected="@(sirsAbsent == "Кістки")"
+                                 IsSelectedChanged="@(async selected => await OnSirsAbsentChanged("Кістки", selected))" />
+                </div>
             </div>
 
-                <!-- Відображення статусу SIRS -->
-                @if (StateService.HasSirs)
-                {
-                    <Message Text="SIRS наявний - рівень fI = 3"
-                             Theme="light"
-                             State="warning"
-                             Size="normal" />
-                }
-                else
-                {
-                    <!-- SIRS відсутній - показуємо додаткові опції -->
-                    <Message Text="SIRS відсутній - визначте тип ураження"
-                             Theme="light"
-                             State="default"
-                             Size="normal" />
-
-                    <div class="input-group">
-                        <div class="item-title">SIRS відсутній</div>
-                        <div class="radio-group">
-                            <RadioButton Label="Уражені лише шкіра та підшкірна жирова клітковина"
-                                         IsSelected="@(sirsAbsent == "Шкіра")"
-                                         IsSelectedChanged="@(async selected => await OnSirsAbsentChanged("Шкіра", selected))" />
-                            <RadioButton Label="Уражені кістки, суглоби або сухожилки"
-                                         IsSelected="@(sirsAbsent == "Кістки")"
-                                         IsSelectedChanged="@(async selected => await OnSirsAbsentChanged("Кістки", selected))" />
-                        </div>
+            <!-- Блок для гіперемії (показується тільки коли обрано ураження шкіри) -->
+            @if (StateService.ShouldShowHyperemiaField)
+            {
+                <div class="input-group">
+                    <div class="item-title">Величина гіперемії</div>
+                    <div class="radio-group">
+                        <RadioButton Label="Гіперемія 0,5 - 2 см"
+                                     IsSelected="@(hyperemiaSize == "0.5-2")"
+                                     IsSelectedChanged="@(async selected => await OnHyperemiaSizeChanged("0.5-2", selected))" />
+                        <RadioButton Label="Гіперемія >2 см"
+                                     IsSelected="@(hyperemiaSize == ">2")"
+                                     IsSelectedChanged="@(async selected => await OnHyperemiaSizeChanged(">2", selected))" />
                     </div>
-
-                    <!-- Блок для гіперемії (показується тільки коли SIRS відсутній та обрано ураження шкіри) -->
-                    @if (StateService.ShouldShowHyperemiaField)
-                    {
-                        <div class="input-group">
-                            <div class="item-title">Величина гіперемії</div>
-                            <div class="radio-group">
-                                <RadioButton Label="Гіперемія 0,5 - 2 см"
-                                             IsSelected="@(hyperemiaSize == "0.5-2")"
-                                             IsSelectedChanged="@(async selected => await OnHyperemiaSizeChanged("0.5-2", selected))" />
-                                <RadioButton Label="Гіперемія >2 см"
-                                             IsSelected="@(hyperemiaSize == ">2")"
-                                             IsSelectedChanged="@(async selected => await OnHyperemiaSizeChanged(">2", selected))" />
-                            </div>
-                        </div>
-                    }
-                }
+                </div>
+            }
         }
 
         <!-- Відображення результату -->
@@ -125,7 +113,3 @@
         </div>
     </div>
 </div>
-
-@code {
-
-}

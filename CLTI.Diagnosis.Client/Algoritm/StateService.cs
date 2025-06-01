@@ -25,7 +25,6 @@
 
         public bool HasKpiValue => KpiValue > 0;
 
-        // WiFI W критерій
         public bool HasNecrosis { get; set; }
         public string? NecrosisType { get; set; }
         public string? GangreneSpread { get; set; }
@@ -34,24 +33,21 @@
         public string? UlcerDepth { get; set; }
         public string? UlcerLocation2 { get; set; }
 
-        // WiFI I критерій (оновлені властивості згідно з новою логікою)
         public string? PsatValue { get; set; }
         public bool HasArterialCalcification { get; set; }
         public double? TcPO2Value { get; set; }
-        public bool HasDiabetes { get; set; } = false; // Нова властивість для цукрового діабету
+        public bool HasDiabetes { get; set; } = false;
 
-        // WiFI fI критерій (інфекція стопи)
         public bool HasLocalSwelling { get; set; }
         public bool HasErythema { get; set; }
         public bool HasLocalPain { get; set; }
         public bool HasLocalWarmth { get; set; }
         public bool HasPus { get; set; }
 
-        // SIRS ознаки
-        public bool HasTachycardia { get; set; } // Пульс > 90/хв (мала ознака)
-        public bool HasTachypnea { get; set; } // ЧД > 20/хв (мала ознака)
-        public bool HasTemperatureChange { get; set; } // Температура >38 або <36°C (велика ознака)
-        public bool HasLeukocytosis { get; set; } // Лейкоцити >12 або <4 × 10⁹/л (велика ознака)
+        public bool HasTachycardia { get; set; }
+        public bool HasTachypnea { get; set; }
+        public bool HasTemperatureChange { get; set; }
+        public bool HasLeukocytosis { get; set; }
 
         public string? SirsAbsentType { get; set; }
         public string? HyperemiaSize { get; set; }
@@ -60,15 +56,17 @@
         public int? ILevelValue => CalculateILevelValue();
         public int? FILevelValue => CalculateFILevelValue();
 
-        // Логіка для показу полів у WiFI_I
-        public bool ShouldShowPsatField => KpiValue > 1.3; // Показувати ПСАТ тільки якщо КПІ > 1,3
-        public bool ShouldShowTcPO2Field => HasArterialCalcification; // Показувати TcPO2 тільки якщо є кальцифікація
+        public bool ShouldShowPsatField => KpiValue > 1.3;
+        public bool ShouldShowTcPO2Field => HasArterialCalcification;
 
-        // Логіка для fI критерію
-        public bool HasAnyInfectionSign => HasLocalSwelling || HasErythema || HasLocalPain || HasLocalWarmth || HasPus;
-        public bool ShouldShowHyperemiaField => HasAnyInfectionSign && !HasSirs && !string.IsNullOrEmpty(SirsAbsentType);
         public bool HasSirs => CalculateSirsPresence();
 
+        public bool ShouldShowHyperemiaField => HasTwoOrMoreInfectionSigns && !HasSirs && !string.IsNullOrEmpty(SirsAbsentType) && SirsAbsentType == "Шкіра";
+
+        public bool ShouldShowSirsAbsentSection =>
+       HasTwoOrMoreInfectionSigns &&
+       !HasSirs; 
+        public bool HasTwoOrMoreInfectionSigns => new[] { HasLocalSwelling, HasErythema, HasLocalPain, HasLocalWarmth, HasPus }.Count(b => b) >= 2;
         public bool CanContinue =>
             ((KpiValue < 0.9 && KpiValue > 0) || (KpiValue > 1.4 && PpiValue < 0.7))
             && WLevelValue.HasValue;
@@ -169,7 +167,6 @@
             IsICompleted = false;
             IsfICompleted = false;
 
-            // Скидання W критерію
             HasNecrosis = false;
             NecrosisType = null;
             GangreneSpread = null;
@@ -178,13 +175,11 @@
             UlcerDepth = null;
             UlcerLocation2 = null;
 
-            // Скидання I критерію
             PsatValue = null;
             HasArterialCalcification = false;
             TcPO2Value = null;
             HasDiabetes = false;
 
-            // Скидання fI критерію
             HasLocalSwelling = false;
             HasErythema = false;
             HasLocalPain = false;
@@ -250,9 +245,6 @@
 
         private int? CalculateILevelValue()
         {
-            // Новий алгоритм згідно з медичними рекомендаціями
-
-            // Якщо є кальцифікація і вказано TcPO2 - використовуємо TcPO2
             if (HasArterialCalcification && TcPO2Value.HasValue)
             {
                 return TcPO2Value.Value switch
@@ -265,7 +257,6 @@
                 };
             }
 
-            // Якщо КПІ ≤ 1,3 - оцінюємо за КПІ
             if (KpiValue <= 1.3)
             {
                 return KpiValue switch
@@ -278,15 +269,13 @@
                 };
             }
 
-            // Якщо КПІ > 1,3 - потрібен ПСАТ
             if (KpiValue > 1.3)
             {
                 if (string.IsNullOrEmpty(PsatValue))
                 {
-                    return null; // Не можемо розрахувати без ПСАТ
+                    return null;
                 }
 
-                // Оцінка на основі ПСАТ (основний показник при КПІ > 1,3)
                 return PsatValue switch
                 {
                     "≥60" => 0,
@@ -302,58 +291,100 @@
 
         private bool CalculateSirsPresence()
         {
-            // SIRS присутній якщо є:
-            // - 2 або більше малих ознак (пульс + ЧД) або
-            // - 1 або більше великих ознак (температура або лейкоцити)
+            int small = GetSmallSirsSignsCount();
+            int large = GetLargeSirsSignsCount();
 
-            int smallSigns = 0;
-            int largeSigns = 0;
+            // SIRS є лише якщо ≥2 загальні ознаки і серед них ≥1 велика
+            return (small + large >= 2) && (large >= 1);
+        }
 
-            if (HasTachycardia) smallSigns++;
-            if (HasTachypnea) smallSigns++;
-            if (HasTemperatureChange) largeSigns++;
-            if (HasLeukocytosis) largeSigns++;
 
-            return largeSigns >= 1 || smallSigns >= 2;
+
+        private int GetSmallSirsSignsCount()
+        {
+            int count = 0;
+            if (HasTachycardia) count++;
+            if (HasTachypnea) count++;
+                return count;
+        }
+
+        private int GetLargeSirsSignsCount()
+        {
+            int count = 0;
+            if (HasTemperatureChange) count++;
+            if (HasLeukocytosis) count++;
+            return count;
         }
 
         private int? CalculateFILevelValue()
         {
-            // Якщо немає жодної ознаки інфекції - fI = 0
-            if (!HasAnyInfectionSign)
+            int infectionSignsCount = 0;
+            if (HasLocalSwelling) infectionSignsCount++;
+            if (HasErythema) infectionSignsCount++;
+            if (HasLocalPain) infectionSignsCount++;
+            if (HasLocalWarmth) infectionSignsCount++;
+            if (HasPus) infectionSignsCount++;
+
+            if (infectionSignsCount <= 1)
             {
                 return 0;
             }
 
-            // Якщо є ознаки інфекції, перевіряємо SIRS
-            if (HasSirs)
+            int smallSigns = GetSmallSirsSignsCount();
+            int largeSigns = GetLargeSirsSignsCount();
+
+            // SIRS наявний: ≥2 ознаки, з них ≥1 велика
+            if ((smallSigns + largeSigns) >= 2 && largeSigns >= 1)
             {
-                return 3; // SIRS наявний
+                return 3;
             }
 
-            // SIRS відсутній - залежить від ураження
-            if (SirsAbsentType == "Шкіра")
+            // SIRS відсутній: ≤1 ознака (мала/велика)
+            if ((smallSigns + largeSigns) <= 1)
             {
-                // Уражені лише шкіра та підшкірна жирова клітковина
-                if (string.IsNullOrEmpty(HyperemiaSize))
+                if (SirsAbsentType == "Шкіра")
                 {
-                    return null; // Потрібно вказати розмір гіперемії
+                    if (string.IsNullOrEmpty(HyperemiaSize)) return null;
+
+                    return HyperemiaSize switch
+                    {
+                        "0.5-2" => 1,
+                        ">2" => 2,
+                        _ => null
+                    };
+                }
+                else if (SirsAbsentType == "Кістки")
+                {
+                    return 2;
                 }
 
-                return HyperemiaSize switch
-                {
-                    "0.5-2" => 1, // Гіперемія 0,5-2 см
-                    ">2" => 2,    // Гіперемія >2 см
-                    _ => null
-                };
-            }
-            else if (SirsAbsentType == "Кістки")
-            {
-                // Уражені кістки, суглоби або сухожилки
-                return 2;
+                return null;
             }
 
-            return null; // Ще не всі дані введені
+            // Якщо тільки 2 малі ознаки, без великих — також SIRS відсутній
+            if (smallSigns == 2 && largeSigns == 0)
+            {
+                if (SirsAbsentType == "Шкіра")
+                {
+                    if (string.IsNullOrEmpty(HyperemiaSize)) return null;
+
+                    return HyperemiaSize switch
+                    {
+                        "0.5-2" => 1,
+                        ">2" => 2,
+                        _ => null
+                    };
+                }
+                else if (SirsAbsentType == "Кістки")
+                {
+                    return 2;
+                }
+
+                return null;
+            }
+
+            return null;
         }
+
     }
 }
