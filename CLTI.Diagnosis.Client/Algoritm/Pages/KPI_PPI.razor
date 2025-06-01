@@ -16,11 +16,12 @@
             <div class="item-title">
                 Значення КПІ (кісточково-плечовий індекс)
             </div>
-            <TextInput Value="@kpiValueString"
-            ValueChanged="HandleKpiInputChanged"
-            Placeholder="Введіть значення"
-            Theme="light"
-            State="default" />
+            <TextInput Value="@(StateService.KpiValue != 0 ? StateService.KpiValue.ToString() : kpiValueString)"
+                       ValueChanged="HandleKpiInputChanged"
+                       Placeholder="Введіть значення"
+                       Theme="light"
+                       State="default" />
+
         </div>
 
         @if (HasKpiValue())
