@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components;
-using CLTI.Diagnosis.Client.Algoritm;
+using CLTI.Diagnosis.Client.Algoritm.Services;
 
 namespace CLTI.Diagnosis.Client.Components
 {
@@ -37,8 +37,6 @@ namespace CLTI.Diagnosis.Client.Components
 
         private async Task OnItemStatusChanged(string item, bool isChecked)
         {
-            // Користувач не може змінювати статус - він автоматичний
-            // Цей метод залишається порожнім, оскільки галочки контролюються StateService
             await Task.CompletedTask;
         }
     }

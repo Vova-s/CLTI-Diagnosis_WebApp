@@ -2,6 +2,7 @@
 @rendermode InteractiveServer
 @using CLTI.Diagnosis.Client.Shared
 @using CLTI.Diagnosis.Client.Components
+@using CLTI.Diagnosis.Client.Algoritm.Services
 @inject StateService StateService
 @inject NavigationManager NavigationManager
 
@@ -12,24 +13,14 @@
             Результати оцінки <span>WiFI</span> класифікації
         </div>
 
-        <!-- WiFI результати -->
-        <div class="wifi-results-container">
-            <div class="wifi-result-item">
-                <div class="wifi-label">Критерій W (рана):</div>
-                <div class="wifi-value">W@(StateService.WLevelValue ?? 0)</div>
-            </div>
-
-            <div class="wifi-result-item">
-                <div class="wifi-label">Критерій I (ішемія):</div>
-                <div class="wifi-value">I@(StateService.ILevelValue ?? 0)</div>
-            </div>
-
-            <div class="wifi-result-item">
-                <div class="wifi-label">Критерій fI (інфекція):</div>
-                <div class="wifi-value">fI@(StateService.FILevelValue ?? 0)</div>
-            </div>
+        <!-- WiFI результат -->
+        <div class="result-group">
+            <div class="item-title">WiFI Результат</div>
+            <Message Text="@GetWiFIResult()"
+                     Theme="light"
+                     State="success"
+                     Size="normal" />
         </div>
-
         <!-- Чекбокс для неможливості збереження кінцівки -->
         <div class="input-group">
             <CheckBox Label="Неможливо зберегти кінцівку"
@@ -40,62 +31,67 @@
         @if (!StateService.CannotSaveLimb)
         {
             <!-- Клінічна стадія (коли можна зберегти кінцівку) -->
-            <div class="clinical-stage-container">
-                <div class="clinical-stage-title">Клінічна стадія</div>
-                <div class="clinical-stage-value @GetClinicalStageClass()">
-                    Стадія @StateService.ClinicalStage
-                </div>
-                <div class="clinical-stage-description">
-                    @GetClinicalStageDescription()
-                </div>
+            <div class="result-group">
+                <div class="item-title">Клінічна стадія</div>
+                <Message Text="@($"Стадія {StateService.ClinicalStage}")"
+                         Theme="light"
+                         State="@GetClinicalStageState()"
+                         Size="normal" />
+                <div class="item-title">Ризик втрати кінцівки</div>
+                <Message Text="@GetClinicalStageDescription()"
+                         Theme="light"
+                         State="@GetClinicalStageState()"
+                         Size="normal" />
             </div>
 
             <!-- Ризик ампутації -->
-            <div class="amputation-risk-container">
-                <div class="amputation-risk-title">Ризик великої ампутації</div>
-                <div class="amputation-risk-value @GetAmputationRiskClass()">
-                    @GetAmputationRiskText()
-                </div>
+            <div class="result-group">
+                <div class="item-title">Ризик великої ампутації</div>
+                <Message Text="@GetAmputationRiskText()"
+                         Theme="light"
+                         State="@GetAmputationRiskState()"
+                         Size="normal" />
             </div>
 
             <!-- Користь від реваскуляризації -->
-            <div class="revascularization-benefit-container">
-                <div class="revascularization-title">Користь від реваскуляризації</div>
-                <div class="revascularization-value @GetRevascularizationClass()">
-                    @GetRevascularizationText()
-                </div>
+            <div class="result-group">
+                <div class="item-title">Користь від реваскуляризації</div>
+                <Message Text="@GetRevascularizationText()"
+                         Theme="light"
+                         State="@GetRevascularizationState()"
+                         Size="normal" />
             </div>
         }
         else
         {
             <!-- Коли неможливо зберегти кінцівку -->
-            <div class="clinical-stage-container">
-                <div class="clinical-stage-title">Клінічна стадія</div>
-                <div class="clinical-stage-value stage-5">
-                    Стадія 5
-                </div>
-                <div class="clinical-stage-description">
-                    Неможливо зберегти кінцівку
-                </div>
+            <div class="result-group">
+                <div class="item-title">Клінічна стадія</div>
+                <Message Text="Стадія 5"
+                         Theme="light"
+                         State="error"
+                         Size="normal" />
+                <Message Text="Неможливо зберегти кінцівку"
+                         Theme="light"
+                         State="error"
+                         Size="normal" />
             </div>
 
-            <div class="amputation-risk-container">
-                <div class="amputation-risk-title">Ризик великої ампутації</div>
-                <div class="amputation-risk-value very-high">
-                    Надзвичайно високий
-                </div>
+            <div class="result-group">
+                <div class="item-title">Ризик великої ампутації</div>
+                <Message Text="Надзвичайно високий"
+                         Theme="light"
+                         State="error"
+                         Size="normal" />
             </div>
         }
 
-        <!-- Кнопки дій -->
-        <div class="action-buttons">
-            <Button Label="Повернутися до головної"
+        <!-- Кнопка продовжити - завжди активна -->
+        <div class="fixed-bottom-right">
+            <Button Label="Продовжити"
                     Variant="active"
-                    OnClick="ReturnToHome" />
-
-            <Button Label="Новий пацієнт"
-                    Variant="active"
-                    OnClick="NewPatient" />
+                    Disabled="false"
+                    OnClick="Continue" />
         </div>
     </div>
 </div>

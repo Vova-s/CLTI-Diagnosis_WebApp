@@ -39,7 +39,7 @@
 }
 
 .theme-light.state-error {
-    background-color: rgba(255, 203, 189, 0.2);
+    background-color: rgba(255, 59, 107, 0.1);
     border: 1px solid #ffcbbd;
     color: #000;
 }

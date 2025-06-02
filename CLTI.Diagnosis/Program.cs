@@ -1,6 +1,6 @@
 ﻿using CLTI.Diagnosis.Components;
 using CLTI.Diagnosis.Components.Account;
-using CLTI.Diagnosis.Client.Algoritm;
+using CLTI.Diagnosis.Client.Algoritm.Services;
 using CLTI.Diagnosis.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;

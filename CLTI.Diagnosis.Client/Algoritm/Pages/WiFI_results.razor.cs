@@ -21,17 +21,25 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             await InvokeAsync(StateHasChanged);
         }
 
-        private string GetClinicalStageClass()
+        private string GetWiFIResult()
+        {
+            var w = StateService.WLevelValue ?? 0;
+            var i = StateService.ILevelValue ?? 0;
+            var fi = StateService.FILevelValue ?? 0;
+            return $"W{w}I{i}fI{fi}";
+        }
+
+        private string GetClinicalStageState()
         {
             if (StateService.CannotSaveLimb)
-                return "stage-5";
+                return "error";
 
             return StateService.ClinicalStage switch
             {
-                1 => "stage-1",
-                2 or 3 => "stage-2-3",
-                4 => "stage-4",
-                _ => ""
+                1 => "success",
+                2 or 3 => "warning",
+                4 => "error",
+                _ => "default"
             };
         }
 
@@ -50,18 +58,18 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             };
         }
 
-        private string GetAmputationRiskClass()
+        private string GetAmputationRiskState()
         {
             if (StateService.CannotSaveLimb)
-                return "very-high";
+                return "error";
 
             return StateService.AmputationRisk.ToLower() switch
             {
-                "дуже низький" => "very-low",
-                "низький" => "low",
-                "помірний" => "moderate",
-                "високий" => "high",
-                _ => ""
+                "дуже низький" => "success",
+                "низький" => "success",
+                "помірний" => "warning",
+                "високий" => "error",
+                _ => "default"
             };
         }
 
@@ -70,15 +78,15 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             return StateService.CannotSaveLimb ? "Надзвичайно високий" : StateService.AmputationRisk;
         }
 
-        private string GetRevascularizationClass()
+        private string GetRevascularizationState()
         {
             return StateService.RevascularizationBenefit.ToLower() switch
             {
-                "висока" => "high",
-                "середня" => "moderate",
-                "низька" => "low",
-                "дуже низька" => "very-low",
-                _ => ""
+                "висока" => "success",
+                "середня" => "warning",
+                "низька" => "error",
+                "дуже низька" => "error",
+                _ => "default"
             };
         }
 
@@ -87,17 +95,12 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             return StateService.RevascularizationBenefit;
         }
 
-        private async Task ReturnToHome()
+        private async Task Continue()
         {
-            await InvokeAsync(StateHasChanged);
-            NavigationManager.NavigateTo("/", forceLoad: true);
-        }
-
-        private async Task NewPatient()
-        {
+            // Скидаємо стан для нового пацієнта та повертаємося на головну
             StateService.Reset();
             await InvokeAsync(StateHasChanged);
-            NavigationManager.NavigateTo("/Algoritm/Pages/KPI-PPI", forceLoad: true);
+            NavigationManager.NavigateTo("/", forceLoad: true);
         }
 
         public void Dispose()

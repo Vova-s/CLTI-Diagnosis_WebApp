@@ -4,11 +4,11 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
 
-namespace CLTI.Diagnosis.Components.Pages
+namespace CLTI.Diagnosis.Client.Algoritm.Pages
 {
     public partial class Home : ComponentBase
     {
-        public ContextMenu? contextMenuRef; // Made nullable
+        public ContextMenu? contextMenuRef;
         public string? selectedName;
         public void OpenContextMenu(double x, double y, string name)
         {
