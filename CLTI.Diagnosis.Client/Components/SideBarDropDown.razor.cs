@@ -31,6 +31,8 @@ namespace CLTI.Diagnosis.Client.Components
                 "Оцінка критерію W" => StateService.WStepCompleted,
                 "Оцінка критерію I" => StateService.IsICompleted,
                 "Оцінка критерію fI" => StateService.IsfICompleted,
+                "Оцінка результатів" => StateService.IsWiFIResultsCompleted,
+                "Оцінка перипроцедуральної смертності" => StateService.IsCRABCompleted,
                 _ => false
             };
         }

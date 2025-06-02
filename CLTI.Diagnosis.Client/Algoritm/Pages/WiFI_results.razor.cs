@@ -97,12 +97,12 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
         private async Task Continue()
         {
-            // Скидаємо стан для нового пацієнта та повертаємося на головну
-            StateService.Reset();
+            // Встановлюємо, що WiFI результати завершено
+            StateService.IsWiFIResultsCompleted = true;
+            StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);
-            NavigationManager.NavigateTo("/", forceLoad: true);
+            NavigationManager.NavigateTo("/Algoritm/Pages/CRAB", forceLoad: true);
         }
-
         public void Dispose()
         {
             StateService.OnChange -= HandleStateChanged;

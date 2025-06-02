@@ -102,8 +102,7 @@
 .frame-child {
     width: 1px;
     background-color: #dedede;
-    height: auto; /* Автоматична висота */
-    min-height: 500px;
+    height: 100%; /* Автоматична висота */
     margin: 0 40px; /* Відступи зліва і справа */
 }
 

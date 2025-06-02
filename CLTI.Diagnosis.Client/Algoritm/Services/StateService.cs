@@ -10,12 +10,14 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         private readonly VascularData _vascularData;
         private readonly WoundData _woundData;
         private readonly InfectionData _infectionData;
+        private readonly CRABData _crabData;
         private readonly UIState _uiState;
 
         // Калькулятори
         private readonly WLevelCalculator _wCalculator;
         private readonly ILevelCalculator _iCalculator;
         private readonly FILevelCalculator _fiCalculator;
+        private readonly CRABCalculator _crabCalculator;
         private readonly ClinicalStageCalculator _stageCalculator;
 
         // Стан кроків
@@ -24,6 +26,8 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public bool IsWCompleted { get; set; } = false;
         public bool IsICompleted { get; set; } = false;
         public bool IsfICompleted { get; set; } = false;
+        public bool IsWiFIResultsCompleted { get; set; } = false;
+        public bool IsCRABCompleted { get; set; } = false;
 
         public StateService()
         {
@@ -31,12 +35,14 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             _vascularData = new VascularData();
             _woundData = new WoundData();
             _infectionData = new InfectionData();
+            _crabData = new CRABData();
             _uiState = new UIState();
 
             // Ініціалізація калькуляторів
             _wCalculator = new WLevelCalculator(_woundData);
             _iCalculator = new ILevelCalculator(_vascularData);
             _fiCalculator = new FILevelCalculator(_infectionData);
+            _crabCalculator = new CRABCalculator(_crabData);
             _stageCalculator = new ClinicalStageCalculator(_wCalculator, _iCalculator, _fiCalculator);
         }
 
@@ -177,6 +183,48 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             set => _infectionData.HyperemiaSize = value;
         }
 
+        // CRAB дані - через модель
+        public bool IsOlderThan75
+        {
+            get => _crabData.IsOlderThan75;
+            set => _crabData.IsOlderThan75 = value;
+        }
+        public bool HasPreviousAmputationOrRevascularization
+        {
+            get => _crabData.HasPreviousAmputationOrRevascularization;
+            set => _crabData.HasPreviousAmputationOrRevascularization = value;
+        }
+        public bool HasPainAndNecrosis
+        {
+            get => _crabData.HasPainAndNecrosis;
+            set => _crabData.HasPainAndNecrosis = value;
+        }
+        public bool HasPartialFunctionalDependence
+        {
+            get => _crabData.HasPartialFunctionalDependence;
+            set => _crabData.HasPartialFunctionalDependence = value;
+        }
+        public bool IsOnHemodialysis
+        {
+            get => _crabData.IsOnHemodialysis;
+            set => _crabData.IsOnHemodialysis = value;
+        }
+        public bool HasAnginaOrMI
+        {
+            get => _crabData.HasAnginaOrMI;
+            set => _crabData.HasAnginaOrMI = value;
+        }
+        public bool IsUrgentOperation
+        {
+            get => _crabData.IsUrgentOperation;
+            set => _crabData.IsUrgentOperation = value;
+        }
+        public bool HasCompleteFunctionalDependence
+        {
+            get => _crabData.HasCompleteFunctionalDependence;
+            set => _crabData.HasCompleteFunctionalDependence = value;
+        }
+
         // Результати
         public bool CannotSaveLimb
         {
@@ -191,6 +239,12 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public int ClinicalStage => _stageCalculator.CalculateClinicalStage();
         public string AmputationRisk => _stageCalculator.CalculateAmputationRisk();
         public string RevascularizationBenefit => _stageCalculator.CalculateRevascularizationBenefit();
+
+        // CRAB результати - через калькулятор
+        public int? CRABTotalScore => _crabCalculator.CalculateScore();
+        public string CRABRiskLevel => _crabCalculator.GetRiskLevel();
+        public string CRABRiskDescription => _crabCalculator.GetRiskDescription();
+        public double CRABMortalityRiskPercentage => _crabCalculator.GetMortalityRiskPercentage();
 
         public bool ShouldShowPsatField => _vascularData.ShouldShowPsatField;
         public bool ShouldShowTcPO2Field => _vascularData.ShouldShowTcPO2Field;
@@ -287,6 +341,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             _vascularData.Reset();
             _woundData.Reset();
             _infectionData.Reset();
+            _crabData.Reset(); // Використовуємо метод Reset() з CRABData
             _uiState.Reset();
 
             KpiStepCompleted = false;
@@ -294,6 +349,8 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             IsWCompleted = false;
             IsICompleted = false;
             IsfICompleted = false;
+            IsWiFIResultsCompleted = false;
+            IsCRABCompleted = false;
             _stageCalculator.CannotSaveLimb = false;
 
             NotifyStateChanged();
@@ -303,6 +360,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public VascularData GetVascularData() => _vascularData;
         public WoundData GetWoundData() => _woundData;
         public InfectionData GetInfectionData() => _infectionData;
+        public CRABData GetCRABData() => _crabData;
         public UIState GetUIState() => _uiState;
     }
 }

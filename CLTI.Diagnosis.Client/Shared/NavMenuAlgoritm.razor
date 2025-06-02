@@ -29,6 +29,13 @@
                                  Items='@(GetWifiItems())' />
             }
 
+            <!-- CRAB секція - показується після завершення WiFI результатів -->
+            @if (StateService.IsWiFIResultsCompleted)
+            {
+                <SideBarDropDown Placeholder="CRAB класифікація" DefaultOpen="true"
+                                 Items='@(GetCRABItems())' />
+            }
+
             <!-- Додаткові секції можна додати пізніше -->
         </div>
     </div>

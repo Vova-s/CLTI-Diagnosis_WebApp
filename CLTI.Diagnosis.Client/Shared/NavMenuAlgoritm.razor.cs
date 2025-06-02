@@ -24,6 +24,7 @@ namespace CLTI.Diagnosis.Client.Shared
             // Використовуйте InvokeAsync для забезпечення потоку UI
             InvokeAsync(() => StateHasChanged());
         }
+
         public List<string> GetWifiItems()
         {
             var WiFiItems = new List<string> { "Оцінка критерію W" };
@@ -47,6 +48,19 @@ namespace CLTI.Diagnosis.Client.Shared
             }
 
             return WiFiItems;
+        }
+
+        public List<string> GetCRABItems()
+        {
+            var crabItems = new List<string>();
+
+            // Показуємо CRAB тільки якщо WiFI результати завершено
+            if (StateService.IsWiFIResultsCompleted)
+            {
+                crabItems.Add("Оцінка перипроцедуральної смертності");
+            }
+
+            return crabItems;
         }
 
         private List<string> GetHemodynamicItems()
