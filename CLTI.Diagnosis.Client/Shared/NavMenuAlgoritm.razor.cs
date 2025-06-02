@@ -14,14 +14,12 @@ namespace CLTI.Diagnosis.Client.Shared
 
         protected override void OnInitialized()
         {
-            // Підписуємося на подію зміни стану
             StateService.OnChange += HandleStateChange;
             base.OnInitialized();
         }
 
         private void HandleStateChange()
         {
-            // Використовуйте InvokeAsync для забезпечення потоку UI
             InvokeAsync(() => StateHasChanged());
         }
 
@@ -29,19 +27,16 @@ namespace CLTI.Diagnosis.Client.Shared
         {
             var WiFiItems = new List<string> { "Оцінка критерію W" };
 
-            // Додаємо критерій I тільки якщо W завершено
             if (StateService.IsWCompleted)
             {
                 WiFiItems.Add("Оцінка критерію I");
             }
 
-            // Додаємо критерій fI тільки якщо I завершено
             if (StateService.IsICompleted)
             {
                 WiFiItems.Add("Оцінка критерію fI");
             }
 
-            // Додаємо фінальну оцінку тільки якщо всі критерії завершено
             if (StateService.IsfICompleted)
             {
                 WiFiItems.Add("Оцінка результатів");
@@ -50,14 +45,22 @@ namespace CLTI.Diagnosis.Client.Shared
             return WiFiItems;
         }
 
-        public List<string> GetCRABItems()
+        public List<string> GetRiskItems()
         {
             var crabItems = new List<string>();
 
-            // Показуємо CRAB тільки якщо WiFI результати завершено
             if (StateService.IsWiFIResultsCompleted)
             {
                 crabItems.Add("Оцінка перипроцедуральної смертності");
+
+            }
+            if (StateService.IsCRABCompleted)
+            {
+                crabItems.Add("Оцінка дворічної виживаності");
+            }
+            if (StateService.Is2YLECompleted)
+            {
+                crabItems.Add("Кінцева оцінка ступеня хірургічного ризику");
             }
 
             return crabItems;
@@ -67,7 +70,6 @@ namespace CLTI.Diagnosis.Client.Shared
         {
             var items = new List<string> { "КПІ" };
 
-            // Додаємо ППІ тільки якщо він потрібен
             if (StateService.ShowPpiInSidebar)
             {
                 items.Add("ППІ");
@@ -92,7 +94,6 @@ namespace CLTI.Diagnosis.Client.Shared
             StateHasChanged();
         }
 
-        // Метод для закриття меню (викликається з UserContexMenu)
         public void CloseUserMenu()
         {
             showUserMenu = false;
@@ -113,7 +114,6 @@ namespace CLTI.Diagnosis.Client.Shared
 
         public void Dispose()
         {
-            // Відписуємось від події при знищенні компонента
             StateService.OnChange -= HandleStateChange;
         }
     }

@@ -1,0 +1,54 @@
+﻿.page-container {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+}
+.input-group {
+    margin-bottom: 20px;
+}
+.main-content {
+    flex: 1; /* Займає всю доступну ширину */
+    padding: 20px;
+    margin-left: 20px; /* Відступ від бічного меню */
+}
+
+.page-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #191919;
+    margin-bottom: 30px;
+    font-family: Inter;
+}
+
+    .page-title span {
+        color: #057cff;
+    }
+
+.item-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #191919;
+    font-family: Inter;
+    margin-bottom: 15px;
+}
+
+.result-section {
+    margin-bottom: 30px;
+    padding: 20px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #fafafa;
+}
+
+.main-result {
+    background-color: #f0f8ff;
+    border-color: #057cff;
+    border-width: 2px;
+}
+
+.fixed-bottom-right {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+}

@@ -102,7 +102,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         {
             StateService.IsCRABCompleted = true;
             await InvokeAsync(StateHasChanged);
-            NavigationManager.NavigateTo("/fghd", forceLoad: true);
+            NavigationManager.NavigateTo("/Algoritm/Pages/2YLE", forceLoad: true);
         }
 
         public void Dispose()
