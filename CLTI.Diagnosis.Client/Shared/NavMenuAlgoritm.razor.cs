@@ -43,7 +43,7 @@ namespace CLTI.Diagnosis.Client.Shared
             // Додаємо фінальну оцінку тільки якщо всі критерії завершено
             if (StateService.IsfICompleted)
             {
-                WiFiItems.Add("Оцінка клінічної стадії та ризику великої вище кісточки ампутації в межах 1 року");
+                WiFiItems.Add("Оцінка результатів");
             }
 
             return WiFiItems;
