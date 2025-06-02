@@ -1,4 +1,4 @@
-﻿@page "/Algoritm/Pages/WifI_results"
+﻿@page "/Algoritm/Pages/WiFI_results"
 @rendermode InteractiveServer
 @using CLTI.Diagnosis.Client.Shared
 @using CLTI.Diagnosis.Client.Components
@@ -9,7 +9,93 @@
     <NavMenuAlgoritm />
     <div class="main-content">
         <div class="page-title">
-            Оцінка результатів <span>WIFI</span>
+            Результати оцінки <span>WiFI</span> класифікації
+        </div>
+
+        <!-- WiFI результати -->
+        <div class="wifi-results-container">
+            <div class="wifi-result-item">
+                <div class="wifi-label">Критерій W (рана):</div>
+                <div class="wifi-value">W@(StateService.WLevelValue ?? 0)</div>
+            </div>
+
+            <div class="wifi-result-item">
+                <div class="wifi-label">Критерій I (ішемія):</div>
+                <div class="wifi-value">I@(StateService.ILevelValue ?? 0)</div>
+            </div>
+
+            <div class="wifi-result-item">
+                <div class="wifi-label">Критерій fI (інфекція):</div>
+                <div class="wifi-value">fI@(StateService.FILevelValue ?? 0)</div>
+            </div>
+        </div>
+
+        <!-- Чекбокс для неможливості збереження кінцівки -->
+        <div class="input-group">
+            <CheckBox Label="Неможливо зберегти кінцівку"
+                      IsChecked="@StateService.CannotSaveLimb"
+                      IsCheckedChanged="OnCannotSaveLimbChanged" />
+        </div>
+
+        @if (!StateService.CannotSaveLimb)
+        {
+            <!-- Клінічна стадія (коли можна зберегти кінцівку) -->
+            <div class="clinical-stage-container">
+                <div class="clinical-stage-title">Клінічна стадія</div>
+                <div class="clinical-stage-value @GetClinicalStageClass()">
+                    Стадія @StateService.ClinicalStage
+                </div>
+                <div class="clinical-stage-description">
+                    @GetClinicalStageDescription()
+                </div>
+            </div>
+
+            <!-- Ризик ампутації -->
+            <div class="amputation-risk-container">
+                <div class="amputation-risk-title">Ризик великої ампутації</div>
+                <div class="amputation-risk-value @GetAmputationRiskClass()">
+                    @GetAmputationRiskText()
+                </div>
+            </div>
+
+            <!-- Користь від реваскуляризації -->
+            <div class="revascularization-benefit-container">
+                <div class="revascularization-title">Користь від реваскуляризації</div>
+                <div class="revascularization-value @GetRevascularizationClass()">
+                    @GetRevascularizationText()
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Коли неможливо зберегти кінцівку -->
+            <div class="clinical-stage-container">
+                <div class="clinical-stage-title">Клінічна стадія</div>
+                <div class="clinical-stage-value stage-5">
+                    Стадія 5
+                </div>
+                <div class="clinical-stage-description">
+                    Неможливо зберегти кінцівку
+                </div>
+            </div>
+
+            <div class="amputation-risk-container">
+                <div class="amputation-risk-title">Ризик великої ампутації</div>
+                <div class="amputation-risk-value very-high">
+                    Надзвичайно високий
+                </div>
+            </div>
+        }
+
+        <!-- Кнопки дій -->
+        <div class="action-buttons">
+            <Button Label="Повернутися до головної"
+                    Variant="active"
+                    OnClick="ReturnToHome" />
+
+            <Button Label="Новий пацієнт"
+                    Variant="active"
+                    OnClick="NewPatient" />
         </div>
     </div>
 </div>

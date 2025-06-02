@@ -52,9 +52,17 @@
         public string? SirsAbsentType { get; set; }
         public string? HyperemiaSize { get; set; }
 
+        // Нові властивості для результатів
+        public bool CannotSaveLimb { get; set; } = false;
+
         public int? WLevelValue => CalculateWLevelValue();
         public int? ILevelValue => CalculateILevelValue();
         public int? FILevelValue => CalculateFILevelValue();
+
+        // Обчислення клінічної стадії
+        public int ClinicalStage => CalculateClinicalStage();
+        public string AmputationRisk => CalculateAmputationRisk();
+        public string RevascularizationBenefit => CalculateRevascularizationBenefit();
 
         public bool ShouldShowPsatField => KpiValue > 1.3;
         public bool ShouldShowTcPO2Field => HasArterialCalcification;
@@ -64,9 +72,10 @@
         public bool ShouldShowHyperemiaField => HasTwoOrMoreInfectionSigns && !HasSirs && !string.IsNullOrEmpty(SirsAbsentType) && SirsAbsentType == "Шкіра";
 
         public bool ShouldShowSirsAbsentSection =>
-       HasTwoOrMoreInfectionSigns &&
-       !HasSirs; 
+            HasTwoOrMoreInfectionSigns && !HasSirs;
+
         public bool HasTwoOrMoreInfectionSigns => new[] { HasLocalSwelling, HasErythema, HasLocalPain, HasLocalWarmth, HasPus }.Count(b => b) >= 2;
+
         public bool CanContinue =>
             ((KpiValue < 0.9 && KpiValue > 0) || (KpiValue > 1.4 && PpiValue < 0.7))
             && WLevelValue.HasValue;
@@ -192,7 +201,72 @@
             SirsAbsentType = null;
             HyperemiaSize = null;
 
+            // Скидання нових властивостей
+            CannotSaveLimb = false;
+
             NotifyStateChanged();
+        }
+
+        private int CalculateClinicalStage()
+        {
+            if (CannotSaveLimb) return 5;
+
+            var w = WLevelValue ?? 0;
+            var i = ILevelValue ?? 0;
+            var fi = FILevelValue ?? 0;
+
+            // Логіка на основі таблиці з першого зображення
+            if (w == 0 && (i == 0 || i == 1) && (fi == 0 || fi == 1)) return 1;
+            if (w == 0 && i == 2 && (fi == 0 || fi == 1 || fi == 2)) return 2;
+            if (w == 0 && i == 3 && (fi == 0 || fi == 1 || fi == 2)) return 3;
+
+            if (w == 1 && i == 0 && (fi == 0 || fi == 1)) return 1;
+            if (w == 1 && i == 1 && (fi == 0 || fi == 1)) return 2;
+            if (w == 1 && i == 2 && (fi == 0 || fi == 1)) return 3;
+            if (w == 1 && i == 3 && (fi == 0 || fi == 1 || fi == 2)) return 4;
+
+            if (w == 2 && i == 0 && fi == 0) return 2;
+            if (w == 2 && i == 0 && fi == 1) return 3;
+            if (w == 2 && i == 1 && (fi == 0 || fi == 1)) return 3;
+            if (w == 2 && i == 2 && (fi == 0 || fi == 1 || fi == 2)) return 4;
+            if (w == 2 && i == 3 && (fi == 0 || fi == 1 || fi == 2 || fi == 3)) return 4;
+
+            if (w == 3 && (fi == 0 || fi == 1 || fi == 2 || fi == 3)) return 4;
+
+            // За замовчуванням
+            return 4;
+        }
+
+        private string CalculateAmputationRisk()
+        {
+            if (CannotSaveLimb) return "Надзвичайно високий";
+
+            return ClinicalStage switch
+            {
+                1 => "Дуже низький",
+                2 => "Низький",
+                3 => "Помірний",
+                4 => "Високий",
+                5 => "Надзвичайно високий",
+                _ => "Невизначений"
+            };
+        }
+
+        private string CalculateRevascularizationBenefit()
+        {
+            if (CannotSaveLimb) return "Не показана";
+
+            // Логіка з другого зображення
+            var i = ILevelValue ?? 0;
+
+            return i switch
+            {
+                0 => "Дуже низька",
+                1 => "Низька",
+                2 => "Середня",
+                3 => "Висока",
+                _ => "Невизначена"
+            };
         }
 
         private int? CalculateWLevelValue()
@@ -298,14 +372,12 @@
             return (small + large >= 2) && (large >= 1);
         }
 
-
-
         private int GetSmallSirsSignsCount()
         {
             int count = 0;
             if (HasTachycardia) count++;
             if (HasTachypnea) count++;
-                return count;
+            return count;
         }
 
         private int GetLargeSirsSignsCount()
@@ -385,6 +457,5 @@
 
             return null;
         }
-
     }
 }

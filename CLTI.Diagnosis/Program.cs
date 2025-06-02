@@ -1,4 +1,4 @@
-using CLTI.Diagnosis.Components;
+﻿using CLTI.Diagnosis.Components;
 using CLTI.Diagnosis.Components.Account;
 using CLTI.Diagnosis.Client.Algoritm;
 using CLTI.Diagnosis.Data;
@@ -18,7 +18,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
-builder.Services.AddScoped<StateService>();
+builder.Services.AddSingleton<StateService>();
 
 
 builder.Services.AddAuthentication(options =>

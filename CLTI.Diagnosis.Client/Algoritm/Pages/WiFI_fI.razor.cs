@@ -150,7 +150,7 @@
         private async Task Continue()
         {
             await InvokeAsync(StateHasChanged);
-            NavigationManager.NavigateTo("/Algoritm/Pages/FinalAssessment", forceLoad: true);
+            NavigationManager.NavigateTo("/Algoritm/Pages/WiFI_results", forceLoad: true);
             StateService.IsfICompleted = true;
         }
 
