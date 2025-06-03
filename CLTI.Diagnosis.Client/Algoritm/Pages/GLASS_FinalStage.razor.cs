@@ -156,7 +156,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             return $"Відсоток функціонування зони реконструкції впродовж 1 року: {rate}";
         }
 
-        private async Task CompleteDiagnosis()
+        private async Task Continue()
         {
             // Зберігаємо остаточну стадію в StateService
             StateService.GLASSFinalStage = finalStage;
@@ -164,7 +164,8 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             StateService.NotifyStateChanged();
 
             await InvokeAsync(StateHasChanged);
-            NavigationManager.NavigateTo("/", forceLoad: true);
+            // Змінюємо навігацію на нову сторінку
+            NavigationManager.NavigateTo("/Algoritm/Pages/CLTI_SubmalleolarDisease", forceLoad: true);
         }
 
         public void Dispose()

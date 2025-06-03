@@ -1,0 +1,81 @@
+﻿@page "/Algoritm/Pages/CLTI_SubmalleolarDisease"
+@rendermode InteractiveServer
+@using CLTI.Diagnosis.Client.Shared
+@using CLTI.Diagnosis.Client.Components
+@using CLTI.Diagnosis.Client.Algoritm.Services
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+
+<div class="page-container">
+    <NavMenuAlgoritm />
+    <div class="main-content">
+        <div class="page-title">
+            Встановлення дескриптора <span>підкісточкової (стопної) хвороби</span> та формулювання діагнозу пацієнта
+        </div>
+
+        <div class="input-group">
+
+
+                <RadioButton Label="P0"
+                             IsSelected="@(selectedDescriptor == "P0")"
+                             IsSelectedChanged="@(async selected => await OnDescriptorChanged("P0", selected))" />
+            <div class="stage-description">
+                •  Цільова артерія перетинає рівень кісточок і навіть на стопі, стопна артеріальна дуга не уражена
+                </div>
+
+
+                <RadioButton Label="P1"
+                             IsSelected="@(selectedDescriptor == "P1")"
+                             IsSelectedChanged="@(async selected => await OnDescriptorChanged("P1", selected))" />
+            <div class="stage-description">
+                •  Цільова артерія перетинає рівень кісточок і навіть на стопі, але стопна артеріальна дуга відсутня або значно уражена
+                </div>
+
+
+
+                <RadioButton Label="P2"
+                             IsSelected="@(selectedDescriptor == "P2")"
+                             IsSelectedChanged="@(async selected => await OnDescriptorChanged("P2", selected))" />
+            <div class="stage-description">
+                •  Цільова артерія не перетинає рівень кісточок і відсутня на стопі
+                </div>
+
+        </div>
+
+        <!-- Результат вибору -->
+        @if (!string.IsNullOrEmpty(selectedDescriptor))
+        {
+            <div class="result-section">
+                <Message Text="@($"Дескриптор підкісточкової хвороби: {selectedDescriptor}")"
+                         Theme="light"
+                         State="success"
+                         Size="normal" />
+            </div>
+        }
+
+        <!-- Підсумковий діагноз -->
+        @if (!string.IsNullOrEmpty(selectedDescriptor))
+        {
+
+            <div class="prognosis-title">Показники, які важливі для прогнозування результату лікування</div>
+            <div class="result">
+                <Message Text="@GetAllPrognosticIndicators()"
+                         IsHtml="true"
+                         TextAlign="left"
+                         Theme="light"
+                         State="default"
+                         Size="normal" />
+
+            </div>
+
+ 
+        }
+
+        <div class="fixed-bottom-right">
+            <Button Label="Продовжити"
+                    Variant="@((!string.IsNullOrEmpty(selectedDescriptor)) ? "active" : "disabled")"
+                    Disabled="@(string.IsNullOrEmpty(selectedDescriptor))"
+                    OnClick="CompleteDiagnosis" />
+        </div>
+    </div>
+</div>

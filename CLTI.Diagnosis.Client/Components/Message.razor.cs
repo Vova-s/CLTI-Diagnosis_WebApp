@@ -8,6 +8,8 @@ namespace CLTI.Diagnosis.Client.Components
         [Parameter] public string Theme { get; set; } = "light"; // "light" | "dark"
         [Parameter] public string State { get; set; } = "default"; // "success" | "error" | "warning" | "default"
         [Parameter] public string Size { get; set; } = "normal"; // "normal" | "small"
+        [Parameter] public string TextAlign { get; set; } = "center";
+        [Parameter] public bool IsHtml { get; set; } = false;
 
         private string GetClass()
         {

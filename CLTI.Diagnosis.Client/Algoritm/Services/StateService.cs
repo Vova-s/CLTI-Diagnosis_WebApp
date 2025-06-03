@@ -39,6 +39,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public bool IsGLASSFemoroPoplitealCompleted { get; set; } = false;
         public bool IsGLASSInfrapoplitealCompleted { get; set; } = false;
         public bool IsGLASSFinalCompleted { get; set; } = false;
+        public bool IsSubmalleolarDiseaseCompleted { get; set; } = false;
 
         public StateService()
         {
@@ -303,6 +304,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public string? GLASSFemoroPoplitealStage { get; set; }
         public string? GLASSInfrapoplitealStage { get; set; }
         public string? GLASSFinalStage { get; set; }
+        public string? SubmalleolarDescriptor { get; set; }
         public bool HasGeneralOrExternalStenosis
         {
             get => _glassData.HasGeneralOrExternalStenosis;
@@ -559,6 +561,8 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             IsGLASSInfrapoplitealCompleted = false;
             GLASSFinalStage = null;
             IsGLASSFinalCompleted = false;
+            SubmalleolarDescriptor = null;
+            IsSubmalleolarDiseaseCompleted = false;
             NotifyStateChanged();
         }
 

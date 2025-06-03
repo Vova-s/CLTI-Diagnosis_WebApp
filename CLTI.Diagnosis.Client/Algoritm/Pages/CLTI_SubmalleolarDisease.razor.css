@@ -1,0 +1,108 @@
+﻿.page-container {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+}
+
+.main-content {
+    flex: 1;
+    padding: 20px;
+    margin-left: 20px;
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+.page-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #191919;
+    margin-bottom: 30px;
+    font-family: Inter;
+}
+
+    .page-title span {
+        color: #057cff;
+    }
+
+.input-group {
+    margin-bottom: 30px;
+}
+
+.item-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #191919;
+    font-family: Inter;
+    margin-bottom: 20px;
+}
+
+.descriptor-item {
+    margin-bottom: 16px;
+    padding: 12px;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    background-color: #fafafa;
+}
+
+.descriptor-description {
+    font-size: 14px;
+    color: #555;
+    margin-top: 8px;
+    margin-left: 26px;
+    line-height: 1.4;
+    font-family: Inter;
+}
+
+.result-section {
+    margin-bottom: 30px;
+    
+}
+.result .message-box {
+    text-align: left !important;
+} 
+
+.final-diagnosis-section {
+    margin-bottom: 80px;
+}
+
+.diagnosis-container {
+    margin-bottom: 20px;
+}
+
+.prognosis-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #191919;
+    font-family: Inter;
+    margin-bottom: 15px;
+    margin-top: 20px;
+}
+.stage-description {
+    font-size: 14px;
+    font-weight: 600;
+    color: #191919;
+    font-family: Inter;
+}
+.prognosis-container {
+    margin-bottom: 20px;
+}
+
+    .prognosis-container .message-large {
+        white-space: pre-line;
+        text-align: left;
+    }
+
+.fixed-bottom-right {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1000;
+}
+
+/* Респонсивність */
+@media (max-width: 768px) {
+    .main-content {
+        margin-left: 10px;
+        padding: 15px;
+    }
+}

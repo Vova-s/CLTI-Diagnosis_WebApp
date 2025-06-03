@@ -86,7 +86,7 @@ namespace CLTI.Diagnosis.Client.Shared
             {
                 glassItems.Add("Остаточне визначення анатомічної стадії інфраінгвінальної хвороби за GLASS");
             }
-            if (StateService.IsGLASSInfrapoplitealCompleted)
+            if (StateService.IsGLASSFinalCompleted)
             {
                 glassItems.Add("Встановлення дескриптора підкісточкової (стопної) хвороби та формулювання діагнозу пацієнта");
             }

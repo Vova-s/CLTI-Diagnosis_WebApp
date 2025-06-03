@@ -39,6 +39,7 @@ namespace CLTI.Diagnosis.Client.Components
                 "Визначення ступеня ураження стегново-підколінного сегмента" => StateService.IsGLASSFemoroPoplitealCompleted,
                 "Визначення ступеня ураження інфрапоплітеального сегмента" => StateService.IsGLASSInfrapoplitealCompleted,
                 "Остаточне визначення анатомічної стадії інфраінгвінальної хвороби за GLASS" => StateService.IsGLASSFinalCompleted,
+                "Встановлення дескриптора підкісточкової (стопної) хвороби та формулювання діагнозу пацієнта" => StateService.IsGLASSFinalCompleted,
                 _ => false
             };
         }
