@@ -1,0 +1,50 @@
+﻿@page "/Algoritm/Pages/GLASS_FinalStage"
+@rendermode InteractiveServer
+@using CLTI.Diagnosis.Client.Shared
+@using CLTI.Diagnosis.Client.Components
+@using CLTI.Diagnosis.Client.Algoritm.Services
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+
+<div class="page-container">
+    <NavMenuAlgoritm />
+    <div class="main-content">
+        <div class="page-title">
+            Остаточне визначення анатомічної стадії <span>інфраінгвінальної хвороби</span> за GLASS
+        </div>
+
+        <!-- Результати попередніх оцінок -->
+        <div class="input-group">
+            <div class="item-title">Оцінка кальцифікації артерій та остаточне визначення анатомічної стадії інфраінгвінальної хвороби за GLASS</div>
+
+            <Message Text="@($"Анатомічна стадія інфраінгвінальної хвороби за GLASS: GLASS {finalStage}")"
+                     Theme="light"
+                     State="success"
+                     Size="normal" />
+        </div>
+
+        <div class="input-group">
+            <div class="item-title">Імовірність технічного неуспіху реваскуляризації</div>
+
+            <Message Text="@GetTechnicalFailureRate()"
+                     Theme="light"
+                     State="warning"
+                     Size="normal" />
+        </div>
+
+        <div class="input-group">
+            <div class="item-title">Імовірність функціонування зони реконструкції впродовж 1 року</div>
+
+            <Message Text="@GetFunctionalityRate()"
+                     Theme="light"
+                     State="warning"
+                     Size="normal" />
+        </div>
+
+        <div class="fixed-bottom-right">
+            <Button Label="Завершити діагностику"
+                    Variant="active"
+                    OnClick="CompleteDiagnosis" />
+        </div>
+    </div>
+</div>

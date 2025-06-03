@@ -101,7 +101,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         {
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);
-            NavigationManager.NavigateTo("/", forceLoad: true);
+            NavigationManager.NavigateTo("/Algoritm/Pages/GLASS_FinalStage", forceLoad: true);
             StateService.IsGLASSInfrapoplitealCompleted = true;
         }
 

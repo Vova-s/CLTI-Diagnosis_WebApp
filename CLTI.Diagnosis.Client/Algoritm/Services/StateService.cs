@@ -1,5 +1,6 @@
 ﻿using System;
 using CLTI.Diagnosis.Client.Algoritm.Models;
+using CLTI.Diagnosis.Client.Algoritm.Pages;
 using CLTI.Diagnosis.Client.Algoritm.Steps;
 
 namespace CLTI.Diagnosis.Client.Algoritm.Services
@@ -37,6 +38,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public bool IsGLASSCompleted { get; set; } = false;
         public bool IsGLASSFemoroPoplitealCompleted { get; set; } = false;
         public bool IsGLASSInfrapoplitealCompleted { get; set; } = false;
+        public bool IsGLASSFinalCompleted { get; set; } = false;
 
         public StateService()
         {
@@ -300,6 +302,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public string? GLASSSubStage { get; set; }
         public string? GLASSFemoroPoplitealStage { get; set; }
         public string? GLASSInfrapoplitealStage { get; set; }
+        public string? GLASSFinalStage { get; set; }
         public bool HasGeneralOrExternalStenosis
         {
             get => _glassData.HasGeneralOrExternalStenosis;
@@ -554,7 +557,8 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             IsGLASSFemoroPoplitealCompleted = false;
             GLASSInfrapoplitealStage = null;
             IsGLASSInfrapoplitealCompleted = false;
-
+            GLASSFinalStage = null;
+            IsGLASSFinalCompleted = false;
             NotifyStateChanged();
         }
 

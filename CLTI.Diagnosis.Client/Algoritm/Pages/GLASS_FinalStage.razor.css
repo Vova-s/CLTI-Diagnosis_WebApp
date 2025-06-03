@@ -5,11 +5,10 @@
 }
 
 .main-content {
-    flex: 1; /* Займає всю доступну ширину */
+    flex: 1;
     padding: 20px;
-    margin-left: 20px; /* Відступ від бічного меню */
+    margin-left: 20px;
 }
-
 
 .page-title {
     font-size: 18px;
@@ -27,26 +26,13 @@
     margin-bottom: 20px;
     margin-left: 8px;
 }
-.result-section {
-    margin-top: 20px;
-}
+
 .item-title {
     font-size: 16px;
     font-weight: 600;
     color: #191919;
     font-family: Inter;
-}
-.stage-description {
-    font-size: 14px;
-    font-weight: 600;
-    color: #191919;
-    font-family: Inter;
-}
-.radio-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
 }
 
 .fixed-bottom-right {

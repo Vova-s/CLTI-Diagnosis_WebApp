@@ -22,6 +22,12 @@
     .page-title span {
         color: #057cff;
     }
+.stage-description {
+    font-size: 14px;
+    font-weight: 600;
+    color: #191919;
+    font-family: Inter;
+}
 
 .input-group {
     margin-bottom: 20px;

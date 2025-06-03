@@ -37,6 +37,8 @@ namespace CLTI.Diagnosis.Client.Components
                 "Кінцева оцінка ступеня хірургічного ризику" => StateService.IsSurgicalRiskCompleted,
                 "Визначення анатомічної стадії аорто-клубової хвороби за GLASS" => StateService.IsGLASSCompleted,
                 "Визначення ступеня ураження стегново-підколінного сегмента" => StateService.IsGLASSFemoroPoplitealCompleted,
+                "Визначення ступеня ураження інфрапоплітеального сегмента" => StateService.IsGLASSInfrapoplitealCompleted,
+                "Остаточне визначення анатомічної стадії інфраінгвінальної хвороби за GLASS" => StateService.IsGLASSFinalCompleted,
                 _ => false
             };
         }

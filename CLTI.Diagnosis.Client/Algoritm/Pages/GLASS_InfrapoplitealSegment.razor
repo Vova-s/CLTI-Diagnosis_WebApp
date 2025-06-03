@@ -21,20 +21,20 @@
             <div class="stage-description">
                 <p>• Відсутні стенози >50% в артерії цільового артеріального шляху</p>
             </div>
-        </div>
+
 
         <!-- Ступінь 1 -->
-        <div class="input-group">
+
             <RadioButton Label="Ступінь 1"
                          IsSelected="@(selectedStage == "Stage1")"
                          IsSelectedChanged="@(async selected => await OnStageChanged("Stage1", selected))" />
             <div class="stage-description">
                 <p>• Локальний стеноз артерії менше ніж 3 см</p>
             </div>
-        </div>
+
 
         <!-- Ступінь 2 -->
-        <div class="input-group">
+
             <RadioButton Label="Ступінь 2"
                          IsSelected="@(selectedStage == "Stage2")"
                          IsSelectedChanged="@(async selected => await OnStageChanged("Stage2", selected))" />
@@ -45,10 +45,10 @@
                     <li>• Не поширюється на тіл поперереальний стовбур і на початкову ділянку цільової судини</li>
                 </ul>
             </div>
-        </div>
+
 
         <!-- Ступінь 3 -->
-        <div class="input-group">
+
             <RadioButton Label="Ступінь 3"
                          IsSelected="@(selectedStage == "Stage3")"
                          IsSelectedChanged="@(async selected => await OnStageChanged("Stage3", selected))" />
@@ -58,10 +58,10 @@
                     <li>• Оклюзія 1/3 загальної довжини судини (може включати початкову ділянку цільової судини, але не тіл поперереальний стовбур)</li>
                 </ul>
             </div>
-        </div>
+
 
         <!-- Ступінь 4 -->
-        <div class="input-group">
+
             <RadioButton Label="Ступінь 4"
                          IsSelected="@(selectedStage == "Stage4")"
                          IsSelectedChanged="@(async selected => await OnStageChanged("Stage4", selected))" />
@@ -71,14 +71,14 @@
                     <li>• Оклюзія >1/3 загальної довжини судини (може включати початкову ділянку цільової судини)</li>
                     <li>• Будь-яка оклюзія тіл поперереального стовбура, якщо передня великомідкова артерія не є цільовою артерією</li>
                 </ul>
-            </div>
+            </div
         </div>
-                <div class="input-group">
+
+
             <CheckBox Label="Наявна сильна кальцифікація"
                       IsChecked="@hasSevereCalcification"
                       IsCheckedChanged="OnCalcificationChanged" />
 
-        </div>
 
         <!-- Відображення результату -->
         @if (!string.IsNullOrEmpty(selectedStage))
