@@ -7,11 +7,13 @@ namespace CLTI.Diagnosis.Client.Shared
 {
     public partial class NavMenuAlgoritm : IDisposable
     {
+        // === Стан UI ===
         private bool showUserMenu = false;
         private string username = "Користувач";
         private string useremail = "user@example.com";
         private UserContexMenu? userContextMenuRef;
 
+        // === Життєвий цикл ===
         protected override void OnInitialized()
         {
             StateService.OnChange += HandleStateChange;
@@ -20,104 +22,23 @@ namespace CLTI.Diagnosis.Client.Shared
 
         private void HandleStateChange()
         {
-            InvokeAsync(() => StateHasChanged());
+            InvokeAsync(StateHasChanged);
         }
 
-        public List<string> GetWifiItems()
+        public void Dispose()
         {
-            var WiFiItems = new List<string> { "Оцінка критерію W" };
-
-            if (StateService.IsWCompleted)
-            {
-                WiFiItems.Add("Оцінка критерію I");
-            }
-
-            if (StateService.IsICompleted)
-            {
-                WiFiItems.Add("Оцінка критерію fI");
-            }
-
-            if (StateService.IsfICompleted)
-            {
-                WiFiItems.Add("Оцінка результатів");
-            }
-
-            return WiFiItems;
+            StateService.OnChange -= HandleStateChange;
         }
 
-        public List<string> GetRiskItems()
-        {
-            var crabItems = new List<string>();
-
-            if (StateService.IsWiFIResultsCompleted)
-            {
-                crabItems.Add("Оцінка перипроцедуральної смертності");
-
-            }
-            if (StateService.IsCRABCompleted)
-            {
-                crabItems.Add("Оцінка дворічної виживаності");
-            }
-            if (StateService.Is2YLECompleted)
-            {
-                crabItems.Add("Кінцева оцінка ступеня хірургічного ризику");
-            }
-
-            return crabItems;
-        }
-
-        public List<string> GetGLASSItems()
-        {
-            var glassItems = new List<string>();
-
-            if (StateService.IsSurgicalRiskCompleted)
-            {
-                glassItems.Add("Визначення анатомічної стадії аорто-клубової хвороби за GLASS");
-            }
-            if (StateService.IsGLASSCompleted)
-            {
-                glassItems.Add("Визначення ступеня ураження стегново-підколінного сегмента");
-            }
-            if (StateService.IsGLASSFemoroPoplitealCompleted)
-            {
-                glassItems.Add("Визначення ступеня ураження інфрапоплітеального сегмента");
-            }
-            if (StateService.IsGLASSInfrapoplitealCompleted)
-            {
-                glassItems.Add("Остаточне визначення анатомічної стадії інфраінгвінальної хвороби за GLASS");
-            }
-            if (StateService.IsGLASSFinalCompleted)
-            {
-                glassItems.Add("Встановлення дескриптора підкісточкової (стопної) хвороби та формулювання діагнозу пацієнта");
-            }
-
-            return glassItems;
-        }
-
-        private List<string> GetHemodynamicItems()
-        {
-            var items = new List<string> { "КПІ" };
-
-            if (StateService.ShowPpiInSidebar)
-            {
-                items.Add("ППІ");
-            }
-
-            return items;
-        }
-
+        // === Меню користувача ===
         public void ToggleUserMenu(MouseEventArgs e)
         {
-            if (!showUserMenu)
-            {
-                showUserMenu = true;
+            showUserMenu = !showUserMenu;
+
+            if (showUserMenu)
                 userContextMenuRef?.Show(e.ClientX, e.ClientY - 100, username);
-            }
             else
-            {
-                showUserMenu = false;
                 userContextMenuRef?.Hide();
-            }
 
             StateHasChanged();
         }
@@ -140,9 +61,86 @@ namespace CLTI.Diagnosis.Client.Shared
             showUserMenu = false;
         }
 
-        public void Dispose()
+        // === Дані меню: WIfI ===
+        public List<string> GetWifiItems()
         {
-            StateService.OnChange -= HandleStateChange;
+            var WiFiItems = new List<string> { "Оцінка критерію W" };
+
+            if (StateService.IsWCompleted)
+                WiFiItems.Add("Оцінка критерію I");
+
+            if (StateService.IsICompleted)
+                WiFiItems.Add("Оцінка критерію fI");
+
+            if (StateService.IsfICompleted)
+                WiFiItems.Add("Оцінка результатів");
+
+            return WiFiItems;
+        }
+
+        // === Дані меню: CRAB / 2YLE ===
+        public List<string> GetRiskItems()
+        {
+            var crabItems = new List<string>();
+
+            if (StateService.IsWiFIResultsCompleted)
+                crabItems.Add("Оцінка перипроцедуральної смертності");
+
+            if (StateService.IsCRABCompleted)
+                crabItems.Add("Оцінка дворічної виживаності");
+
+            if (StateService.Is2YLECompleted)
+                crabItems.Add("Кінцева оцінка ступеня хірургічного ризику");
+
+            return crabItems;
+        }
+
+        // === Дані меню: GLASS ===
+        public List<string> GetGLASSItems()
+        {
+            var glassItems = new List<string>();
+
+            if (StateService.IsSurgicalRiskCompleted)
+                glassItems.Add("Визначення анатомічної стадії аорто-клубової хвороби за GLASS");
+
+            if (StateService.IsGLASSCompleted)
+                glassItems.Add("Визначення ступеня ураження стегново-підколінного сегмента");
+
+            if (StateService.IsGLASSFemoroPoplitealCompleted)
+                glassItems.Add("Визначення ступеня ураження інфрапоплітеального сегмента");
+
+            if (StateService.IsGLASSInfrapoplitealCompleted)
+                glassItems.Add("Остаточне визначення анатомічної стадії інфраінгвінальної хвороби за GLASS");
+
+            if (StateService.IsGLASSFinalCompleted)
+                glassItems.Add("Встановлення дескриптора підкісточкової (стопної) хвороби та формулювання діагнозу пацієнта");
+
+            return glassItems;
+        }
+
+        // === Дані меню: Хірургічна тактика ===
+        public List<string> GetSurgicalTacticsItems()
+        {
+            var tacticsItems = new List<string>();
+
+            if (StateService.IsSubmalleolarDiseaseCompleted)
+                tacticsItems.Add("Оцінка показань до реваскуляризації");
+
+            if (StateService.IsRevascularizationAssessmentCompleted)
+                tacticsItems.Add("Вибір оптимального методу реваскуляризації");
+
+            return tacticsItems;
+        }
+
+        // === Дані меню: Гемодинаміка ===
+        private List<string> GetHemodynamicItems()
+        {
+            var items = new List<string> { "КПІ" };
+
+            if (StateService.ShowPpiInSidebar)
+                items.Add("ППІ");
+
+            return items;
         }
     }
 }

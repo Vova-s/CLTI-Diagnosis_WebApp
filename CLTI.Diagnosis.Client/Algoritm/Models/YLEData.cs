@@ -2,19 +2,32 @@
 {
     public class YLEData
     {
-        // 2YLE критерії з різними балами
-        public bool IsNonAmbulatory { get; set; } = false;  // 2,0
-        public bool HasRutherford5 { get; set; } = false;   // 1,5
-        public bool HasRutherford6 { get; set; } = false;   // 3,0
-        public bool HasCerebrovascularDisease { get; set; } = false; // 1,0
-        public bool Has2YLEHemodialysis { get; set; } = false; // 2,0
-        public bool HasBMI18to19 { get; set; } = false;     // 1,0
-        public bool HasBMILessThan18 { get; set; } = false; // 2,0
-        public bool IsAge65to79 { get; set; } = false;      // 1,5
-        public bool IsAge80Plus { get; set; } = false;      // 3,0
-        public bool HasEjectionFraction40to49 { get; set; } = false; // 1,5
-        public bool HasEjectionFractionLessThan40 { get; set; } = false; // 2,0
+        // === Критерії 2-річної виживаності (YLE) ===
 
+        // Функціональний статус
+        public bool IsNonAmbulatory { get; set; } = false;               // 2.0
+
+        // Стадія Rutherford
+        public bool HasRutherford5 { get; set; } = false;                // 1.5
+        public bool HasRutherford6 { get; set; } = false;                // 3.0
+
+        // Супутні захворювання
+        public bool HasCerebrovascularDisease { get; set; } = false;    // 1.0
+        public bool Has2YLEHemodialysis { get; set; } = false;          // 2.0
+
+        // Індекс маси тіла (ІМТ)
+        public bool HasBMI18to19 { get; set; } = false;                 // 1.0
+        public bool HasBMILessThan18 { get; set; } = false;             // 2.0
+
+        // Вік
+        public bool IsAge65to79 { get; set; } = false;                  // 1.5
+        public bool IsAge80Plus { get; set; } = false;                  // 3.0
+
+        // Фракція викиду (EF)
+        public bool HasEjectionFraction40to49 { get; set; } = false;    // 1.5
+        public bool HasEjectionFractionLessThan40 { get; set; } = false;// 2.0
+
+        // === Розрахунок балів ===
         public double CalculateScore()
         {
             double score = 0.0;
@@ -34,34 +47,33 @@
             return score;
         }
 
+        // === Рівень ризику ===
         public string GetRiskLevel()
         {
             var score = CalculateScore();
 
             if (score <= 3.0)
                 return "Низький ризик";
-            else if (score > 3.0 && score <= 6.0)
+            else if (score <= 6.0)
                 return "Помірний ризик";
-            else if (score > 6.0)
-                return "Високий ризик";
             else
-                return "Невизначений ризик";
+                return "Високий ризик";
         }
 
+        // === Прогноз виживаності ===
         public string GetSurvivalPrediction()
         {
             var score = CalculateScore();
 
             if (score <= 3.0)
                 return "Висока ймовірність 2-річної виживаності";
-            else if (score > 3.0 && score <= 6.0)
+            else if (score <= 6.0)
                 return "Помірна ймовірність 2-річної виживаності";
-            else if (score > 6.0)
-                return "Низька ймовірність 2-річної виживаності";
             else
-                return "Невизначена ймовірність виживаності";
+                return "Низька ймовірність 2-річної виживаності";
         }
 
+        // === Скидання значень ===
         public void Reset()
         {
             IsNonAmbulatory = false;

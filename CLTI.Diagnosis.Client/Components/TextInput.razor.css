@@ -1,4 +1,5 @@
-﻿.text-field-input {
+﻿/* === Обгортка інпуту === */
+.text-field-input {
     width: 400px;
     position: relative;
     border-radius: 5px;
@@ -10,6 +11,7 @@
     font-family: Inter;
 }
 
+/* === Базові стилі інпуту для всіх тем та станів === */
 input.theme-light-statedefault,
 input.theme-light-statefocus,
 input.theme-light-statefilled,
@@ -18,11 +20,11 @@ input.theme-dark-statedefault,
 input.theme-dark-statefocus,
 input.theme-dark-statefilled,
 input.theme-dark-statetyping {
-    border-radius: 8px;
     width: 400px;
     height: 46px;
     padding: 12px 20px;
     box-sizing: border-box;
+    border-radius: 8px;
     font-size: 14px;
     font-family: Inter;
     outline: none;
@@ -30,7 +32,7 @@ input.theme-dark-statetyping {
     transition: all 0.2s ease;
 }
 
-/* LIGHT THEME */
+/* === LIGHT THEME === */
 input.theme-light-statedefault {
     background-color: #eeeef0;
     color: #646464;
@@ -47,7 +49,7 @@ input.theme-light-statefilled {
     color: #000;
 }
 
-/* DARK THEME */
+/* === DARK THEME === */
 input.theme-dark-statedefault,
 input.theme-dark-statefilled {
     background-color: #1e1e1e;

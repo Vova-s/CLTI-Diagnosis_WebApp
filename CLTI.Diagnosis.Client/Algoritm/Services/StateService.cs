@@ -1,13 +1,12 @@
 ﻿using System;
 using CLTI.Diagnosis.Client.Algoritm.Models;
-using CLTI.Diagnosis.Client.Algoritm.Pages;
 using CLTI.Diagnosis.Client.Algoritm.Steps;
 
 namespace CLTI.Diagnosis.Client.Algoritm.Services
 {
     public class StateService
     {
-        // Моделі даних
+        #region Private Fields - Моделі даних
         private readonly VascularData _vascularData;
         private readonly WoundData _woundData;
         private readonly InfectionData _infectionData;
@@ -15,8 +14,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         private readonly YLEData _yleData;
         private readonly GLASSData _glassData;
         private readonly UIState _uiState;
+        #endregion
 
-        // Калькулятори
+        #region Private Fields - Калькулятори
         private readonly WLevelCalculator _wCalculator;
         private readonly ILevelCalculator _iCalculator;
         private readonly FILevelCalculator _fiCalculator;
@@ -24,23 +24,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         private readonly YLECalculator _yleCalculator;
         private readonly GLASSCalculator _glassCalculator;
         private readonly ClinicalStageCalculator _stageCalculator;
+        #endregion
 
-        // Стан кроків
-        public bool KpiStepCompleted { get; private set; }
-        public bool PpiStepCompleted { get; private set; }
-        public bool IsWCompleted { get; set; } = false;
-        public bool IsICompleted { get; set; } = false;
-        public bool IsfICompleted { get; set; } = false;
-        public bool IsWiFIResultsCompleted { get; set; } = false;
-        public bool IsCRABCompleted { get; set; } = false;
-        public bool Is2YLECompleted { get; set; } = false;
-        public bool IsSurgicalRiskCompleted { get; set; } = false;
-        public bool IsGLASSCompleted { get; set; } = false;
-        public bool IsGLASSFemoroPoplitealCompleted { get; set; } = false;
-        public bool IsGLASSInfrapoplitealCompleted { get; set; } = false;
-        public bool IsGLASSFinalCompleted { get; set; } = false;
-        public bool IsSubmalleolarDiseaseCompleted { get; set; } = false;
-
+        #region Constructor
         public StateService()
         {
             // Ініціалізація моделей
@@ -61,13 +47,39 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             _glassCalculator = new GLASSCalculator(_glassData);
             _stageCalculator = new ClinicalStageCalculator(_wCalculator, _iCalculator, _fiCalculator);
         }
+        #endregion
 
-        // Базові властивості KPI/PPI
+        #region Events
+        public event Action? OnChange;
+        public void NotifyStateChanged() => OnChange?.Invoke();
+        #endregion
+
+        #region Step Completion States
+        public bool KpiStepCompleted { get; private set; }
+        public bool PpiStepCompleted { get; private set; }
+        public bool IsWCompleted { get; set; } = false;
+        public bool IsICompleted { get; set; } = false;
+        public bool IsfICompleted { get; set; } = false;
+        public bool IsWiFIResultsCompleted { get; set; } = false;
+        public bool IsCRABCompleted { get; set; } = false;
+        public bool Is2YLECompleted { get; set; } = false;
+        public bool IsSurgicalRiskCompleted { get; set; } = false;
+        public bool IsGLASSCompleted { get; set; } = false;
+        public bool IsGLASSFemoroPoplitealCompleted { get; set; } = false;
+        public bool IsGLASSInfrapoplitealCompleted { get; set; } = false;
+        public bool IsGLASSFinalCompleted { get; set; } = false;
+        public bool IsSubmalleolarDiseaseCompleted { get; set; } = false;
+        public bool IsRevascularizationAssessmentCompleted { get; set; } = false;
+        public bool IsRevascularizationMethodCompleted { get; set; } = false;
+        #endregion
+
+        #region Basic Properties - KPI/PPI
         public double KpiValue => _vascularData.KpiValue;
         public double PpiValue => _vascularData.PpiValue;
         public bool HasKpiValue => _vascularData.HasKpiValue;
+        #endregion
 
-        // UI стан
+        #region UI State Properties
         public bool ShowKpiNormal => _uiState.ShowKpiNormal;
         public bool ShowKpiLow => _uiState.ShowKpiLow;
         public bool ShowKpiHigh => _uiState.ShowKpiHigh;
@@ -81,8 +93,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             get => _uiState.ShowWifiSection;
             set => _uiState.ShowWifiSection = value;
         }
+        #endregion
 
-        // Властивості ран (Wound data)
+        #region Wound Data Properties
         public bool HasNecrosis
         {
             get => _woundData.HasNecrosis;
@@ -118,8 +131,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             get => _woundData.UlcerLocation2;
             set => _woundData.UlcerLocation2 = value;
         }
+        #endregion
 
-        // Судинні дані (Vascular data)
+        #region Vascular Data Properties
         public string? PsatValue
         {
             get => _vascularData.PsatValue;
@@ -140,8 +154,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             get => _vascularData.HasDiabetes;
             set => _vascularData.HasDiabetes = value;
         }
+        #endregion
 
-        // Інфекційні дані (Infection data)
+        #region Infection Data Properties
         public bool HasLocalSwelling
         {
             get => _infectionData.HasLocalSwelling;
@@ -198,8 +213,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             set => _infectionData.HyperemiaSize = value;
         }
         public bool HasTwoOrMoreInfectionSigns => _infectionData.HasTwoOrMoreInfectionSigns;
+        #endregion
 
-        // CRAB дані
+        #region CRAB Data Properties
         public bool IsOlderThan75
         {
             get => _crabData.IsOlderThan75;
@@ -240,8 +256,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             get => _crabData.HasCompleteFunctionalDependence;
             set => _crabData.HasCompleteFunctionalDependence = value;
         }
+        #endregion
 
-        // 2YLE дані
+        #region 2YLE Data Properties
         public bool IsNonAmbulatory
         {
             get => _yleData.IsNonAmbulatory;
@@ -297,14 +314,16 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             get => _yleData.HasEjectionFractionLessThan40;
             set => _yleData.HasEjectionFractionLessThan40 = value;
         }
+        #endregion
 
-        // GLASS дані
+        #region GLASS Data Properties
         public string? GLASSSelectedStage { get; set; }
         public string? GLASSSubStage { get; set; }
         public string? GLASSFemoroPoplitealStage { get; set; }
         public string? GLASSInfrapoplitealStage { get; set; }
         public string? GLASSFinalStage { get; set; }
         public string? SubmalleolarDescriptor { get; set; }
+
         public bool HasGeneralOrExternalStenosis
         {
             get => _glassData.HasGeneralOrExternalStenosis;
@@ -355,14 +374,16 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             get => _glassData.HasGeneralStenosisOver50PercentB;
             set => _glassData.HasGeneralStenosisOver50PercentB = value;
         }
+        #endregion
 
-        // WiFI результати
+        #region WiFI Results
         public int? WLevelValue => _wCalculator.Calculate();
         public int? ILevelValue => _iCalculator.Calculate();
         public int? FILevelValue => _fiCalculator.Calculate();
         public bool WStepCompleted => _wCalculator.Calculate().HasValue;
+        #endregion
 
-        // Клінічна стадія та ризики
+        #region Clinical Stage and Risks
         public bool CannotSaveLimb
         {
             get => _stageCalculator.CannotSaveLimb;
@@ -371,28 +392,31 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public int ClinicalStage => _stageCalculator.CalculateClinicalStage();
         public string AmputationRisk => _stageCalculator.CalculateAmputationRisk();
         public string RevascularizationBenefit => _stageCalculator.CalculateRevascularizationBenefit();
+        #endregion
 
-        // CRAB результати
+        #region CRAB Results
         public int? CRABTotalScore => _crabCalculator.CalculateScore();
         public string CRABRiskLevel => _crabCalculator.GetRiskLevel();
         public string CRABRiskDescription => _crabCalculator.GetRiskDescription();
         public double CRABMortalityRiskPercentage => _crabCalculator.GetMortalityRiskPercentage();
+        #endregion
 
-        // 2YLE результати
+        #region 2YLE Results
         public double? YLETotalScore => _yleCalculator.CalculateScore();
         public string YLERiskLevel => _yleCalculator.GetRiskLevel();
         public string YLERiskDescription => _yleCalculator.GetRiskDescription();
         public string YLESurvivalPrediction => _yleCalculator.GetSurvivalPrediction();
         public double YLEEstimatedSurvivalPercentage => _yleCalculator.GetEstimatedSurvivalPercentage();
+        #endregion
 
-        // GLASS результати
+        #region GLASS Results
         public int? GLASSStage => _glassCalculator.CalculateStage();
         public string GLASSStageDescription => _glassCalculator.GetStageDescription();
         public string GLASSDetailedDescription => _glassCalculator.GetDetailedDescription();
         public string GLASSTreatmentRecommendation => _glassCalculator.GetTreatmentRecommendation();
+        #endregion
 
-
-        // Хірургічний ризик
+        #region Surgical Risk Calculations
         public string CalculatedSurgicalRisk
         {
             get
@@ -434,18 +458,19 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
                 return crabScore < 7 && yleScore < 8.0;
             }
         }
+        #endregion
 
-        // Допоміжні властивості
+        #region Helper Properties
         public bool ShouldShowPsatField => _vascularData.ShouldShowPsatField;
         public bool ShouldShowTcPO2Field => _vascularData.ShouldShowTcPO2Field;
         public bool HasSirs => _fiCalculator.HasSirs();
         public bool ShouldShowHyperemiaField => _fiCalculator.ShouldShowHyperemiaField();
         public bool ShouldShowSirsAbsentSection => _fiCalculator.ShouldShowSirsAbsentSection();
+        #endregion
 
-        // GLASS логіка
+        #region Business Logic Properties
         public bool CanContinueGLASS => GLASSStage.HasValue;
 
-        // Логіка продовження
         public bool CanContinue =>
             ((KpiValue < 0.9 && KpiValue > 0) || (KpiValue > 1.4 && PpiValue < 0.7))
             && WLevelValue.HasValue;
@@ -455,12 +480,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
 
         public bool NeedExit =>
             (KpiValue >= 0.9 && KpiValue <= 1.4) || (KpiValue > 1.4 && PpiValue >= 0.7);
+        #endregion
 
-        // Події
-        public event Action? OnChange;
-        public void NotifyStateChanged() => OnChange?.Invoke();
-
-        // Методи оновлення значень
+        #region Public Methods - Value Updates
         public void UpdateKpiValue(double value)
         {
             _vascularData.KpiValue = value;
@@ -528,8 +550,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
 
             NotifyStateChanged();
         }
+        #endregion
 
-        // Скидання всіх даних
+        #region Public Methods - Data Management
         public void Reset()
         {
             // Скидання всіх моделей
@@ -563,10 +586,13 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             IsGLASSFinalCompleted = false;
             SubmalleolarDescriptor = null;
             IsSubmalleolarDiseaseCompleted = false;
+            IsRevascularizationAssessmentCompleted = false;
+            IsRevascularizationMethodCompleted = false;
             NotifyStateChanged();
         }
+        #endregion
 
-        // Методи для доступу до компонентів
+        #region Public Methods - Data Access
         public VascularData GetVascularData() => _vascularData;
         public WoundData GetWoundData() => _woundData;
         public InfectionData GetInfectionData() => _infectionData;
@@ -574,5 +600,6 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public YLEData GetYLEData() => _yleData;
         public GLASSData GetGLASSData() => _glassData;
         public UIState GetUIState() => _uiState;
+        #endregion
     }
 }

@@ -2,60 +2,46 @@
 {
     public class GLASSData
     {
-        // Стадія I
+        // === Стадія I ===
         public bool HasGeneralOrExternalStenosis { get; set; } = false;
         public bool HasCLIWithoutBothStenosis { get; set; } = false;
         public bool HasInfrarenalStenosis { get; set; } = false;
         public bool HasCombinationFirstThreePoints { get; set; } = false;
 
-        // Стадія II
+        // === Стадія II ===
         public bool HasCLIInAorta { get; set; } = false;
         public bool HasCLIWithExternalIliacStenosis { get; set; } = false;
         public bool HasDiffuseLesionInAortoIliacSegment { get; set; } = false;
         public bool HasExpressionDiffusionInAorto { get; set; } = false;
 
-        // Стадія A
-        public bool HasGeneralStenosisOver50Percent { get; set; } = false;
+        // === Критерії A та B ===
+        public bool HasGeneralStenosisOver50Percent { get; set; } = false;      // Стадія A
+        public bool HasGeneralStenosisOver50PercentB { get; set; } = false;     // Стадія B
 
-        // Стадія B
-        public bool HasGeneralStenosisOver50PercentB { get; set; } = false;
-
+        // === Обчислення стадії ===
         public int? CalculateStage()
         {
-            // Перевіряємо Стадію A
             if (HasGeneralStenosisOver50Percent)
-            {
-                return 1; // Стадія A (відповідає стадії I + критерій A)
-            }
+                return 1; // Стадія A (відповідає Стадії I + критерій A)
 
-            // Перевіряємо Стадію B
             if (HasGeneralStenosisOver50PercentB)
-            {
-                return 2; // Стадія B (відповідає стадії I + критерій B)
-            }
+                return 2; // Стадія B (відповідає Стадії I + критерій B)
 
-            // Перевіряємо Стадію I
             if (HasGeneralOrExternalStenosis || HasCLIWithoutBothStenosis ||
                 HasInfrarenalStenosis || HasCombinationFirstThreePoints)
-            {
                 return 1; // Стадія I
-            }
 
-            // Перевіряємо Стадію II
             if (HasCLIInAorta || HasCLIWithExternalIliacStenosis ||
                 HasDiffuseLesionInAortoIliacSegment || HasExpressionDiffusionInAorto)
-            {
                 return 2; // Стадія II
-            }
 
             return null; // Не визначено
         }
 
+        // === Опис стадії ===
         public string GetStageDescription()
         {
-            var stage = CalculateStage();
-
-            return stage switch
+            return CalculateStage() switch
             {
                 1 => "Стадія I - Стеноз загальної та/або зовнішньої клубової артерії",
                 2 => "Стадія II - Хронічна повна оклюзія аорти та/або зовнішньої клубової артерії",
@@ -63,16 +49,19 @@
             };
         }
 
+        // === Скидання всіх параметрів ===
         public void Reset()
         {
             HasGeneralOrExternalStenosis = false;
             HasCLIWithoutBothStenosis = false;
             HasInfrarenalStenosis = false;
             HasCombinationFirstThreePoints = false;
+
             HasCLIInAorta = false;
             HasCLIWithExternalIliacStenosis = false;
             HasDiffuseLesionInAortoIliacSegment = false;
             HasExpressionDiffusionInAorto = false;
+
             HasGeneralStenosisOver50Percent = false;
             HasGeneralStenosisOver50PercentB = false;
         }

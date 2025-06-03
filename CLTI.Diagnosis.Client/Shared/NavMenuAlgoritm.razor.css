@@ -1,15 +1,43 @@
-﻿.logo-menu-1-icon {
+﻿/* === ІКОНКИ === */
+.logo-menu-1-icon {
     width: 304px;
     position: relative;
+    max-height: 100%;
     object-fit: cover;
 }
 
-.component-1-child {
-    width: 304px;
+.frame-icon {
+    width: 36px;
+    border-radius: 100px;
+    max-height: 100%;
+}
+
+.caretdown-icon {
+    width: 20px;
+    height: 20px;
     position: relative;
-    background-color: #eeeef0;
-    height: 1px;
-    margin-bottom:16px;
+    overflow: hidden;
+    flex-shrink: 0;
+    object-fit: contain;
+    transition: transform 0.2s ease;
+}
+
+    .caretdown-icon.rotated {
+        transform: rotate(180deg);
+    }
+
+/* === ТЕКСТ === */
+.div,
+.div7 {
+    position: relative;
+    font-weight: 600;
+}
+
+.usergmailcom {
+    font-size: 12px;
+    color: #000;
+    position: relative;
+    align-self: stretch;
 }
 
 .placeholder {
@@ -21,13 +49,111 @@
     flex-shrink: 0;
 }
 
-.caretdown-icon {
-    width: 18px;
+.label {
     position: relative;
-    height: 18px;
-    overflow: hidden;
-    flex-shrink: 0;
-    object-fit: contain;
+}
+
+.subtitle {
+    position: relative;
+    line-height: 22px;
+}
+
+/* === КНОПКИ / КОМПОНЕНТИ === */
+.component-7 {
+    width: 304px;
+    border-radius: 8px;
+    background-color: rgba(5, 124, 255, 0.1);
+    height: 46px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 12px 20px;
+    box-sizing: border-box;
+}
+
+.component-1 {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+/* === РОЗДІЛЮВАЧІ === */
+.frame-child,
+.component-1-child {
+    align-self: stretch;
+    position: relative;
+    background-color: #eeeef0;
+    height: 1px;
+}
+
+.component-1-child {
+    width: 304px;
+    margin-bottom: 16px;
+}
+
+/* === КОНТЕЙНЕРИ === */
+.frame-parent {
+    width: 344px;
+    position: relative;
+    background-color: #dadfea;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 20px;
+    box-sizing: border-box;
+    text-align: left;
+    font-size: 14px;
+    color: #191919;
+    font-family: Inter;
+}
+
+.logo-menu-1-parent,
+.frame-wrapper,
+.component-8-parent,
+.component-12-parent,
+.rectangle-parent,
+.frame-group,
+.component-1-parent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    align-self: stretch;
+}
+
+.logo-menu-1-parent {
+    flex: 1;
+    gap: 24px;
+}
+
+.frame-wrapper,
+.component-8-parent {
+    flex: 1;
+}
+
+.component-8-parent {
+    gap: 10px;
+}
+
+.component-12-parent,
+.component-1-parent {
+    gap: 20px;
+}
+
+.rectangle-parent {
+    gap: 20px;
+    height: 430px;
+}
+
+.frame-group {
+    width: 304px;
+    flex: 1;
+    justify-content: space-between;
 }
 
 .placeholder-parent {
@@ -39,20 +165,62 @@
     gap: 0px;
 }
 
-.checkbox {
-    width: 16px;
-    border-radius: 4px;
-    border: 1px solid #057cff;
-    box-sizing: border-box;
-    height: 16px;
-}
-/* Поворот стрілки */
-.rotated {
-    transform: rotate(180deg);
-    transition: transform 0.2s ease;
+.checkbox-group {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 10px;
+    font-size: 12px;
+    color: #000;
 }
 
-/* Контекстне меню */
+.instance-parent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 16px;
+    max-height: 730px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+    .instance-parent::-webkit-scrollbar {
+        width: 0px;
+        height: 0px;
+    }
+
+/* === КОРИСТУВАЧ === */
+.frame-container {
+    align-self: stretch;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0px;
+}
+
+.parent {
+    width: 94px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-start;
+    gap: 3px;
+}
+
+.frame-div {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+/* === КОНТЕКСТНЕ МЕНЮ === */
 .context-menu-overlay {
     position: fixed;
     top: 0;
@@ -73,12 +241,8 @@
     flex-direction: column;
 }
 
-.subtitle {
-    position: relative;
-    line-height: 22px;
-}
-
-.subtitle-wrapper, .subtitle-frame {
+.subtitle-wrapper,
+.subtitle-frame {
     background-color: #dadfea;
     height: 40px;
     display: flex;
@@ -101,329 +265,11 @@
         background-color: #ffebeb;
     }
 
-.label {
-    position: relative;
-}
-
-.checkbox-group {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 10px;
-    font-size: 12px;
-    color: #000;
-}
-
-.instance-parent {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 16px;
-    max-height: 730px; /* або height, залежно від потреб */
-    overflow-y: auto;
-    overflow-x: hidden;
-    scrollbar-width: none; /* Firefox */
-    -ms-overflow-style: none; /* IE/Edge */
-}
-
-    .instance-parent::-webkit-scrollbar {
-        width: 0px; /* Chrome/Safari */
-        height: 0px;
-    }
-
-
-.component-1 {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 16px;
-}
-
-.frame-child {
-    align-self: stretch;
-    position: relative;
-    background-color: #eeeef0;
-    height: 1px;
-}
-
-.frame-item {
-    width: 36px;
-    border-radius: 100px;
-}
-
-.div {
-    align-self: stretch;
-    position: relative;
-    font-weight: 600;
-}
-
-.usergmailcom {
-    align-self: stretch;
-    position: relative;
-    font-size: 12px;
-}
-
-.frame-container {
-    align-self: stretch;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0px;
-}
-.parent {
-    width: 94px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 3px;
-}
-
-.frame-container {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 10px;
-}
-
-.caretdown-icon {
-    width: 20px;
-    position: relative;
-    height: 20px;
-    overflow: hidden;
-    flex-shrink: 0;
-    object-fit: contain;
-}
-
-.frame-group {
-    align-self: stretch;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0px;
-}
-
-.rectangle-parent {
-    align-self: stretch;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 20px;
-}
-
-.component-1-parent {
-    width: 304px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 16px;
-}
-
-.logo-menu-1-parent {
-    align-self: stretch;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 24px;
-}
-.logo-menu-1-icon {
-    width: 304px;
-    position: relative;
-    max-height: 100%;
-    object-fit: cover;
-}
-
-.frame-child {
-    align-self: stretch;
-    position: relative;
-    background-color: #eeeef0;
-    height: 1px;
-}
-
-.div {
-    position: relative;
-    font-weight: 600;
-}
-
-.component-7 {
-    width: 304px;
-    border-radius: 8px;
-    background-color: rgba(5, 124, 255, 0.1);
-    height: 46px;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 12px 20px;
+/* === ІНПУТИ === */
+.checkbox {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+    border: 1px solid #057cff;
     box-sizing: border-box;
-}
-
-.component-8-parent {
-    align-self: stretch;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 10px;
-}
-
-.rectangle-parent {
-    align-self: stretch;
-    height: 430px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 20px;
-}
-
-.frame-icon {
-    width: 36px;
-    border-radius: 100px;
-    max-height: 100%;
-}
-
-.caretdown-icon {
-    width: 20px;
-    position: relative;
-    height: 20px;
-    overflow: hidden;
-    flex-shrink: 0;
-    object-fit: contain;
-    transition: transform 0.2s ease;
-}
-
-    .caretdown-icon.rotated {
-        transform: rotate(180deg);
-    }
-
-.div7 {
-    align-self: stretch;
-    position: relative;
-    font-weight: 600;
-}
-
-.usergmailcom {
-    align-self: stretch;
-    position: relative;
-    font-size: 12px;
-}
-
-.parent {
-    width: 94px;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 3px;
-}
-
-.frame-div {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 10px;
-}
-
-.caretdown-icon {
-    width: 20px;
-    position: relative;
-    height: 20px;
-    overflow: hidden;
-    flex-shrink: 0;
-    object-fit: contain;
-}
-
-.frame-container {
-    align-self: stretch;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0px;
-}
-
-.component-12-parent {
-    align-self: stretch;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 20px;
-}
-
-.frame-group {
-    width: 304px;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 0px;
-}
-
-.frame-wrapper {
-    align-self: stretch;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-}
-
-.logo-menu-1-parent {
-    align-self: stretch;
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    gap: 24px;
-}
-
-.frame-parent {
-    width: 344px;
-    position: relative;
-    background-color: #dadfea;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: 20px;
-    box-sizing: border-box;
-    text-align: left;
-    font-size: 14px;
-    color: #191919;
-    font-family: Inter;
-}
-
-.frame-parent {
-    width: 344px;
-    position: relative;
-    background-color: #dadfea;
-    height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: flex-start;
-    padding: 20px;
-    box-sizing: border-box;
-    text-align: left;
-    font-size: 14px;
-    color: #191919;
-    font-family: Inter;
 }

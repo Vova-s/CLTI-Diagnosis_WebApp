@@ -230,8 +230,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
                 : "Стандартні рекомендації щодо періопераційної підготовки та моніторингу.";
         }
 
-        private async Task SaveAndExit()
+    private async Task SaveAndExit()
         {
+            StateService.IsRevascularizationMethodCompleted = true; // ДОДАНО
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);
             // Повертаємося на домашню сторінку

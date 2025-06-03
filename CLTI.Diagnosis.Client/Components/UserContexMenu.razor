@@ -4,12 +4,17 @@
 {
     <div class="context-menu-overlay" @onclick="Hide" style="top:@menuTopPx; left:@menuLeftPx;">
         <div class="frame-parent context-menu" @onclick:stopPropagation>
+
+            <!-- ▸ Налаштування профілю -->
             <div class="subtitle-wrapper" @onclick="OnEditProfile">
                 <div class="subtitle">Налаштування</div>
             </div>
+
+            <!-- ▸ Вихід -->
             <div class="subtitle-frame" @onclick="OnExit">
                 <div class="subtitle">Вийти</div>
             </div>
+
         </div>
     </div>
 }

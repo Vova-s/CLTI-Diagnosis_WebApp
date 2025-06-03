@@ -2,20 +2,23 @@
 {
     public class CRABData
     {
-        // CRAB критерії (3 бали кожен)
+        // === CRAB критерії ===
+
+        // Критерії по 3 бали
         public bool IsOlderThan75 { get; set; } = false;
         public bool HasPreviousAmputationOrRevascularization { get; set; } = false;
         public bool HasPainAndNecrosis { get; set; } = false;
         public bool HasPartialFunctionalDependence { get; set; } = false;
 
-        // CRAB критерії (4 бали кожен)
+        // Критерії по 4 бали
         public bool IsOnHemodialysis { get; set; } = false;
         public bool HasAnginaOrMI { get; set; } = false;
 
-        // CRAB критерії (6 балів кожен)
+        // Критерії по 6 балів
         public bool IsUrgentOperation { get; set; } = false;
         public bool HasCompleteFunctionalDependence { get; set; } = false;
 
+        // === Обчислення суми балів ===
         public int CalculateScore()
         {
             int score = 0;
@@ -37,13 +40,14 @@
             return score;
         }
 
+        // === Визначення рівня ризику ===
         public string GetRiskLevel()
         {
             var score = CalculateScore();
 
             if (score <= 6)
                 return "Низький ризик";
-            else if (score >= 7 && score <= 10)
+            else if (score <= 10)
                 return "Помірний ризик";
             else if (score >= 11)
                 return "Високий ризик";
@@ -51,6 +55,7 @@
                 return "Невизначений ризик";
         }
 
+        // === Скидання всіх значень ===
         public void Reset()
         {
             IsOlderThan75 = false;

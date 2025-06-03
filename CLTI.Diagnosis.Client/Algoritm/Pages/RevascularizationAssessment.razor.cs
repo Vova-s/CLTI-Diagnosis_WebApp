@@ -173,16 +173,20 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             return null;
         }
 
+        // В методі Continue() додайте:
         private async Task Continue()
         {
+            StateService.IsRevascularizationAssessmentCompleted = true; // ДОДАНО
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);
             // Переходимо до наступного етапу (вибір методу реваскуляризації)
             NavigationManager.NavigateTo("/Algoritm/Pages/RevascularizationMethod", forceLoad: true);
         }
 
+        // В методі SaveAndExit() додайте:
         private async Task SaveAndExit()
         {
+            StateService.IsRevascularizationAssessmentCompleted = true; // ДОДАНО
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);
             // Повертаємося на домашню сторінку

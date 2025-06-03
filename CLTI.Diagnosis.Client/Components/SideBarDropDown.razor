@@ -1,12 +1,19 @@
 ﻿@using CLTI.Diagnosis.Client.Components
 
 <div class="sidebar-dropdown">
+
+    <!-- Роздільна лінія -->
     <div class="component-1-child"></div>
+
+    <!-- Заголовок дропдауна -->
     <div class="sidebar-toggle" @onclick="ToggleOpen">
         @Placeholder
-        <img alt="caret" src="Photo/CaretDown.png" class="@(IsOpen ? "rotated" : "")" />
+        <img alt="caret"
+             src="Photo/CaretDown.png"
+             class="@(IsOpen ? "rotated" : "")" />
     </div>
 
+    <!-- Список пунктів (якщо відкрито) -->
     @if (IsOpen)
     {
         <div class="sidebar-dropdown-list">

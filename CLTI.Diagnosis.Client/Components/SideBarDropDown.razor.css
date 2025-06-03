@@ -1,37 +1,38 @@
-﻿/* SidebarDropdown Styles */
-
+﻿/* === Sidebar Dropdown Container === */
 .sidebar-dropdown {
     display: flex;
     flex-direction: column;
+    align-items: flex-start;
+    position: relative;
     width: 100%;
     max-width: 300px;
+    background-color: #dadfea; /* Фон як у макеті */
+    color: #191919;
     font-family: 'Inter', sans-serif;
     font-size: 14px;
-
-    color: #191919;
-    position: relative;
-    background-color: #dadfea; /* фон як на скріншоті */
-    align-items: flex-start;
 }
+
+/* === Верхня розділювальна лінія === */
 .component-1-child {
     width: 304px;
-    position: relative;
-    background-color: #eeeef0;
     height: 1px;
-    margin-bottom:16px;
+    background-color: #eeeef0;
+    position: relative;
+    margin-bottom: 16px;
 }
 
+/* === Кнопка-розгортання секції === */
 .sidebar-toggle {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    background-color: #dadfea; /* фон як у прикладі */
-    border: none; /* без рамки */
-    padding: 8px 0;
     width: 100%;
-    cursor: pointer;
+    padding: 8px 0;
+    background-color: #dadfea;
+    border: none;
     font-weight: 600;
     font-size: 14px;
+    cursor: pointer;
 }
 
     .sidebar-toggle img {
@@ -41,23 +42,26 @@
         cursor: pointer;
     }
 
+        /* Обертання стрілки */
         .sidebar-toggle img.rotated {
             transform: rotate(180deg);
         }
 
+/* === Випадаючий список елементів === */
 .sidebar-dropdown-list {
-    background-color: #dadfea; /* зливається з фоном */
-    padding: 4px 0 0 0;
-    margin-top: 4px;
-    z-index: 1000;
-    position: relative;
     width: 100%;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
+    margin-top: 4px;
+    padding-top: 4px;
+    background-color: #dadfea;
+    position: relative;
+    z-index: 1000;
     gap: 8px;
 }
 
+/* === Один елемент списку з чекбоксом === */
 .checkbox-item {
     display: flex;
     align-items: center;

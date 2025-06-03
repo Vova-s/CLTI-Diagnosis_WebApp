@@ -8,35 +8,39 @@
 
 <div class="frame-parent">
     <div class="logo-menu-1-parent">
-        <!-- Логотип -->
+        <!-- === Логотип === -->
         <a href="/" class="btn btn-primary">
             <img class="logo-menu-1-icon" src="Photo/logo-menu.png" alt="CLTI Diagnosis Logo">
         </a>
 
-        <!-- Основний блок з фільтром і користувачем -->
+        <!-- === Основний блок з фільтрами === -->
         <div class="instance-parent">
-            <!-- Гемодинамічні дослідження - завжди видимі -->
+
+            <!-- ▸ Гемодинамічні дослідження (завжди відображається) -->
             @if (StateService.ShowHemodynamicSection)
             {
-                <SideBarDropDown Placeholder="Гемодинамічні дослідження" DefaultOpen="true"
+                <SideBarDropDown Placeholder="Гемодинамічні дослідження"
+                                 DefaultOpen="true"
                                  Items='@(GetHemodynamicItems())' />
             }
 
-            <!-- WiFI секція - показується після завершення КПІ/ППІ -->
+            <!-- ▸ WiFI -->
             @if (StateService.ShowWifiSection)
             {
-                <SideBarDropDown Placeholder="Оцінка ураженої кінцівки за класифікацією WIfI " DefaultOpen="true"
+                <SideBarDropDown Placeholder="Оцінка ураженої кінцівки за класифікацією WIfI"
+                                 DefaultOpen="true"
                                  Items='@(GetWifiItems())' />
             }
 
-            <!-- CRAB секція - показується після завершення WiFI результатів -->
+            <!-- ▸ CRAB / 2YLE -->
             @if (StateService.IsWiFIResultsCompleted)
             {
-                <SideBarDropDown Placeholder="Оцінка ступеня хірургічного ризику" DefaultOpen="true"
+                <SideBarDropDown Placeholder="Оцінка ступеня хірургічного ризику"
+                                 DefaultOpen="true"
                                  Items='@(GetRiskItems())' />
             }
 
-            <!-- GLASS секція - показується після завершення хірургічного ризику -->
+            <!-- ▸ GLASS -->
             @if (StateService.IsSurgicalRiskCompleted)
             {
                 <SideBarDropDown Placeholder="Класифікація анатомічних уражень артерій нижніх кінцівок"
@@ -44,12 +48,20 @@
                                  Items='@(GetGLASSItems())' />
             }
 
-            <!-- Додаткові секції можна додати пізніше -->
+            <!-- ▸ Хірургічна тактика -->
+            @if (StateService.IsSubmalleolarDiseaseCompleted)
+            {
+                <SideBarDropDown Placeholder="Вибір хірургічної тактики"
+                                 DefaultOpen="true"
+                                 Items='@(GetSurgicalTacticsItems())' />
+            }
         </div>
     </div>
 
-    <!-- Інформація про користувача -->
+    <!-- === Роздільна лінія перед юзером === -->
     <div class="component-1-child"></div>
+
+    <!-- === Користувач: аватар + ім’я + email === -->
     <div class="frame-container" @onclick="ToggleUserMenu">
         <div class="frame-div">
             <img class="frame-icon" alt="User Icon" src="Photo/userIcon.png" />
@@ -61,5 +73,6 @@
         <img class="caretdown-icon @(showUserMenu ? "rotated" : "")" alt="caret" src="Photo/CaretDown.png" />
     </div>
 
+    <!-- === Контекстне меню користувача === -->
     <UserContexMenu @ref="userContextMenuRef" OnClose="CloseUserMenu" />
 </div>
