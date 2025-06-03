@@ -25,7 +25,7 @@
     }
 
 .input-group {
-    margin-bottom: 25px;
+    margin-bottom: 16px;
 }
 
 .item-title {
@@ -33,7 +33,6 @@
     font-weight: 600;
     color: #191919;
     font-family: Inter;
-    margin-bottom: 15px;
 }
 
 .radio-group {

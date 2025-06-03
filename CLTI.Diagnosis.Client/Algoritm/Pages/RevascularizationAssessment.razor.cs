@@ -113,13 +113,23 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             return null;
         }
 
-        private string GetRecommendationState()
+        private bool IsRevascularizationRecommended()
         {
             var recommendation = GetRevascularizationRecommendation();
+            return recommendation?.Contains("РЕКОМЕНДУЄТЬСЯ РЕВАСКУЛЯРИЗАЦІЯ") == true;
+        }
 
-            if (recommendation?.Contains("РЕКОМЕНДУЄТЬСЯ РЕВАСКУЛЯРИЗАЦІЯ") == true)
+        private bool IsRevascularizationNotRecommended()
+        {
+            var recommendation = GetRevascularizationRecommendation();
+            return recommendation?.Contains("НЕ РЕКОМЕНДУЄТЬСЯ") == true;
+        }
+
+        private string GetRecommendationState()
+        {
+            if (IsRevascularizationRecommended())
                 return "warning";
-            else if (recommendation?.Contains("НЕ РЕКОМЕНДУЄТЬСЯ") == true)
+            else if (IsRevascularizationNotRecommended())
                 return "success";
 
             return "default";
@@ -167,8 +177,16 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         {
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);
-            // Переходимо до наступного етапу (CRAB або інший)
+            // Переходимо до наступного етапу (вибір методу реваскуляризації)
             NavigationManager.NavigateTo("/Algoritm/Pages/RevascularizationMethod", forceLoad: true);
+        }
+
+        private async Task SaveAndExit()
+        {
+            StateService.NotifyStateChanged();
+            await InvokeAsync(StateHasChanged);
+            // Повертаємося на домашню сторінку
+            NavigationManager.NavigateTo("/", forceLoad: true);
         }
 
         public void Dispose()

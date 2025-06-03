@@ -13,6 +13,24 @@
             Вибір оптимального методу <span>реваскуляризації</span>
         </div>
 
+        <!-- Автоматичне визначення на основі існуючих даних -->
+        <div class="input-group">
+            <div class="item-title">Результати аналізу WiFI та GLASS</div>
+
+            <Message Text="@GetCurrentWiFIResult()"
+                     Theme="light"
+                     State="success"
+                     Size="normal" />
+
+            @if (!string.IsNullOrEmpty(StateService.GLASSFinalStage))
+            {
+                <Message Text="@($"GLASS анатомічна стадія: {StateService.GLASSFinalStage}")"
+                         Theme="light"
+                         State="success"
+                         Size="normal" />
+            }
+        </div>
+
         <!-- Вибір типу ураження -->
         <div class="input-group">
             <div class="item-title">Оберіть тип ураження артерій</div>
@@ -46,39 +64,32 @@
                           IsChecked="@severeIschemia"
                           IsCheckedChanged="OnSevereIschemiaChanged" />
             </div>
-
-            @if (highLimbRisk && severeIschemia)
-            {
-
-                    <Message Text="Рекомендується одночасна реваскуляризація припливу та відтоку"
-                             Theme="light"
-                             State="warning"
-                             Size="normal" />
-
-            }
         }
 
-        <!-- Результат вибору -->
+        <!-- Рекомендації методу реваскуляризації -->
         @if (!string.IsNullOrEmpty(selectedSegment))
         {
-
-                <Message Text="@GetSegmentDescription()"
+            <div class="item-title">Рекомендований метод реваскуляризації</div>
+                <Message Text="@GetMethodDescription()"
                          Theme="light"
-                         State="success"
+                     State="@GetMethodState()"
                          Size="normal" />
+            <div class="input-group">
+                <div class="item-title">Додаткові клінічні рекомендації</div>
 
-                <Message Text="@GetRecommendation()"
+                <Message Text="@GetClinicalRecommendations()"
                          Theme="light"
-                         State="default"
+                         State="warning"
                          Size="normal" />
+            </div>
+
         }
 
-
         <div class="fixed-bottom-right">
-            <Button Label="Продовжити"
+            <Button Label="Зберегти та вийти"
                     Variant="@((!string.IsNullOrEmpty(selectedSegment)) ? "active" : "disabled")"
                     Disabled="@(string.IsNullOrEmpty(selectedSegment))"
-                    OnClick="Continue" />
+                    OnClick="SaveAndExit" />
         </div>
     </div>
 </div>

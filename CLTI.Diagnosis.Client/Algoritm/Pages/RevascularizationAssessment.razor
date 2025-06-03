@@ -14,7 +14,7 @@
         </div>
 
         <!-- Відображення поточних результатів WiFI -->
-
+        <div class="input-group">
             <div class="item-title">Поточні результати WiFI</div>
             <Message Text="@GetWiFIResult()"
                      Theme="light"
@@ -25,7 +25,7 @@
                      Theme="light"
                      State="@GetClinicalStageState()"
                      Size="normal" />
-
+        </div>
 
         <!-- Чекбокс "Погана перфузія" - показується тільки для I0 і W2-3 -->
         @if (ShouldShowPoorPerfusion())
@@ -55,7 +55,7 @@
         <!-- Рекомендація щодо реваскуляризації -->
         @if (GetRevascularizationRecommendation() != null)
         {
-
+            <div class="input-group">
                 <div class="item-title">Рекомендація щодо реваскуляризації</div>
                 <Message Text="@GetRevascularizationRecommendation()"
                          Theme="light"
@@ -69,13 +69,28 @@
                              State="default"
                              Size="normal" />
                 }
-
+            </div>
         }
 
         <div class="fixed-bottom-right">
-            <Button Label="Продовжити"
-                    Variant="active"
-                    OnClick="Continue" />
+            @if (IsRevascularizationRecommended())
+            {
+                <Button Label="Продовжити"
+                        Variant="active"
+                        OnClick="Continue" />
+            }
+            else if (IsRevascularizationNotRecommended())
+            {
+                <Button Label="Зберегти та вийти"
+                        Variant="active"
+                        OnClick="SaveAndExit" />
+            }
+            else
+            {
+                <Button Label="Продовжити"
+                        Variant="disabled"
+                        Disabled="true" />
+            }
         </div>
     </div>
 </div>
