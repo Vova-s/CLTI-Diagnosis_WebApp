@@ -1,11 +1,14 @@
-﻿using CLTI.Diagnosis.Client.Algoritm.Services;
+﻿// GLASS_FemoroPoplitealSegment.razor.cs
+using CLTI.Diagnosis.Client.Algoritm.Services;
 using Microsoft.AspNetCore.Components;
 
 namespace CLTI.Diagnosis.Client.Algoritm.Pages
 {
     public partial class GLASS_FemoroPoplitealSegment
     {
+        private bool hasSevereCalcification = false;
         private string selectedStage = "";
+        private string adjustedStage = "";
 
         protected override void OnInitialized()
         {
@@ -22,15 +25,42 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             if (isSelected)
             {
                 selectedStage = stage;
-                StateService.GLASSFemoroPoplitealStage = stage;
-                StateService.NotifyStateChanged();
+                AdjustStageWithCalcification();
                 await InvokeAsync(StateHasChanged);
             }
         }
 
+        private async Task OnCalcificationChanged(bool value)
+        {
+            hasSevereCalcification = value;
+            AdjustStageWithCalcification();
+            await InvokeAsync(StateHasChanged);
+        }
+
+        private void AdjustStageWithCalcification()
+        {
+            int baseStage = selectedStage switch
+            {
+                "Stage0" => 0,
+                "Stage1" => 1,
+                "Stage2" => 2,
+                "Stage3" => 3,
+                "Stage4" => 4,
+                _ => -1
+            };
+
+            int adjusted = (hasSevereCalcification && baseStage >= 0 && baseStage < 4)
+                ? baseStage + 1
+                : baseStage;
+
+            adjustedStage = $"Stage{adjusted}";
+            StateService.GLASSFemoroPoplitealStage = adjustedStage;
+            StateService.NotifyStateChanged();
+        }
+
         private string GetGLASSStageResult()
         {
-            return selectedStage switch
+            return adjustedStage switch
             {
                 "Stage0" => "GLASS стегново-підколінний сегмент: Ступінь 0",
                 "Stage1" => "GLASS стегново-підколінний сегмент: Ступінь 1",
@@ -43,7 +73,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
         private string GetStageDescription()
         {
-            return selectedStage switch
+            return adjustedStage switch
             {
                 "Stage0" => "Відсутність значущих стенозів у стегново-підколінному сегменті",
                 "Stage1" => "Легкі ураження стегново-підколінного сегменту з обмеженою протяжністю",
@@ -56,7 +86,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
         private string GetTreatmentRecommendation()
         {
-            return selectedStage switch
+            return adjustedStage switch
             {
                 "Stage0" => "Консервативне лікування або спостереження",
                 "Stage1" => "Ендоваскулярне лікування як метод першої лінії - балонна ангіопластика ± стентування",
@@ -71,9 +101,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         {
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);
-
-            // Тут можна перейти до наступної сторінки або завершити оцінку
-            NavigationManager.NavigateTo("/", forceLoad: true);
+            NavigationManager.NavigateTo("/Algoritm/Pages/GLASS_InfrapoplitealSegment", forceLoad: true);
             StateService.IsGLASSFemoroPoplitealCompleted = true;
         }
 

@@ -121,7 +121,7 @@
     align-items: flex-start;
     justify-content: flex-start;
     gap: 16px;
-    max-height: 720px; /* або height, залежно від потреб */
+    max-height: 730px; /* або height, залежно від потреб */
     overflow-y: auto;
     overflow-x: hidden;
     scrollbar-width: none; /* Firefox */

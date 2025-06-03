@@ -80,7 +80,11 @@ namespace CLTI.Diagnosis.Client.Shared
             }
             if (StateService.IsGLASSFemoroPoplitealCompleted)
             {
-                glassItems.Add("Результати класифікації GLASS");
+                glassItems.Add("Визначення ступеня ураження інфрапоплітеального сегмента");
+            }
+            if (StateService.IsGLASSInfrapoplitealCompleted)
+            {
+                glassItems.Add("Остаточне визначення анатомічної стадії інфраінгвінальної хвороби за GLASS");
             }
 
             return glassItems;

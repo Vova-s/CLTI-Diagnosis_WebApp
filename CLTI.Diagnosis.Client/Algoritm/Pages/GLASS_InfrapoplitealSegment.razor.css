@@ -26,19 +26,19 @@
 .input-group {
     margin-bottom: 20px;
 }
-
-.item-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #191919;
-    font-family: Inter;
-}
 .stage-description {
     font-size: 13px;
     font-weight: 600;
     color: #191919;
     font-family: Inter;
 }
+.item-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #191919;
+    font-family: Inter;
+}
+
 .radio-group {
     display: flex;
     flex-direction: column;
