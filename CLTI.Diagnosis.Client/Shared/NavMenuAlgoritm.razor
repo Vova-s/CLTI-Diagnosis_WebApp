@@ -25,14 +25,21 @@
             <!-- WiFI секція - показується після завершення КПІ/ППІ -->
             @if (StateService.ShowWifiSection)
             {
-                <SideBarDropDown Placeholder="WiFI класифікація" DefaultOpen="true"
+                <SideBarDropDown Placeholder="Оцінка ураженої кінцівки за класифікацією WIfI " DefaultOpen="true"
                                  Items='@(GetWifiItems())' />
             }
 
             <!-- CRAB секція - показується після завершення WiFI результатів -->
             @if (StateService.IsWiFIResultsCompleted)
             {
-                <SideBarDropDown Placeholder="CRAB класифікація" DefaultOpen="true"
+                <SideBarDropDown Placeholder="Оцінка ступеня хірургічного ризику" DefaultOpen="true"
+                                 Items='@(GetRiskItems())' />
+            }
+
+            @if (StateService.IsSurgicalRiskCompleted)
+            {
+                <SideBarDropDown Placeholder="Класифікація анатомічних уражень артерій нижніх кінцівок" 
+                                 DefaultOpen="true"
                                  Items='@(GetRiskItems())' />
             }
 
