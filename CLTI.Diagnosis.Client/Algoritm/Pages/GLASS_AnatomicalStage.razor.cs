@@ -74,10 +74,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
         private async Task Continue()
         {
-
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);
-            NavigationManager.NavigateTo("/", forceLoad: true);
+            NavigationManager.NavigateTo("/Algoritm/Pages/GLASS_FemoroPoplitealSegment", forceLoad: true);
             StateService.IsGLASSCompleted = true;
         }
 

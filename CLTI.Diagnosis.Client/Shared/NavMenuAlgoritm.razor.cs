@@ -72,11 +72,15 @@ namespace CLTI.Diagnosis.Client.Shared
 
             if (StateService.IsSurgicalRiskCompleted)
             {
-                glassItems.Add("Визначення анатомічної стадії аорто-клубової хвороби за GLASS");
+                glassItems.Add("Визначення анатомічної стадії аорто-клубової хвороби за GLASS");
             }
-            if (StateService.IsGLASSCompleted) 
+            if (StateService.IsGLASSCompleted)
             {
                 glassItems.Add("Визначення ступеня ураження стегново-підколінного сегмента");
+            }
+            if (StateService.IsGLASSFemoroPoplitealCompleted)
+            {
+                glassItems.Add("Результати класифікації GLASS");
             }
 
             return glassItems;

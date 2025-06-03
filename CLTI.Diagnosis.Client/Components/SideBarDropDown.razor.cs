@@ -35,6 +35,8 @@ namespace CLTI.Diagnosis.Client.Components
                 "Оцінка перипроцедуральної смертності" => StateService.IsCRABCompleted,
                 "Оцінка дворічної виживаності" => StateService.Is2YLECompleted,
                 "Кінцева оцінка ступеня хірургічного ризику" => StateService.IsSurgicalRiskCompleted,
+                "Визначення анатомічної стадії аорто-клубової хвороби за GLASS" => StateService.IsGLASSCompleted,
+                "Визначення ступеня ураження стегново-підколінного сегмента" => StateService.IsGLASSFemoroPoplitealCompleted,
                 _ => false
             };
         }

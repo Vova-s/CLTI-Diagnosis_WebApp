@@ -35,6 +35,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public bool Is2YLECompleted { get; set; } = false;
         public bool IsSurgicalRiskCompleted { get; set; } = false;
         public bool IsGLASSCompleted { get; set; } = false;
+        public bool IsGLASSFemoroPoplitealCompleted { get; set; } = false;
 
         public StateService()
         {
@@ -296,6 +297,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         // GLASS дані
         public string? GLASSSelectedStage { get; set; }
         public string? GLASSSubStage { get; set; }
+        public string? GLASSFemoroPoplitealStage { get; set; }
         public bool HasGeneralOrExternalStenosis
         {
             get => _glassData.HasGeneralOrExternalStenosis;
@@ -546,6 +548,8 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             GLASSSelectedStage = null;
             GLASSSubStage = null;
             _stageCalculator.CannotSaveLimb = false;
+            GLASSFemoroPoplitealStage = null;
+            IsGLASSFemoroPoplitealCompleted = false;
 
             NotifyStateChanged();
         }
