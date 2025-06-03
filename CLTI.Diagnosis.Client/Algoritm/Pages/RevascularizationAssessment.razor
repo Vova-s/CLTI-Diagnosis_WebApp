@@ -1,0 +1,81 @@
+﻿@page "/Algoritm/Pages/RevascularizationAssessment"
+@rendermode InteractiveServer
+@using CLTI.Diagnosis.Client.Shared
+@using CLTI.Diagnosis.Client.Components
+@using CLTI.Diagnosis.Client.Algoritm.Services
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+
+<div class="page-container">
+    <NavMenuAlgoritm />
+    <div class="main-content">
+        <div class="page-title">
+            Оцінка показань до <span>реваскуляризації</span>
+        </div>
+
+        <!-- Відображення поточних результатів WiFI -->
+
+            <div class="item-title">Поточні результати WiFI</div>
+            <Message Text="@GetWiFIResult()"
+                     Theme="light"
+                     State="success"
+                     Size="normal" />
+
+            <Message Text="@($"Клінічна стадія: {StateService.ClinicalStage}")"
+                     Theme="light"
+                     State="@GetClinicalStageState()"
+                     Size="normal" />
+
+
+        <!-- Чекбокс "Погана перфузія" - показується тільки для I0 і W2-3 -->
+        @if (ShouldShowPoorPerfusion())
+        {
+            <div class="input-group">
+                <div class="item-title">Додаткова оцінка перфузії</div>
+                <CheckBox Label="Погана перфузія"
+                          IsChecked="@hasPoorPerfusion"
+                          IsCheckedChanged="OnPoorPerfusionChanged" />
+                <div class="perfusion-note">
+                    Відмітьте, якщо у пацієнта виявлено клінічні або інструментальні ознаки поганої перфузії кінцівки
+                </div>
+            </div>
+        }
+
+        <!-- Чекбокс "Рана прогресує" - показується для I1 -->
+        @if (ShouldShowWoundProgression())
+        {
+            <div class="input-group">
+                <div class="item-title">Оцінка прогресування рани</div>
+                <CheckBox Label="Рана прогресує або не зменшується у розмірі на 50% за 4 тижні, незважаючи на відповідний контроль інфекції, догляд за раною і розвантаження стопи"
+                          IsChecked="@hasWoundProgression"
+                          IsCheckedChanged="OnWoundProgressionChanged" />
+            </div>
+        }
+
+        <!-- Рекомендація щодо реваскуляризації -->
+        @if (GetRevascularizationRecommendation() != null)
+        {
+
+                <div class="item-title">Рекомендація щодо реваскуляризації</div>
+                <Message Text="@GetRevascularizationRecommendation()"
+                         Theme="light"
+                         State="@GetRecommendationState()"
+                         Size="normal" />
+
+                @if (GetDetailedExplanation() != null)
+                {
+                    <Message Text="@GetDetailedExplanation()"
+                             Theme="light"
+                             State="default"
+                             Size="normal" />
+                }
+
+        }
+
+        <div class="fixed-bottom-right">
+            <Button Label="Продовжити"
+                    Variant="active"
+                    OnClick="Continue" />
+        </div>
+    </div>
+</div>

@@ -14,32 +14,15 @@
         </div>
 
         <div class="input-group">
-
-
-                <RadioButton Label="P0"
+            <RadioButton Label="P0 -  Цільова артерія перетинає рівень кісточок і навіть на стопі, стопна артеріальна дуга не уражена"
                              IsSelected="@(selectedDescriptor == "P0")"
                              IsSelectedChanged="@(async selected => await OnDescriptorChanged("P0", selected))" />
-            <div class="stage-description">
-                •  Цільова артерія перетинає рівень кісточок і навіть на стопі, стопна артеріальна дуга не уражена
-                </div>
-
-
-                <RadioButton Label="P1"
+            <RadioButton Label="P1 - Цільова артерія перетинає рівень кісточок і навіть на стопі, але стопна артеріальна дуга відсутня або значно уражена"
                              IsSelected="@(selectedDescriptor == "P1")"
                              IsSelectedChanged="@(async selected => await OnDescriptorChanged("P1", selected))" />
-            <div class="stage-description">
-                •  Цільова артерія перетинає рівень кісточок і навіть на стопі, але стопна артеріальна дуга відсутня або значно уражена
-                </div>
-
-
-
-                <RadioButton Label="P2"
+            <RadioButton Label="P2 - Цільова артерія не перетинає рівень кісточок і відсутня на стопі"
                              IsSelected="@(selectedDescriptor == "P2")"
                              IsSelectedChanged="@(async selected => await OnDescriptorChanged("P2", selected))" />
-            <div class="stage-description">
-                •  Цільова артерія не перетинає рівень кісточок і відсутня на стопі
-                </div>
-
         </div>
 
         <!-- Результат вибору -->

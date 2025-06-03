@@ -1,0 +1,84 @@
+﻿@page "/Algoritm/Pages/RevascularizationMethod"
+@rendermode InteractiveServer
+@using CLTI.Diagnosis.Client.Shared
+@using CLTI.Diagnosis.Client.Components
+@using CLTI.Diagnosis.Client.Algoritm.Services
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+
+<div class="page-container">
+    <NavMenuAlgoritm />
+    <div class="main-content">
+        <div class="page-title">
+            Вибір оптимального методу <span>реваскуляризації</span>
+        </div>
+
+        <!-- Вибір типу ураження -->
+        <div class="input-group">
+            <div class="item-title">Оберіть тип ураження артерій</div>
+
+            <div class="radio-group">
+                <RadioButton Label="Аорто-клубовий сегмент"
+                             IsSelected="@(selectedSegment == "AortoIliac")"
+                             IsSelectedChanged="@(async selected => await OnSegmentChanged("AortoIliac", selected))" />
+
+                <RadioButton Label="Інфраінгвінальна хвороба"
+                             IsSelected="@(selectedSegment == "Infrainguinal")"
+                             IsSelectedChanged="@(async selected => await OnSegmentChanged("Infrainguinal", selected))" />
+
+                <RadioButton Label="Комбіноване ураження (аорто-клубовий + інфраінгвінальний)"
+                             IsSelected="@(selectedSegment == "Combined")"
+                             IsSelectedChanged="@(async selected => await OnSegmentChanged("Combined", selected))" />
+            </div>
+        </div>
+
+        <!-- Додаткові питання для комбінованого ураження -->
+        @if (selectedSegment == "Combined")
+        {
+            <div class="input-group">
+                <div class="item-title">Оцінка ризику для кінцівки та ступеня ішемії</div>
+
+                <CheckBox Label="Високий ризик для кінцівок (клінічна стадія за WIfI 3 або 4)"
+                          IsChecked="@highLimbRisk"
+                          IsCheckedChanged="OnHighLimbRiskChanged" />
+
+                <CheckBox Label="Виражена ішемія (критерій І за WIfI 2 або 3)"
+                          IsChecked="@severeIschemia"
+                          IsCheckedChanged="OnSevereIschemiaChanged" />
+            </div>
+
+            @if (highLimbRisk && severeIschemia)
+            {
+
+                    <Message Text="Рекомендується одночасна реваскуляризація припливу та відтоку"
+                             Theme="light"
+                             State="warning"
+                             Size="normal" />
+
+            }
+        }
+
+        <!-- Результат вибору -->
+        @if (!string.IsNullOrEmpty(selectedSegment))
+        {
+
+                <Message Text="@GetSegmentDescription()"
+                         Theme="light"
+                         State="success"
+                         Size="normal" />
+
+                <Message Text="@GetRecommendation()"
+                         Theme="light"
+                         State="default"
+                         Size="normal" />
+        }
+
+
+        <div class="fixed-bottom-right">
+            <Button Label="Продовжити"
+                    Variant="@((!string.IsNullOrEmpty(selectedSegment)) ? "active" : "disabled")"
+                    Disabled="@(string.IsNullOrEmpty(selectedSegment))"
+                    OnClick="Continue" />
+        </div>
+    </div>
+</div>

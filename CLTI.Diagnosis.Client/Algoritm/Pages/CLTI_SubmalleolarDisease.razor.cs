@@ -85,7 +85,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             await InvokeAsync(StateHasChanged);
 
             // Повертаємось на головну сторінку або показуємо підтвердження завершення
-            NavigationManager.NavigateTo("/", forceLoad: true);
+            NavigationManager.NavigateTo("/Algoritm/Pages/RevascularizationAssessment", forceLoad: true);
         }
 
         public void Dispose()
