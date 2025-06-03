@@ -25,7 +25,7 @@
             <!-- WiFI секція - показується після завершення КПІ/ППІ -->
             @if (StateService.ShowWifiSection)
             {
-                <SideBarDropDown Placeholder="Оцінка ураженої кінцівки за класифікацією WIfI " DefaultOpen="true"
+                <SideBarDropDown Placeholder="Оцінка ураженої кінцівки за класифікацією WIfI " DefaultOpen="true"
                                  Items='@(GetWifiItems())' />
             }
 
@@ -36,11 +36,12 @@
                                  Items='@(GetRiskItems())' />
             }
 
+            <!-- GLASS секція - показується після завершення хірургічного ризику -->
             @if (StateService.IsSurgicalRiskCompleted)
             {
-                <SideBarDropDown Placeholder="Класифікація анатомічних уражень артерій нижніх кінцівок" 
+                <SideBarDropDown Placeholder="Класифікація анатомічних уражень артерій нижніх кінцівок"
                                  DefaultOpen="true"
-                                 Items='@(GetRiskItems())' />
+                                 Items='@(GetGLASSItems())' />
             }
 
             <!-- Додаткові секції можна додати пізніше -->

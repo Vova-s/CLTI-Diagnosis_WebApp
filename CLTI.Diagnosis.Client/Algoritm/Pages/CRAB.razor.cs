@@ -100,9 +100,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
         private async Task Continue()
         {
-            StateService.IsCRABCompleted = true;
             await InvokeAsync(StateHasChanged);
             NavigationManager.NavigateTo("/Algoritm/Pages/2YLE", forceLoad: true);
+            StateService.IsCRABCompleted = true;
         }
 
         public void Dispose()

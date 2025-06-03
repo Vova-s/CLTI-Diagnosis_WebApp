@@ -121,7 +121,18 @@
     align-items: flex-start;
     justify-content: flex-start;
     gap: 16px;
+    max-height: 720px; /* або height, залежно від потреб */
+    overflow-y: auto;
+    overflow-x: hidden;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE/Edge */
 }
+
+    .instance-parent::-webkit-scrollbar {
+        width: 0px; /* Chrome/Safari */
+        height: 0px;
+    }
+
 
 .component-1 {
     display: flex;

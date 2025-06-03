@@ -161,10 +161,11 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
         private async Task Continue()
         {
-            StateService.Is2YLECompleted = true;
+
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);
             NavigationManager.NavigateTo("/Algoritm/Pages/SurgicalRisk", forceLoad: true);
+            StateService.Is2YLECompleted = true;
         }
 
         public void Dispose()

@@ -12,6 +12,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         private readonly InfectionData _infectionData;
         private readonly CRABData _crabData;
         private readonly YLEData _yleData;
+        private readonly GLASSData _glassData;
         private readonly UIState _uiState;
 
         // Калькулятори
@@ -20,6 +21,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         private readonly FILevelCalculator _fiCalculator;
         private readonly CRABCalculator _crabCalculator;
         private readonly YLECalculator _yleCalculator;
+        private readonly GLASSCalculator _glassCalculator;
         private readonly ClinicalStageCalculator _stageCalculator;
 
         // Стан кроків
@@ -32,6 +34,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public bool IsCRABCompleted { get; set; } = false;
         public bool Is2YLECompleted { get; set; } = false;
         public bool IsSurgicalRiskCompleted { get; set; } = false;
+        public bool IsGLASSCompleted { get; set; } = false;
 
         public StateService()
         {
@@ -41,6 +44,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             _infectionData = new InfectionData();
             _crabData = new CRABData();
             _yleData = new YLEData();
+            _glassData = new GLASSData();
             _uiState = new UIState();
 
             // Ініціалізація калькуляторів
@@ -49,6 +53,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             _fiCalculator = new FILevelCalculator(_infectionData);
             _crabCalculator = new CRABCalculator(_crabData);
             _yleCalculator = new YLECalculator(_yleData);
+            _glassCalculator = new GLASSCalculator(_glassData);
             _stageCalculator = new ClinicalStageCalculator(_wCalculator, _iCalculator, _fiCalculator);
         }
 
@@ -288,6 +293,60 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             set => _yleData.HasEjectionFractionLessThan40 = value;
         }
 
+        // GLASS дані
+        public string? GLASSSelectedStage { get; set; }
+        public string? GLASSSubStage { get; set; }
+        public bool HasGeneralOrExternalStenosis
+        {
+            get => _glassData.HasGeneralOrExternalStenosis;
+            set => _glassData.HasGeneralOrExternalStenosis = value;
+        }
+        public bool HasCLIWithoutBothStenosis
+        {
+            get => _glassData.HasCLIWithoutBothStenosis;
+            set => _glassData.HasCLIWithoutBothStenosis = value;
+        }
+        public bool HasInfrarenalStenosis
+        {
+            get => _glassData.HasInfrarenalStenosis;
+            set => _glassData.HasInfrarenalStenosis = value;
+        }
+        public bool HasCombinationFirstThreePoints
+        {
+            get => _glassData.HasCombinationFirstThreePoints;
+            set => _glassData.HasCombinationFirstThreePoints = value;
+        }
+        public bool HasCLIInAorta
+        {
+            get => _glassData.HasCLIInAorta;
+            set => _glassData.HasCLIInAorta = value;
+        }
+        public bool HasCLIWithExternalIliacStenosis
+        {
+            get => _glassData.HasCLIWithExternalIliacStenosis;
+            set => _glassData.HasCLIWithExternalIliacStenosis = value;
+        }
+        public bool HasDiffuseLesionInAortoIliacSegment
+        {
+            get => _glassData.HasDiffuseLesionInAortoIliacSegment;
+            set => _glassData.HasDiffuseLesionInAortoIliacSegment = value;
+        }
+        public bool HasExpressionDiffusionInAorto
+        {
+            get => _glassData.HasExpressionDiffusionInAorto;
+            set => _glassData.HasExpressionDiffusionInAorto = value;
+        }
+        public bool HasGeneralStenosisOver50Percent
+        {
+            get => _glassData.HasGeneralStenosisOver50Percent;
+            set => _glassData.HasGeneralStenosisOver50Percent = value;
+        }
+        public bool HasGeneralStenosisOver50PercentB
+        {
+            get => _glassData.HasGeneralStenosisOver50PercentB;
+            set => _glassData.HasGeneralStenosisOver50PercentB = value;
+        }
+
         // WiFI результати
         public int? WLevelValue => _wCalculator.Calculate();
         public int? ILevelValue => _iCalculator.Calculate();
@@ -316,6 +375,13 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public string YLERiskDescription => _yleCalculator.GetRiskDescription();
         public string YLESurvivalPrediction => _yleCalculator.GetSurvivalPrediction();
         public double YLEEstimatedSurvivalPercentage => _yleCalculator.GetEstimatedSurvivalPercentage();
+
+        // GLASS результати
+        public int? GLASSStage => _glassCalculator.CalculateStage();
+        public string GLASSStageDescription => _glassCalculator.GetStageDescription();
+        public string GLASSDetailedDescription => _glassCalculator.GetDetailedDescription();
+        public string GLASSTreatmentRecommendation => _glassCalculator.GetTreatmentRecommendation();
+
 
         // Хірургічний ризик
         public string CalculatedSurgicalRisk
@@ -366,6 +432,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public bool HasSirs => _fiCalculator.HasSirs();
         public bool ShouldShowHyperemiaField => _fiCalculator.ShouldShowHyperemiaField();
         public bool ShouldShowSirsAbsentSection => _fiCalculator.ShouldShowSirsAbsentSection();
+
+        // GLASS логіка
+        public bool CanContinueGLASS => GLASSStage.HasValue;
 
         // Логіка продовження
         public bool CanContinue =>
@@ -460,6 +529,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             _infectionData.Reset();
             _crabData.Reset();
             _yleData.Reset();
+            _glassData.Reset();
             _uiState.Reset();
 
             // Скидання станів кроків
@@ -472,6 +542,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
             IsCRABCompleted = false;
             Is2YLECompleted = false;
             IsSurgicalRiskCompleted = false;
+            IsGLASSCompleted = false;
+            GLASSSelectedStage = null;
+            GLASSSubStage = null;
             _stageCalculator.CannotSaveLimb = false;
 
             NotifyStateChanged();
@@ -483,6 +556,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public InfectionData GetInfectionData() => _infectionData;
         public CRABData GetCRABData() => _crabData;
         public YLEData GetYLEData() => _yleData;
+        public GLASSData GetGLASSData() => _glassData;
         public UIState GetUIState() => _uiState;
     }
 }

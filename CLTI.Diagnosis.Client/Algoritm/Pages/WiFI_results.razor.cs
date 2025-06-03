@@ -98,10 +98,11 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         private async Task Continue()
         {
             // Встановлюємо, що WiFI результати завершено
-            StateService.IsWiFIResultsCompleted = true;
+
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);
             NavigationManager.NavigateTo("/Algoritm/Pages/CRAB", forceLoad: true);
+            StateService.IsWiFIResultsCompleted = true;
         }
         public void Dispose()
         {
