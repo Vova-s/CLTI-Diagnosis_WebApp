@@ -71,6 +71,11 @@ namespace CLTI.Diagnosis.Client.Algoritm.Services
         public bool IsSubmalleolarDiseaseCompleted { get; set; } = false;
         public bool IsRevascularizationAssessmentCompleted { get; set; } = false;
         public bool IsRevascularizationMethodCompleted { get; set; } = false;
+
+        /// <summary>
+        /// Identifier of the saved CLTI case in the database.
+        /// </summary>
+        public int? CaseId { get; set; }
         #endregion
 
         #region Basic Properties - KPI/PPI

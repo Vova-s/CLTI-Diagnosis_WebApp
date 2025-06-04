@@ -5,6 +5,9 @@
         private string sirsAbsent = "";
         private string hyperemiaSize = "";
 
+        [Inject]
+        public CLTI.Diagnosis.Services.CltiCaseService? CaseService { get; set; }
+
         protected override void OnInitialized()
         {
             StateService.OnChange += HandleStateChanged;
@@ -149,6 +152,10 @@
 
         private async Task Continue()
         {
+            if (CaseService != null)
+            {
+                await CaseService.SaveCaseAsync(StateService);
+            }
             await InvokeAsync(StateHasChanged);
             NavigationManager.NavigateTo("/Algoritm/Pages/WiFI_results", forceLoad: true);
             StateService.IsfICompleted = true;
