@@ -14,6 +14,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         private string ulcerDepth = "";
         private string ulcerLocation2 = "";
 
+        [Inject]
+        public CLTI.Diagnosis.Services.CltiCaseService? CaseService { get; set; }
+
         private async Task OnNecrosisChanged(bool hasNecrosis, bool isSelected)
         {
             if (isSelected)
@@ -114,6 +117,10 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
         private async Task Continue()
         {
+            if (CaseService != null)
+            {
+                await CaseService.SaveCaseAsync(StateService);
+            }
             await InvokeAsync(StateHasChanged);
             NavigationManager.NavigateTo("/Algoritm/Pages/Wifi_I", forceLoad: true);
             StateService.IsWCompleted = true;

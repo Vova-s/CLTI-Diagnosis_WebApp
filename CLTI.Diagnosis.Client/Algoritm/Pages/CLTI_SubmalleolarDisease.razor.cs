@@ -6,6 +6,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
     {
         private string selectedDescriptor = "";
 
+        [Inject]
+        public CLTI.Diagnosis.Services.CltiCaseService? CaseService { get; set; }
+
         protected override void OnInitialized()
         {
             StateService.OnChange += HandleStateChanged;
@@ -80,6 +83,10 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
         private async Task CompleteDiagnosis()
         {
+            if (CaseService != null)
+            {
+                await CaseService.SaveCaseAsync(StateService);
+            }
             StateService.IsSubmalleolarDiseaseCompleted = true;
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);

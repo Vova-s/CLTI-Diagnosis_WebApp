@@ -10,6 +10,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         // Поля для зберігання стану
         private string tcPO2Value = "";
 
+        [Inject]
+        public CLTI.Diagnosis.Services.CltiCaseService? CaseService { get; set; }
+
         protected override void OnInitialized()
         {
             // Підписуємося на зміни стану
@@ -63,6 +66,10 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
         private async Task Continue()
         {
+            if (CaseService != null)
+            {
+                await CaseService.SaveCaseAsync(StateService);
+            }
             await InvokeAsync(StateHasChanged);
             NavigationManager.NavigateTo("/Algoritm/Pages/Wifi_fI", forceLoad: true);
             StateService.IsICompleted = true;

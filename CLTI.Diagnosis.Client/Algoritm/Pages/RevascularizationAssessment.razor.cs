@@ -7,6 +7,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         private bool hasPoorPerfusion = false;
         private bool hasWoundProgression = false;
 
+        [Inject]
+        public CLTI.Diagnosis.Services.CltiCaseService? CaseService { get; set; }
+
         protected override void OnInitialized()
         {
             StateService.OnChange += HandleStateChanged;
@@ -176,6 +179,10 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         // В методі Continue() додайте:
         private async Task Continue()
         {
+            if (CaseService != null)
+            {
+                await CaseService.SaveCaseAsync(StateService);
+            }
             StateService.IsRevascularizationAssessmentCompleted = true; // ДОДАНО
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);
@@ -186,6 +193,10 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         // В методі SaveAndExit() додайте:
         private async Task SaveAndExit()
         {
+            if (CaseService != null)
+            {
+                await CaseService.SaveCaseAsync(StateService);
+            }
             StateService.IsRevascularizationAssessmentCompleted = true; // ДОДАНО
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);

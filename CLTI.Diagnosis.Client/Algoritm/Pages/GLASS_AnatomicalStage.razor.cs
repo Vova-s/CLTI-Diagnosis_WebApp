@@ -7,6 +7,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         private string selectedStage = "";
         private string stenosisLevel = "";
 
+        [Inject]
+        public CLTI.Diagnosis.Services.CltiCaseService? CaseService { get; set; }
+
         protected override void OnInitialized()
         {
             StateService.OnChange += HandleStateChanged;
@@ -74,6 +77,11 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
         private async Task Continue()
         {
+            if (CaseService != null)
+            {
+                await CaseService.SaveCaseAsync(StateService);
+            }
+
             StateService.NotifyStateChanged();
             await InvokeAsync(StateHasChanged);
             NavigationManager.NavigateTo("/Algoritm/Pages/GLASS_FemoroPoplitealSegment", forceLoad: true);
