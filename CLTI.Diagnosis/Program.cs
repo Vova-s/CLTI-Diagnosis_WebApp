@@ -14,6 +14,14 @@ builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents()
     .AddAuthenticationStateSerialization();
 
+// Додаємо API контролери
+builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new() { Title = "CLTI Diagnosis API", Version = "v1" });
+});
+
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
@@ -21,6 +29,17 @@ builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuth
 builder.Services.AddSingleton<StateService>();
 builder.Services.AddScoped<CLTI.Diagnosis.Services.CltiCaseService>();
 
+// Додаємо CORS для клієнтської частини
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowBlazorClient", policy =>
+    {
+        policy.WithOrigins("https://localhost:7124", "http://localhost:5276")
+              .AllowAnyHeader()
+              .AllowAnyMethod()
+              .AllowCredentials();
+    });
+});
 
 builder.Services.AddAuthentication(options =>
 {
@@ -29,7 +48,8 @@ builder.Services.AddAuthentication(options =>
 })
     .AddIdentityCookies();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? 
+    throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
@@ -48,6 +68,12 @@ if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
     app.UseMigrationsEndPoint();
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "CLTI Diagnosis API v1");
+        c.RoutePrefix = "api-docs";
+    });
 }
 else
 {
@@ -56,6 +82,7 @@ else
 }
 
 app.UseHttpsRedirection();
+app.UseCors("AllowBlazorClient");
 app.UseAntiforgery();
 
 app.MapStaticAssets();
@@ -64,15 +91,11 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(CLTI.Diagnosis.Client._Imports).Assembly);
 
+// Мапимо API контролери
+app.MapControllers();
+
 // Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
-
-// Endpoint to persist current algorithm state
-app.MapPost("/api/clticase/save", async (CLTI.Diagnosis.Services.CltiCaseService service, StateService state) =>
-{
-    await service.SaveCaseAsync(state);
-    return Results.Ok();
-});
 
 // Add fallback route for handling 404s - this should be LAST
 app.MapFallback(async context =>
@@ -85,6 +108,7 @@ app.MapFallback(async context =>
         path.StartsWith("/css") ||
         path.StartsWith("/js") ||
         path.StartsWith("/Photo") ||
+        path.StartsWith("/swagger") ||
         path.Contains("."))
     {
         context.Response.StatusCode = 404;

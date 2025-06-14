@@ -14,9 +14,6 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         private string ulcerDepth = "";
         private string ulcerLocation2 = "";
 
-        [Inject]
-        public CLTI.Diagnosis.Services.CltiCaseService? CaseService { get; set; }
-
         private async Task OnNecrosisChanged(bool hasNecrosis, bool isSelected)
         {
             if (isSelected)
