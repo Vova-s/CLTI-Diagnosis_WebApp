@@ -14,13 +14,8 @@ builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents()
     .AddAuthenticationStateSerialization();
 
-// Додаємо API контролери
+// Dodajeme API kontrolery
 builder.Services.AddControllers();
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new() { Title = "CLTI Diagnosis API", Version = "v1" });
-});
 
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
@@ -29,7 +24,7 @@ builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuth
 builder.Services.AddSingleton<StateService>();
 builder.Services.AddScoped<CLTI.Diagnosis.Services.CltiCaseService>();
 
-// Додаємо CORS для клієнтської частини
+// Dodajeme CORS pre klientsku cast
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazorClient", policy =>
@@ -48,7 +43,7 @@ builder.Services.AddAuthentication(options =>
 })
     .AddIdentityCookies();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
     throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -68,12 +63,6 @@ if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
     app.UseMigrationsEndPoint();
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "CLTI Diagnosis API v1");
-        c.RoutePrefix = "api-docs";
-    });
 }
 else
 {
@@ -91,7 +80,7 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(CLTI.Diagnosis.Client._Imports).Assembly);
 
-// Мапимо API контролери
+// Mapujeme API kontrolery
 app.MapControllers();
 
 // Add additional endpoints required by the Identity /Account Razor components.

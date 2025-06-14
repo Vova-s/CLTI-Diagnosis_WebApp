@@ -322,5 +322,6 @@ namespace CLTI.Diagnosis.Client.Services
         public string? Error { get; set; }
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
     }
+}
 
     #endregion
