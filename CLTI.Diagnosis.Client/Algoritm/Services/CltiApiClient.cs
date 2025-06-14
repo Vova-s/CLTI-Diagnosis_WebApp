@@ -3,9 +3,6 @@ using System.Text.Json;
 
 namespace CLTI.Diagnosis.Client.Services
 {
-    /// <summary>
-    /// HTTP клієнт для роботи з CLTI API
-    /// </summary>
     public class CltiApiClient
     {
         private readonly HttpClient _httpClient;
@@ -21,11 +18,6 @@ namespace CLTI.Diagnosis.Client.Services
             };
         }
 
-        /// <summary>
-        /// Зберігає case через API
-        /// </summary>
-        /// <param name="stateDto">Дані для збереження</param>
-        /// <returns>Відповідь з ID збереженого case</returns>
         public async Task<ApiResponse<SaveCaseResponse>> SaveCaseAsync(StateServiceDto stateDto)
         {
             try
@@ -62,11 +54,6 @@ namespace CLTI.Diagnosis.Client.Services
             }
         }
 
-        /// <summary>
-        /// Отримує case за ID
-        /// </summary>
-        /// <param name="caseId">ID case</param>
-        /// <returns>Дані case</returns>
         public async Task<ApiResponse<StateServiceDto>> GetCaseAsync(int caseId)
         {
             try
@@ -111,12 +98,6 @@ namespace CLTI.Diagnosis.Client.Services
             }
         }
 
-        /// <summary>
-        /// Оновлює існуючий case
-        /// </summary>
-        /// <param name="caseId">ID case для оновлення</param>
-        /// <param name="stateDto">Нові дані</param>
-        /// <returns>Результат оновлення</returns>
         public async Task<ApiResponse<SaveCaseResponse>> UpdateCaseAsync(int caseId, StateServiceDto stateDto)
         {
             try
@@ -153,11 +134,6 @@ namespace CLTI.Diagnosis.Client.Services
             }
         }
 
-        /// <summary>
-        /// Видаляє case
-        /// </summary>
-        /// <param name="caseId">ID case для видалення</param>
-        /// <returns>Результат видалення</returns>
         public async Task<ApiResponse<bool>> DeleteCaseAsync(int caseId)
         {
             try
@@ -204,9 +180,6 @@ namespace CLTI.Diagnosis.Client.Services
 
     #region DTO Classes (shared with server)
 
-    /// <summary>
-    /// DTO для передачі даних StateService через API
-    /// </summary>
     public class StateServiceDto
     {
         public int? CaseId { get; set; }
@@ -300,9 +273,6 @@ namespace CLTI.Diagnosis.Client.Services
         public double? YLETotalScore { get; set; }
     }
 
-    /// <summary>
-    /// Відповідь API при збереженні case
-    /// </summary>
     public class SaveCaseResponse
     {
         public int CaseId { get; set; }
@@ -311,9 +281,6 @@ namespace CLTI.Diagnosis.Client.Services
         public DateTime SavedAt { get; set; }
     }
 
-    /// <summary>
-    /// Стандартна відповідь API
-    /// </summary>
     public class ApiResponse<T>
     {
         public T? Data { get; set; }
@@ -324,4 +291,4 @@ namespace CLTI.Diagnosis.Client.Services
     }
 }
 
-    #endregion
+#endregion

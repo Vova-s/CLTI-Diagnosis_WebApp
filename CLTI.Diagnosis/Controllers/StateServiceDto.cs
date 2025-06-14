@@ -2,9 +2,6 @@
 
 namespace CLTI.Diagnosis.Services
 {
-    /// <summary>
-    /// DTO для передачі даних StateService через API
-    /// </summary>
     public class StateServiceDto
     {
         public int? CaseId { get; set; }
@@ -98,9 +95,6 @@ namespace CLTI.Diagnosis.Services
         public double? YLETotalScore { get; set; }
     }
 
-    /// <summary>
-    /// Відповідь API при збереженні case
-    /// </summary>
     public class SaveCaseResponse
     {
         public int CaseId { get; set; }
@@ -109,9 +103,6 @@ namespace CLTI.Diagnosis.Services
         public DateTime SavedAt { get; set; }
     }
 
-    /// <summary>
-    /// Відповідь API при отриманні case
-    /// </summary>
     public class GetCaseResponse
     {
         public StateServiceDto? Data { get; set; }
@@ -121,9 +112,6 @@ namespace CLTI.Diagnosis.Services
         public string? Message { get; set; }
     }
 
-    /// <summary>
-    /// Стандартна відповідь API
-    /// </summary>
     public class ApiResponse<T>
     {
         public T? Data { get; set; }

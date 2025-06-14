@@ -15,11 +15,7 @@ namespace CLTI.Diagnosis.Controllers
             _cltiCaseService = cltiCaseService;
         }
 
-        /// <summary>
-        /// Зберігає поточний стан діагностики CLTI
-        /// </summary>
-        /// <param name="stateData">Дані стану з клієнтської частини</param>
-        /// <returns>ID збереженого case</returns>
+
         [HttpPost("save")]
         public async Task<IActionResult> SaveCase([FromBody] StateServiceDto stateData)
         {
@@ -34,11 +30,6 @@ namespace CLTI.Diagnosis.Controllers
             }
         }
 
-        /// <summary>
-        /// Отримує збережений case за ID
-        /// </summary>
-        /// <param name="caseId">ID case</param>
-        /// <returns>Дані case</returns>
         [HttpGet("{caseId}")]
         public async Task<IActionResult> GetCase(int caseId)
         {
@@ -58,12 +49,7 @@ namespace CLTI.Diagnosis.Controllers
             }
         }
 
-        /// <summary>
-        /// Оновлює існуючий case
-        /// </summary>
-        /// <param name="caseId">ID case для оновлення</param>
-        /// <param name="stateData">Нові дані</param>
-        /// <returns>Результат оновлення</returns>
+
         [HttpPut("{caseId}")]
         public async Task<IActionResult> UpdateCase(int caseId, [FromBody] StateServiceDto stateData)
         {
@@ -79,11 +65,7 @@ namespace CLTI.Diagnosis.Controllers
             }
         }
 
-        /// <summary>
-        /// Видаляє case
-        /// </summary>
-        /// <param name="caseId">ID case для видалення</param>
-        /// <returns>Результат видалення</returns>
+
         [HttpDelete("{caseId}")]
         public async Task<IActionResult> DeleteCase(int caseId)
         {

@@ -1,6 +1,7 @@
 ﻿using CLTI.Diagnosis.Components;
 using CLTI.Diagnosis.Components.Account;
 using CLTI.Diagnosis.Client.Algoritm.Services;
+using CLTI.Diagnosis.Client.Services;  // Add this for CltiCaseService
 using CLTI.Diagnosis.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -21,8 +22,37 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+
+// Client services for both Server and WebAssembly modes
 builder.Services.AddSingleton<StateService>();
 builder.Services.AddScoped<CLTI.Diagnosis.Services.CltiCaseService>();
+
+// Add HTTP client and client-side services for Server mode
+builder.Services.AddScoped<HttpClient>(sp =>
+{
+    var httpContextAccessor = sp.GetService<IHttpContextAccessor>();
+    var httpContext = httpContextAccessor?.HttpContext;
+
+    var client = new HttpClient();
+    if (httpContext != null)
+    {
+        var request = httpContext.Request;
+        var baseUri = $"{request.Scheme}://{request.Host}";
+        client.BaseAddress = new Uri(baseUri);
+    }
+    else
+    {
+        // Fallback for development
+        client.BaseAddress = new Uri("https://localhost:7124");
+    }
+    return client;
+});
+
+builder.Services.AddScoped<CltiApiClient>();
+builder.Services.AddScoped<CLTI.Diagnosis.Client.Services.CltiCaseService>();
+
+// Add HttpContextAccessor for the HttpClient factory above
+builder.Services.AddHttpContextAccessor();
 
 // Dodajeme CORS pre klientsku cast
 builder.Services.AddCors(options =>
