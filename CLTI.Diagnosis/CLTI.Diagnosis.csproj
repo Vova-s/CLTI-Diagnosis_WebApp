@@ -24,4 +24,8 @@
     <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="9.0.5" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Services\" />
+  </ItemGroup>
+
 </Project>
