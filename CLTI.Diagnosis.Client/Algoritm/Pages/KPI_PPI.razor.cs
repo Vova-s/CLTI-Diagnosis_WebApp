@@ -9,7 +9,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         private Action? onStateChanged;
 
         [Inject]
-        public CLTI.Diagnosis.Services.CltiCaseService? CaseService { get; set; }
+        public CLTI.Diagnosis.Client.Services.CltiCaseService? CaseService { get; set; }
 
         protected override void OnInitialized()
         {

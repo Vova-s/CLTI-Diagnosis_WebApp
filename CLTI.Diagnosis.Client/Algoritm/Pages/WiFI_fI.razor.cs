@@ -1,4 +1,6 @@
-﻿namespace CLTI.Diagnosis.Client.Algoritm.Pages
+﻿using Microsoft.AspNetCore.Components;
+
+namespace CLTI.Diagnosis.Client.Algoritm.Pages
 {
     public partial class WiFI_fI
     {
@@ -6,7 +8,7 @@
         private string hyperemiaSize = "";
 
         [Inject]
-        public CLTI.Diagnosis.Services.CltiCaseService? CaseService { get; set; }
+        public CLTI.Diagnosis.Client.Services.CltiCaseService? CaseService { get; set; }
 
         protected override void OnInitialized()
         {

@@ -5,7 +5,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
     public partial class _2YLE
     {
         [Inject]
-        public CLTI.Diagnosis.Services.CltiCaseService? CaseService { get; set; }
+        public CLTI.Diagnosis.Client.Services.CltiCaseService? CaseService { get; set; }
 
         protected override void OnInitialized()
         {

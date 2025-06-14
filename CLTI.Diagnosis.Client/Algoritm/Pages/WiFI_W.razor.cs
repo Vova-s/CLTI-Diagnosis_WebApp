@@ -4,6 +4,8 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 {
     public partial class WiFI_W
     {
+        [Inject]
+        public CLTI.Diagnosis.Client.Services.CltiCaseService? CaseService { get; set; }
         // Списки для DropDown компонентів
         private List<string> necrosisTypeItems = new() { "Гангрена", "Виразка" };
         private List<string> gangreneSpreadItems = new() { "Поширюється на плесно", "Поширюється лише на пальці" };
