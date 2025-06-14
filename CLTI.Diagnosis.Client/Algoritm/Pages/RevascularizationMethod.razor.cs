@@ -8,6 +8,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         private bool highLimbRisk = false;
         private bool severeIschemia = false;
 
+        [Inject]
+        public CLTI.Diagnosis.Services.CltiCaseService? CaseService { get; set; }
+
         protected override void OnInitialized()
         {
             StateService.OnChange += HandleStateChanged;
@@ -231,10 +234,14 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         }
 
     private async Task SaveAndExit()
+    {
+        if (CaseService != null)
         {
-            StateService.IsRevascularizationMethodCompleted = true; // ДОДАНО
-            StateService.NotifyStateChanged();
-            await InvokeAsync(StateHasChanged);
+            await CaseService.SaveCaseAsync(StateService);
+        }
+        StateService.IsRevascularizationMethodCompleted = true; // ДОДАНО
+        StateService.NotifyStateChanged();
+        await InvokeAsync(StateHasChanged);
             // Повертаємося на домашню сторінку
             NavigationManager.NavigateTo("/", forceLoad: true);
         }

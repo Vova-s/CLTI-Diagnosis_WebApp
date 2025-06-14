@@ -8,6 +8,9 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         private string ppiValue = "";
         private Action? onStateChanged;
 
+        [Inject]
+        public CLTI.Diagnosis.Services.CltiCaseService? CaseService { get; set; }
+
         protected override void OnInitialized()
         {
             onStateChanged = () => InvokeAsync(StateHasChanged);
@@ -56,6 +59,10 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
         private async void Continue()
         {
+            if (CaseService != null)
+            {
+                await CaseService.SaveCaseAsync(StateService);
+            }
             await InvokeAsync(StateHasChanged);
             NavigationManager.NavigateTo("/Algoritm/Pages/Wifi_W", forceLoad: true);
             StateService.ShowWifiSection = true;
