@@ -11,15 +11,31 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddSingleton<StateService>();
 builder.Services.AddAuthenticationStateDeserialization();
 
-// Додаємо HTTP клієнт для API
+// ✅ OPTION 1: Try the standard HttpClient approach for .NET 9 (RECOMMENDED)
+builder.Services.AddScoped(sp => new HttpClient { BaseAddress = new Uri(builder.HostEnvironment.BaseAddress) });
+
+// ✅ OPTION 2: If you need credentials support, use this WebAssemblyHttpHandler approach
+/*
 builder.Services.AddScoped(sp =>
-    new HttpClient(new WebAssemblyHttpHandler
-    {
-        Credentials = FetchCredentialsOption.Include
-    })
+    new HttpClient(new WebAssemblyHttpHandler())
     {
         BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
     });
+*/
+
+// ✅ OPTION 3: If you need to include credentials, use this approach (advanced)
+
+builder.Services.AddScoped(sp =>
+{
+    var handler = new WebAssemblyHttpHandler();
+    // Set credentials at runtime via fetch options if needed
+    return new HttpClient(handler)
+    {
+        BaseAddress = new Uri(builder.HostEnvironment.BaseAddress)
+    };
+});
+
+
 builder.Services.AddScoped<CltiApiClient>();
 
 // Додаємо клієнтський сервіс для роботи з CLTI cases
