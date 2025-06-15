@@ -29,8 +29,11 @@ namespace CLTI.Diagnosis.Client.Services
                 if (!string.IsNullOrEmpty(_cachedApiKey) &&
                     DateTime.UtcNow - _lastCacheTime < _cacheExpiry)
                 {
+                    _logger.LogDebug("Using cached API key");
                     return _cachedApiKey;
                 }
+
+                _logger.LogInformation("Requesting API key from server");
 
                 // Отримуємо ключ через API
                 var response = await _httpClient.GetAsync("/api/apikey/openai");
@@ -39,26 +42,46 @@ namespace CLTI.Diagnosis.Client.Services
                 {
                     var result = await response.Content.ReadFromJsonAsync<ApiKeyResponse>();
 
-                    if (result != null && !string.IsNullOrEmpty(result.ApiKey))
+                    if (result != null && !string.IsNullOrEmpty(result.ApiKey) && result.Available)
                     {
                         _cachedApiKey = result.ApiKey;
                         _lastCacheTime = DateTime.UtcNow;
 
-                        _logger.LogInformation("OpenAI API key retrieved successfully from server");
+                        _logger.LogInformation("OpenAI API key retrieved successfully from server (masked: {MaskedKey})",
+                            result.Masked);
                         return _cachedApiKey;
                     }
+                    else
+                    {
+                        _logger.LogWarning("Server returned invalid API key response");
+                    }
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                {
+                    _logger.LogWarning("API key not found on server. Status: {StatusCode}", response.StatusCode);
                 }
                 else
                 {
-                    _logger.LogWarning("Failed to retrieve API key from server. Status: {StatusCode}",
-                        response.StatusCode);
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to retrieve API key from server. Status: {StatusCode}, Content: {Content}",
+                        response.StatusCode, errorContent);
                 }
 
                 return null;
             }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "Network error while retrieving API key from server");
+                return null;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "Timeout while retrieving API key from server");
+                return null;
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error retrieving OpenAI API key from server");
+                _logger.LogError(ex, "Unexpected error retrieving OpenAI API key from server");
                 return null;
             }
         }

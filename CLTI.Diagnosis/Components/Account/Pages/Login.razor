@@ -4,11 +4,15 @@
 @using Microsoft.AspNetCore.Authentication
 @using Microsoft.AspNetCore.Identity
 @using CLTI.Diagnosis.Data
+@using CLTI.Diagnosis.Data.Entities
+@using CLTI.Diagnosis.Services
+@using Microsoft.EntityFrameworkCore
+@using System.Security.Cryptography
+@using System.Text
 
-@inject SignInManager<ApplicationUser> SignInManager
+@inject ApplicationDbContext DbContext
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
-@inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Log in</PageTitle>
 
@@ -16,16 +20,15 @@
     <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md mb-4">
         <h2 class="text-2xl font-bold text-center mb-6">Log in</h2>
 
-@*         @if (!string.IsNullOrEmpty(errorMessage))
+        @if (!string.IsNullOrEmpty(errorMessage))
         {
             <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
                 <p>@errorMessage</p>
             </div>
-        } *@
+        }
 
         <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
             <DataAnnotationsValidator />
-@*             <ValidationSummary class="text-red-500 mb-4" role="alert" /> *@
 
             <!-- Email field -->
             <div class="mb-4">
@@ -72,24 +75,11 @@
             <!-- Links section -->
             <div class="text-center text-sm">
                 <p class="mb-2">
-                    <a href="Account/ForgotPassword" class="text-blue-500 hover:underline">Forgot your password?</a>
-                </p>
-                <p class="mb-2">
                     <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))"
                        class="text-blue-500 hover:underline">Register as a new user</a>
                 </p>
-                <p>
-                    <a href="Account/ResendEmailConfirmation" class="text-blue-500 hover:underline">Resend email confirmation</a>
-                </p>
             </div>
         </EditForm>
-    </div>
-
-    <!-- External login options section -->
-    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md">
-        <h3 class="text-xl font-semibold mb-4 text-center">Use another service to log in</h3>
-        <hr class="mb-4" />
-        <ExternalLoginPicker />
     </div>
 </div>
 
@@ -105,40 +95,62 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
-    protected override async Task OnInitializedAsync()
+    protected override void OnInitialized()
     {
-        if (HttpMethods.IsGet(HttpContext.Request.Method))
-        {
-            // Clear the existing external cookie to ensure a clean login process
-            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
-        }
+        // No external authentication setup needed
     }
 
     public async Task LoginUser()
     {
-        // This doesn't count login failures towards account lockout
-        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-        if (result.Succeeded)
+        try
         {
-            Logger.LogInformation("User logged in.");
-            RedirectManager.RedirectTo(ReturnUrl);
+            // Hash the password using MD5
+            var hashedPassword = HashPassword(Input.Password);
+
+            // Find user in sys_user table
+            var user = await DbContext.SysUsers
+                .FirstOrDefaultAsync(u => u.Email == Input.Email && u.Password == hashedPassword);
+
+            if (user != null)
+            {
+                // Create claims for the user
+                var claims = new List<System.Security.Claims.Claim>
+                {
+                    new(System.Security.Claims.ClaimTypes.NameIdentifier, user.Id.ToString()),
+                    new(System.Security.Claims.ClaimTypes.Name, user.Email),
+                    new(System.Security.Claims.ClaimTypes.Email, user.Email)
+                };
+
+                var identity = new System.Security.Claims.ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
+                var principal = new System.Security.Claims.ClaimsPrincipal(identity);
+
+                await HttpContext.SignInAsync(IdentityConstants.ApplicationScheme, principal,
+                    new AuthenticationProperties { IsPersistent = Input.RememberMe });
+
+                Logger.LogInformation("User {Email} logged in.", Input.Email);
+
+                // Use NavigationManager instead of RedirectManager
+                var redirectUrl = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
+                NavigationManager.NavigateTo(redirectUrl, forceLoad: true);
+            }
+            else
+            {
+                errorMessage = "Error: Invalid login attempt.";
+            }
         }
-        else if (result.RequiresTwoFactor)
+        catch (Exception ex)
         {
-            RedirectManager.RedirectTo(
-                "Account/LoginWith2fa",
-                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+            Logger.LogError(ex, "Error during login for user {Email}", Input.Email);
+            errorMessage = "Error: An error occurred during login.";
         }
-        else if (result.IsLockedOut)
-        {
-            Logger.LogWarning("User account locked out.");
-            RedirectManager.RedirectTo("Account/Lockout");
-        }
-        else
-        {
-            errorMessage = "Error: Invalid login attempt.";
-        }
+    }
+
+    private static string HashPassword(string password)
+    {
+        using var md5 = MD5.Create();
+        var inputBytes = Encoding.UTF8.GetBytes(password);
+        var hashBytes = md5.ComputeHash(inputBytes);
+        return Convert.ToHexString(hashBytes).ToLower();
     }
 
     private sealed class InputModel

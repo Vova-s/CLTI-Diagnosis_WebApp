@@ -7,6 +7,7 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
     public partial class AI_AssistantPage
     {
         [Inject] private AiChatClient AiChatClient { get; set; } = default!;
+        [Inject] private ILogger<AI_AssistantPage> Logger { get; set; } = default!;
 
         private string MessageText { get; set; } = "";
         private List<MessageItem> Messages { get; set; } = new();
@@ -15,79 +16,97 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
         protected override void OnInitialized()
         {
             // Додаємо початкові повідомлення
-            Messages.Add(new MessageItem { Text = "Привіт", Role = "user" });
-            Messages.Add(new MessageItem { Text = "Привіт! Як я сьогодні можу тобі допомогти?", Role = "ai" });
-            Messages.Add(new MessageItem { Text = "Що таке WIfI?", Role = "user" });
-            Messages.Add(new MessageItem
-            {
-                Text = "WIfI (Wound, Ischemia, and foot Infection) — це клінічна класифікаційна система, яка використовується судинними хірургами для оцінки ризику ампутації кінцівки та потреби в реваскуляризації у пацієнтів із хронічною критичною ішемією кінцівок (CLTI).",
-                Role = "ai"
-            });
+            Messages.Add(new MessageItem { Text = "Привіт! Я ваш AI асистент з діагностики CLTI.\n Як я можу вам допомогти сьогодні?", Role = "ai" });
+            //Messages.Add(new MessageItem { Text = "Як я можу вам допомогти сьогодні?", Role = "ai" });
         }
 
         private async Task SendMessage()
         {
-            if (!string.IsNullOrWhiteSpace(MessageText) && !IsLoading)
+            if (string.IsNullOrWhiteSpace(MessageText) || IsLoading)
+                return;
+
+            var userMessage = MessageText.Trim();
+            MessageText = "";
+
+            // Додаємо повідомлення користувача
+            Messages.Add(new MessageItem { Text = userMessage, Role = "user" });
+            StateHasChanged();
+
+            // Показуємо індикатор завантаження
+            IsLoading = true;
+            Messages.Add(new MessageItem { Text = "АІ друкує...", Role = "ai", IsTyping = true });
+            StateHasChanged();
+
+            try
             {
-                var userMessage = MessageText.Trim();
-                MessageText = "";
+                Logger.LogInformation("Sending message to AI: {Message}", userMessage);
 
-                // Додаємо повідомлення користувача
-                Messages.Add(new MessageItem { Text = userMessage, Role = "user" });
-                StateHasChanged();
+                // Підготовуємо історію розмови для контексту (останні 10 повідомлень)
+                var conversationHistory = Messages
+                    .Where(m => !m.IsTyping && m.Role != "system")
+                    .TakeLast(10) // Беремо тільки останні 10 повідомлень для контексту
+                    .Select(m => new ChatMessage
+                    {
+                        Role = m.Role == "ai" ? "assistant" : "user",
+                        Content = m.Text
+                    })
+                    .ToList();
 
-                // Показуємо індикатор завантаження
-                IsLoading = true;
-                Messages.Add(new MessageItem { Text = "АІ друкує...", Role = "ai", IsTyping = true });
-                StateHasChanged();
-
-                try
+                // Видаляємо поточне користувацьке повідомлення з історії (воно буде додано в AiChatClient)
+                if (conversationHistory.Any() && conversationHistory.Last().Role == "user")
                 {
-                    // Підготовуємо історію розмови для контексту
-                    var conversationHistory = Messages
-                        .Where(m => !m.IsTyping)
-                        .Skip(4) // Пропускаємо початкові демо-повідомлення
-                        .Select(m => new ChatMessage
-                        {
-                            Role = m.Role == "ai" ? "assistant" : "user",
-                            Content = m.Text
-                        })
-                        .ToList();
+                    conversationHistory.RemoveAt(conversationHistory.Count - 1);
+                }
 
-                    // Отримуємо відповідь від AI
-                    var aiResponse = await AiChatClient.SendMessageAsync(userMessage, conversationHistory);
+                // Отримуємо відповідь від AI
+                var aiResponse = await AiChatClient.SendMessageAsync(userMessage, conversationHistory);
 
-                    // Видаляємо індикатор завантаження
-                    Messages.RemoveAt(Messages.Count - 1);
+                // Видаляємо індикатор завантаження
+                Messages.RemoveAt(Messages.Count - 1);
 
+                if (!string.IsNullOrEmpty(aiResponse))
+                {
                     // Додаємо відповідь AI
                     Messages.Add(new MessageItem { Text = aiResponse, Role = "ai" });
+                    Logger.LogInformation("AI response received successfully");
                 }
-                catch (Exception ex)
+                else
                 {
-                    // Видаляємо індикатор завантаження
-                    Messages.RemoveAt(Messages.Count - 1);
-
-                    // Додаємо повідомлення про помилку
                     Messages.Add(new MessageItem
                     {
-                        Text = "Вибачте, виникла помилка при зверненні до AI асистента. Спробуйте пізніше.",
+                        Text = "Вибачте, не вдалося отримати відповідь від AI.",
                         Role = "ai"
                     });
-
-                    Console.WriteLine($"Error sending message: {ex.Message}");
+                    Logger.LogWarning("Empty AI response received");
                 }
-                finally
+            }
+            catch (Exception ex)
+            {
+                // Видаляємо індикатор завантаження
+                if (Messages.Any() && Messages.Last().IsTyping)
                 {
-                    IsLoading = false;
-                    StateHasChanged();
+                    Messages.RemoveAt(Messages.Count - 1);
                 }
+
+                // Додаємо повідомлення про помилку
+                Messages.Add(new MessageItem
+                {
+                    Text = "Вибачте, виникла помилка при зверненні до AI асистента. Спробуйте пізніше.",
+                    Role = "ai"
+                });
+
+                Logger.LogError(ex, "Error sending message to AI");
+            }
+            finally
+            {
+                IsLoading = false;
+                StateHasChanged();
             }
         }
 
         private async Task OnKeyDown(KeyboardEventArgs e)
         {
-            if (e.Key == "Enter" && !e.ShiftKey)
+            if (e.Key == "Enter" && !e.ShiftKey && !IsLoading)
             {
                 await SendMessage();
             }

@@ -27,25 +27,15 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
-                // Отримуємо API ключ через клієнтський сервіс
-                var apiKey = await _apiKeyService.GetOpenAiApiKeyAsync();
-                if (string.IsNullOrEmpty(apiKey))
+                if (string.IsNullOrWhiteSpace(userMessage))
                 {
-                    _logger.LogError("OpenAI API key not available");
-                    return "Вибачте, AI асистент тимчасово недоступний. Зверніться до адміністратора.";
+                    return "Будь ласка, введіть повідомлення.";
                 }
 
-                // Створюємо окремий HttpClient для OpenAI API
-                using var openAiClient = new HttpClient();
-                openAiClient.BaseAddress = new Uri("https://api.openai.com/");
-                openAiClient.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiKey);
-                openAiClient.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis/1.0");
-                openAiClient.Timeout = TimeSpan.FromSeconds(30);
-
+                // Підготовуємо повідомлення для відправки на сервер
                 var messages = new List<ChatMessage>();
 
-                // Системне повідомлення з контекстом про CLTI
+                // Додаємо системне повідомлення
                 messages.Add(new ChatMessage
                 {
                     Role = "system",
@@ -63,7 +53,7 @@ namespace CLTI.Diagnosis.Client.Services
                 });
 
                 // Додаємо історію розмови
-                if (conversationHistory != null)
+                if (conversationHistory != null && conversationHistory.Any())
                 {
                     messages.AddRange(conversationHistory);
                 }
@@ -75,55 +65,64 @@ namespace CLTI.Diagnosis.Client.Services
                     Content = userMessage
                 });
 
-                var request = new
+                // Готуємо запит для відправки на сервер
+                var chatRequest = new ChatRequest
                 {
-                    model = "gpt-3.5-turbo",
-                    messages = messages,
-                    max_tokens = 1000,
-                    temperature = 0.7
+                    Message = userMessage,
+                    ConversationHistory = conversationHistory ?? new List<ChatMessage>()
                 };
 
-                var response = await openAiClient.PostAsJsonAsync("v1/chat/completions", request, _jsonOptions);
+                _logger.LogInformation("Sending chat request to server API");
+
+                // Відправляємо запит на наш сервер
+                var response = await _httpClient.PostAsJsonAsync("/api/aichat/send", chatRequest, _jsonOptions);
 
                 if (response.IsSuccessStatusCode)
                 {
                     var responseContent = await response.Content.ReadAsStringAsync();
-                    var chatResponse = JsonSerializer.Deserialize<ChatCompletionResponse>(responseContent, _jsonOptions);
+                    var chatResponse = JsonSerializer.Deserialize<ChatResponse>(responseContent, _jsonOptions);
 
-                    var aiResponse = chatResponse?.Choices?.FirstOrDefault()?.Message?.Content;
-                    if (!string.IsNullOrEmpty(aiResponse))
+                    if (chatResponse?.Success == true && !string.IsNullOrEmpty(chatResponse.Message))
                     {
-                        _logger.LogInformation("AI response generated successfully for user message");
-                        return aiResponse;
+                        _logger.LogInformation("AI response received successfully");
+                        return chatResponse.Message;
                     }
-
-                    _logger.LogWarning("Empty response from OpenAI API");
-                    return "Вибачте, не вдалося отримати відповідь.";
+                    else
+                    {
+                        var errorMsg = chatResponse?.Error ?? "Невідома помилка сервера";
+                        _logger.LogWarning("Server returned error: {Error}", errorMsg);
+                        return $"Помилка: {errorMsg}";
+                    }
                 }
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError("OpenAI API Error: {StatusCode} - {ErrorContent}",
-                        response.StatusCode, errorContent);
+                    _logger.LogError("Server API Error: {StatusCode} - {ErrorContent}", response.StatusCode, errorContent);
 
                     return response.StatusCode switch
                     {
-                        System.Net.HttpStatusCode.Unauthorized => "Помилка авторизації API. Зверніться до адміністратора.",
+                        System.Net.HttpStatusCode.Unauthorized => "Помилка авторизації. Зверніться до адміністратора.",
                         System.Net.HttpStatusCode.TooManyRequests => "Занадто багато запитів. Спробуйте через хвилину.",
-                        System.Net.HttpStatusCode.BadRequest => "Некоректний запит до AI сервісу.",
-                        _ => "Вибачте, виникла помилка при зверненні до AI асистента. Спробуйте пізніше."
+                        System.Net.HttpStatusCode.BadRequest => "Некоректний запит.",
+                        System.Net.HttpStatusCode.InternalServerError => "Внутрішня помилка сервера. Спробуйте пізніше.",
+                        _ => "Помилка при зверненні до AI сервісу. Спробуйте пізніше."
                     };
                 }
             }
             catch (HttpRequestException ex)
             {
-                _logger.LogError(ex, "Network error while calling OpenAI API");
+                _logger.LogError(ex, "Network error while calling server API");
                 return "Помилка мережі. Перевірте з'єднання з інтернетом.";
             }
             catch (TaskCanceledException ex)
             {
-                _logger.LogError(ex, "Timeout while calling OpenAI API");
+                _logger.LogError(ex, "Timeout while calling server API");
                 return "Час очікування відповіді закінчився. Спробуйте ще раз.";
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON parsing error");
+                return "Помилка обробки відповіді сервера.";
             }
             catch (Exception ex)
             {
@@ -133,22 +132,25 @@ namespace CLTI.Diagnosis.Client.Services
         }
     }
 
-    // DTO класи для OpenAI API
+    // DTO класи для комунікації з сервером
+    public class ChatRequest
+    {
+        public string Message { get; set; } = string.Empty;
+        public List<ChatMessage> ConversationHistory { get; set; } = new();
+    }
+
+    public class ChatResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public DateTime Timestamp { get; set; }
+        public string? Error { get; set; }
+    }
+
+    // DTO класи для повідомлень
     public class ChatMessage
     {
         public string Role { get; set; } = string.Empty;
         public string Content { get; set; } = string.Empty;
-    }
-
-    public class ChatCompletionResponse
-    {
-        public List<ChatChoice> Choices { get; set; } = new();
-    }
-
-    public class ChatChoice
-    {
-        public ChatMessage Message { get; set; } = new();
-        public string FinishReason { get; set; } = string.Empty;
-        public int Index { get; set; }
     }
 }

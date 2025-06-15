@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Text;
 using System.Text.Json;
+using CLTI.Diagnosis.Services;
 
 namespace CLTI.Diagnosis.Controllers
 {
@@ -8,15 +9,25 @@ namespace CLTI.Diagnosis.Controllers
     [Route("api/[controller]")]
     public class AiChatController : ControllerBase
     {
-        private readonly HttpClient _httpClient;
-        private readonly IConfiguration _configuration;
+        private readonly IHttpClientFactory _httpClientFactory;
+        private readonly IApiKeyService _apiKeyService;
         private readonly ILogger<AiChatController> _logger;
+        private readonly JsonSerializerOptions _jsonOptions;
 
-        public AiChatController(HttpClient httpClient, IConfiguration configuration, ILogger<AiChatController> logger)
+        public AiChatController(
+            IHttpClientFactory httpClientFactory,
+            IApiKeyService apiKeyService,
+            ILogger<AiChatController> logger)
         {
-            _httpClient = httpClient;
-            _configuration = configuration;
+            _httpClientFactory = httpClientFactory;
+            _apiKeyService = apiKeyService;
             _logger = logger;
+
+            _jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                PropertyNameCaseInsensitive = true
+            };
         }
 
         [HttpPost("send")]
@@ -24,59 +35,128 @@ namespace CLTI.Diagnosis.Controllers
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(request.Message))
+                if (string.IsNullOrWhiteSpace(request?.Message))
                 {
-                    return BadRequest(new { Error = "Повідомлення не може бути порожнім" });
+                    return BadRequest(new ChatResponse
+                    {
+                        Success = false,
+                        Error = "Повідомлення не може бути порожнім"
+                    });
                 }
 
-                var apiKey = _configuration["OpenAI:ApiKey"];
+                _logger.LogInformation("Received chat request: {Message}", request.Message);
+
+                // Отримуємо API ключ з бази даних
+                var apiKey = await _apiKeyService.GetOpenAiApiKeyAsync();
                 if (string.IsNullOrEmpty(apiKey))
                 {
-                    return StatusCode(500, new { Error = "API ключ не налаштований" });
+                    _logger.LogError("OpenAI API key not available");
+                    return StatusCode(500, new ChatResponse
+                    {
+                        Success = false,
+                        Error = "AI сервіс тимчасово недоступний. Зверніться до адміністратора."
+                    });
                 }
 
-                // Підготовка запиту до OpenAI
+                // Створюємо HTTP клієнт для OpenAI
+                using var openAiClient = _httpClientFactory.CreateClient("OpenAI");
+                openAiClient.DefaultRequestHeaders.Clear();
+                openAiClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+                openAiClient.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis/1.0");
+
+                // Підготовуємо повідомлення
+                var messages = new List<object>();
+
+                // Системне повідомлення
+                messages.Add(new
+                {
+                    role = "system",
+                    content = @"Ти - AI асистент для медичної системи діагностики CLTI (Critical Limb Threatening Ischemia). 
+                    Ти маєш знання про:
+                    - WIfI класифікацію (Wound, Ischemia, foot Infection)
+                    - CRAB оцінку (періпроцедуральна смертність)
+                    - 2YLE оцінку (дворічна виживаність)
+                    - GLASS класифікацію (анатомічні ураження артерій)
+                    - Гемодинамічні показники (КПІ, ППІ)
+                    - Методи реваскуляризації
+                    
+                    Відповідай українською мовою, будь професійним але дружнім. 
+                    Надавай точну медичну інформацію, але завжди рекомендуй консультацію з лікарем для конкретних випадків."
+                });
+
+                // Історія розмови
+                if (request.ConversationHistory != null && request.ConversationHistory.Any())
+                {
+                    foreach (var msg in request.ConversationHistory)
+                    {
+                        messages.Add(new
+                        {
+                            role = msg.Role,
+                            content = msg.Content
+                        });
+                    }
+                }
+
+                // Поточне повідомлення
+                messages.Add(new
+                {
+                    role = "user",
+                    content = request.Message
+                });
+
+                // Запит до OpenAI
                 var openAiRequest = new
                 {
                     model = "gpt-3.5-turbo",
-                    messages = new object[]
-                    {
-                        new
-                        {
-                            role = "system",
-                            content = "Ти медичний асистент, що спеціалізується на діагностиці CLTI (Chronic Limb-Threatening Ischemia). " +
-                                     "Ти допомагаєш лікарям з класифікаціями WiFI, CRAB, 2YLE та GLASS. " +
-                                     "Відповідай українською мовою, будь точним та професійним."
-                        },
-                        new
-                        {
-                            role = "user",
-                            content = request.Message
-                        }
-                    },
+                    messages = messages,
                     max_tokens = 1000,
                     temperature = 0.7
                 };
 
-                var json = JsonSerializer.Serialize(openAiRequest);
+                var json = JsonSerializer.Serialize(openAiRequest, _jsonOptions);
                 var content = new StringContent(json, Encoding.UTF8, "application/json");
 
-                _httpClient.DefaultRequestHeaders.Clear();
-                _httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiKey}");
+                _logger.LogInformation("Sending request to OpenAI API");
 
-                var response = await _httpClient.PostAsync("https://api.openai.com/v1/chat/completions", content);
+                var response = await openAiClient.PostAsync("v1/chat/completions", content);
 
                 if (!response.IsSuccessStatusCode)
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogError($"OpenAI API Error: {response.StatusCode}, Content: {errorContent}");
-                    return StatusCode(500, new { Error = "Помилка при зверненні до AI сервісу" });
+                    _logger.LogError("OpenAI API Error: {StatusCode}, Content: {ErrorContent}",
+                        response.StatusCode, errorContent);
+
+                    var errorMessage = response.StatusCode switch
+                    {
+                        System.Net.HttpStatusCode.Unauthorized => "Неправильний API ключ",
+                        System.Net.HttpStatusCode.TooManyRequests => "Перевищено ліміт запитів",
+                        System.Net.HttpStatusCode.BadRequest => "Некоректний запит до OpenAI",
+                        _ => "Помилка при зверненні до OpenAI API"
+                    };
+
+                    return StatusCode(500, new ChatResponse
+                    {
+                        Success = false,
+                        Error = errorMessage
+                    });
                 }
 
                 var responseContent = await response.Content.ReadAsStringAsync();
-                var openAiResponse = JsonSerializer.Deserialize<OpenAiResponse>(responseContent);
+                var openAiResponse = JsonSerializer.Deserialize<OpenAiResponse>(responseContent, _jsonOptions);
 
-                var aiMessage = openAiResponse?.Choices?.FirstOrDefault()?.Message?.Content ?? "Вибачте, не вдалося отримати відповідь";
+                var aiMessage = openAiResponse?.Choices?.FirstOrDefault()?.Message?.Content;
+
+                if (string.IsNullOrEmpty(aiMessage))
+                {
+                    _logger.LogWarning("Empty response from OpenAI API");
+                    return Ok(new ChatResponse
+                    {
+                        Success = false,
+                        Error = "Отримано порожню відповідь від AI"
+                    });
+                }
+
+                _logger.LogInformation("AI response generated successfully");
 
                 return Ok(new ChatResponse
                 {
@@ -85,18 +165,56 @@ namespace CLTI.Diagnosis.Controllers
                     Timestamp = DateTime.UtcNow
                 });
             }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "Network error while calling OpenAI API");
+                return StatusCode(500, new ChatResponse
+                {
+                    Success = false,
+                    Error = "Помилка мережі при зверненні до AI сервісу"
+                });
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "Timeout while calling OpenAI API");
+                return StatusCode(500, new ChatResponse
+                {
+                    Success = false,
+                    Error = "Час очікування відповіді від AI сервісу закінчився"
+                });
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON parsing error");
+                return StatusCode(500, new ChatResponse
+                {
+                    Success = false,
+                    Error = "Помилка обробки відповіді від AI сервісу"
+                });
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Помилка при обробці запиту до AI");
-                return StatusCode(500, new { Error = "Внутрішня помилка сервера", Details = ex.Message });
+                _logger.LogError(ex, "Unexpected error in AI chat controller");
+                return StatusCode(500, new ChatResponse
+                {
+                    Success = false,
+                    Error = "Внутрішня помилка сервера"
+                });
             }
         }
     }
 
-    // DTO класи
+    // DTO класи для запитів
     public class ChatRequest
     {
         public string Message { get; set; } = string.Empty;
+        public List<ChatMessage> ConversationHistory { get; set; } = new();
+    }
+
+    public class ChatMessage
+    {
+        public string Role { get; set; } = string.Empty;
+        public string Content { get; set; } = string.Empty;
     }
 
     public class ChatResponse

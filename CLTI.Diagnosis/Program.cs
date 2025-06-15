@@ -7,6 +7,7 @@ using CLTI.Diagnosis.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -58,11 +59,12 @@ builder.Services.AddHttpClient("Default", (sp, client) =>
     client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis");
 });
 
+// HttpClient для OpenAI налаштований правильно
 builder.Services.AddHttpClient("OpenAI", client =>
 {
     client.BaseAddress = new Uri("https://api.openai.com/");
     client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis/1.0");
-    client.Timeout = TimeSpan.FromSeconds(30); // Таймаут 30 секунд
+    client.Timeout = TimeSpan.FromSeconds(60); // Збільшуємо таймаут до 60 секунд
 });
 
 // Register default HttpClient for server-side components
@@ -83,14 +85,28 @@ builder.Services.AddScoped<CltiApiClient>(sp =>
 // Register client-side CltiCaseService
 builder.Services.AddScoped<CLTI.Diagnosis.Client.Services.CltiCaseService>();
 
-// Register AI Chat service з використанням API ключа з БД
+// Register AI services з правильною конфігурацією
+builder.Services.AddScoped<IClientApiKeyService, ClientApiKeyService>();
+
+// Register AiChatClient для клієнтських компонентів
 builder.Services.AddScoped<AiChatClient>(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
-    var client = factory.CreateClient("OpenAI");
-    var apiKeyService = sp.GetRequiredService<IApiKeyService>();
+    var httpClient = factory.CreateClient("Default"); // Використовуємо Default client для звернення до нашого API
+    var apiKeyService = sp.GetRequiredService<IClientApiKeyService>();
     var logger = sp.GetRequiredService<ILogger<AiChatClient>>();
-    return new AiChatClient(client, apiKeyService, logger);
+    return new AiChatClient(httpClient, apiKeyService, logger);
+});
+
+// Додайте логування для діагностики
+builder.Services.AddLogging(logging =>
+{
+    logging.AddConsole();
+    logging.AddDebug();
+    if (builder.Environment.IsDevelopment())
+    {
+        logging.SetMinimumLevel(LogLevel.Information);
+    }
 });
 
 // CORS
@@ -105,20 +121,18 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Authentication setup
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-})
-.AddIdentityCookies();
+// Simple Cookie Authentication (замість повного Identity)
+builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
+    .AddCookie(IdentityConstants.ApplicationScheme, options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        options.AccessDeniedPath = "/Account/AccessDenied";
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.SlidingExpiration = true;
+    });
 
-// Identity setup
-builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders();
-
+// Add minimal Identity services for compatibility
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
@@ -137,6 +151,10 @@ else
 
 app.UseHttpsRedirection();
 app.UseCors("AllowBlazorClient");
+
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
 
 app.MapStaticAssets();
@@ -146,7 +164,13 @@ app.MapRazorComponents<App>()
     .AddAdditionalAssemblies(typeof(CLTI.Diagnosis.Client._Imports).Assembly);
 
 app.MapControllers();
-app.MapAdditionalIdentityEndpoints();
+
+// Simple logout endpoint
+app.MapPost("/Account/Logout", async (HttpContext context) =>
+{
+    await context.SignOutAsync(IdentityConstants.ApplicationScheme);
+    return Results.Redirect("/");
+});
 
 // Fallback route
 app.MapFallback(async context =>
