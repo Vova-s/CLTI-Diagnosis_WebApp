@@ -111,3 +111,163 @@
     color: white;
     width: 200px;
 }
+.page-container {
+    display: flex;
+    flex-direction: row;
+    height: 100vh;
+}
+
+.main-content {
+    flex: 1;
+    padding: 20px;
+    margin-left: 20px;
+    overflow-y: auto;
+}
+
+.title {
+    font-size: 32px;
+    font-weight: 700;
+    color: #191919;
+    margin-bottom: 30px;
+    font-family: Inter;
+}
+
+.frame-parent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 35px;
+    color: #191919;
+    max-width: 800px;
+}
+
+.parent {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 50px;
+    width: 100%;
+}
+
+.e-mail {
+    width: 210px;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.button-group {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+    width: 100%;
+}
+
+/* Password section styling */
+.password-section {
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 2px solid #e0e0e0;
+    width: 100%;
+}
+
+    .password-section .parent {
+        margin-bottom: 20px;
+    }
+
+/* Danger Zone styling */
+.danger-zone {
+    margin-top: 40px;
+    padding: 30px;
+    border: 2px solid #ff3b6b;
+    border-radius: 8px;
+    background-color: rgba(255, 59, 107, 0.05);
+    width: 100%;
+}
+
+.danger-title {
+    font-size: 24px;
+    font-weight: 700;
+    color: #ff3b6b;
+    margin-bottom: 20px;
+    font-family: Inter;
+}
+
+.danger-zone .parent {
+    margin-bottom: 20px;
+}
+
+.danger-zone .e-mail {
+    color: #ff3b6b;
+    font-weight: 600;
+}
+
+/* Back button */
+.back-wrapper {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    width: 320px;
+    height: 50px;
+    background-color: #057CFF;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 600;
+    font-size: 16px;
+    cursor: pointer;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+}
+
+    .back-wrapper:hover {
+        background-color: #056ce0;
+    }
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .parent {
+        flex-direction: column;
+        gap: 15px;
+        align-items: flex-start;
+    }
+
+    .e-mail {
+        width: 100%;
+    }
+
+    .main-content {
+        margin-left: 0;
+        padding: 15px;
+    }
+
+    .frame-parent {
+        gap: 25px;
+    }
+
+    .password-section,
+    .danger-zone {
+        margin-top: 30px;
+        padding: 20px;
+    }
+
+    .back-wrapper {
+        width: 280px;
+        right: 20px;
+        bottom: 20px;
+    }
+}
+
+/* Loading states */
+.button-group button[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Success/Error message spacing */
+.frame-parent > div:first-child {
+    margin-bottom: 20px;
+}

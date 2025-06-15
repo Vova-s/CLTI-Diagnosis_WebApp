@@ -20,4 +20,7 @@ builder.Services.AddScoped<CltiCaseService>();
 builder.Services.AddScoped<IClientApiKeyService, ClientApiKeyService>();
 builder.Services.AddScoped<AiChatClient>();
 
+// *** ДОДАЄМО USER CLIENT SERVICE ***
+builder.Services.AddScoped<IUserClientService, UserClientService>();
+
 await builder.Build().RunAsync();

@@ -34,10 +34,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 // API Key service для читання з БД
-builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+builder.Services.AddScoped<ApiKeyService, ApiKeyService>();
 
 // Shared client services
 builder.Services.AddSingleton<StateService>();
+builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<CLTI.Diagnosis.Services.CltiCaseService>();
 
 // HttpContextAccessor (required for dynamic base URLs)

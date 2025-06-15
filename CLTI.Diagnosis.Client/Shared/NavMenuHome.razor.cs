@@ -1,5 +1,6 @@
 ﻿using CLTI.Diagnosis.Client.Algoritm.Services;
 using CLTI.Diagnosis.Client.Components;
+using CLTI.Diagnosis.Client.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 
@@ -7,6 +8,8 @@ namespace CLTI.Diagnosis.Client.Shared
 {
     public partial class NavMenuHome : IDisposable
     {
+        [Inject] private IUserClientService UserService { get; set; } = default!;
+
         // === Стан меню ===
         private bool showHemodynamic = true;
         private bool showUserMenu = false;
@@ -14,13 +17,69 @@ namespace CLTI.Diagnosis.Client.Shared
         // === Дані користувача ===
         private string username = "Користувач";
         private string useremail = "user@example.com";
+        private UserInfo? currentUser;
         private UserContexMenu? userContextMenuRef;
 
         // === Ініціалізація компонента ===
-        protected override void OnInitialized()
+        protected override async Task OnInitializedAsync()
         {
             StateService.OnChange += HandleStateChange;
+            UserService.OnUserChanged += HandleUserChanged;
+
+            // Завантажуємо дані користувача
+            await LoadUserData();
+
             base.OnInitialized();
+        }
+
+        // === Завантаження даних користувача ===
+        private async Task LoadUserData()
+        {
+            try
+            {
+                currentUser = await UserService.GetCurrentUserAsync();
+                if (currentUser != null)
+                {
+                    username = currentUser.FullName ?? $"{currentUser.FirstName} {currentUser.LastName}".Trim();
+                    useremail = currentUser.Email ?? "user@example.com";
+
+                    // Якщо ім'я порожнє, використовуємо email
+                    if (string.IsNullOrWhiteSpace(username))
+                    {
+                        username = currentUser.Email ?? "Користувач";
+                    }
+
+                    StateHasChanged();
+                }
+            }
+            catch (Exception ex)
+            {
+                // Логуємо помилку, але не блокуємо UI
+                Console.WriteLine($"Error loading user data: {ex.Message}");
+            }
+        }
+
+        // === Обробка зміни користувача ===
+        private void HandleUserChanged(UserInfo? user)
+        {
+            currentUser = user;
+            if (user != null)
+            {
+                username = user.FullName ?? $"{user.FirstName} {user.LastName}".Trim();
+                useremail = user.Email ?? "user@example.com";
+
+                if (string.IsNullOrWhiteSpace(username))
+                {
+                    username = user.Email ?? "Користувач";
+                }
+            }
+            else
+            {
+                username = "Користувач";
+                useremail = "user@example.com";
+            }
+
+            InvokeAsync(StateHasChanged);
         }
 
         // === Обробка оновлення стану ===
@@ -69,7 +128,7 @@ namespace CLTI.Diagnosis.Client.Shared
         // === Перехід до налаштувань ===
         public void NavigateToSettings()
         {
-            NavigationManager.NavigateTo("/settings");
+            NavigationManager.NavigateTo("/Pages/UserSettings");
             showUserMenu = false;
         }
 
@@ -84,6 +143,7 @@ namespace CLTI.Diagnosis.Client.Shared
         public void Dispose()
         {
             StateService.OnChange -= HandleStateChange;
+            UserService.OnUserChanged -= HandleUserChanged;
         }
     }
 }

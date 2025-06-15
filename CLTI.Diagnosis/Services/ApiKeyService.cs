@@ -27,7 +27,7 @@ namespace CLTI.Diagnosis.Services
             try
             {
                 // Перевіряємо кеш
-                if (!string.IsNullOrEmpty(_cachedApiKey) &&
+                if (!string.IsNullOrEmpty(_cachedApiKey) && 
                     DateTime.UtcNow - _lastCacheTime < _cacheExpiry)
                 {
                     return _cachedApiKey;
@@ -45,13 +45,13 @@ namespace CLTI.Diagnosis.Services
                     {
                         _cachedApiKey = apiKeyEntity.ApiKey;
                         _lastCacheTime = DateTime.UtcNow;
-
+                        
                         _logger.LogInformation("OpenAI API key loaded from database successfully");
                         return _cachedApiKey;
                     }
                     else
                     {
-                        _logger.LogWarning("OpenAI API key found but expired. Expires at: {ExpiresAt}",
+                        _logger.LogWarning("OpenAI API key found but expired. Expires at: {ExpiresAt}", 
                             apiKeyEntity.ExpiresAt);
                     }
                 }

@@ -10,13 +10,13 @@ namespace CLTI.Diagnosis.Controllers
     public class AiChatController : ControllerBase
     {
         private readonly IHttpClientFactory _httpClientFactory;
-        private readonly IApiKeyService _apiKeyService;
+        private readonly ApiKeyService _apiKeyService;
         private readonly ILogger<AiChatController> _logger;
         private readonly JsonSerializerOptions _jsonOptions;
 
         public AiChatController(
             IHttpClientFactory httpClientFactory,
-            IApiKeyService apiKeyService,
+            ApiKeyService apiKeyService,
             ILogger<AiChatController> logger)
         {
             _httpClientFactory = httpClientFactory;

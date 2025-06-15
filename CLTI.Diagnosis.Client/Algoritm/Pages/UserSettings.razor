@@ -3,8 +3,11 @@
 
 @using CLTI.Diagnosis.Client.Components
 @using CLTI.Diagnosis.Client.Shared
+@using CLTI.Diagnosis.Client.Services
 
 @inject IJSRuntime JS
+@inject NavigationManager NavigationManager
+@inject IUserClientService UserService
 
 <div class="page-container">
     <NavMenuHome />
@@ -12,36 +15,98 @@
     <div class="main-content">
         <!-- Title -->
         <div class="title">Налаштування профілю</div>
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <Message Text="@successMessage" State="success" Theme="light" />
+        }
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <Message Text="@errorMessage" State="error" Theme="light" />
+        }
+
         <div class="frame-parent">
             <!-- User Info Fields -->
             <div class="parent">
-                <div class="e-mail">Ім’я користувача</div>
-                <TextInput Placeholder="Приклад імені" Theme="light" State="default" />
+                <div class="e-mail">Ім'я користувача</div>
+                <TextInput @bind-Value="firstName" Placeholder="Приклад імені" Theme="light" State="default" />
             </div>
 
             <div class="parent">
                 <div class="e-mail">Прізвище користувача</div>
-                <TextInput Placeholder="Приклад прізвища" Theme="light" State="default" />
+                <TextInput @bind-Value="lastName" Placeholder="Приклад прізвища" Theme="light" State="default" />
             </div>
 
             <div class="parent">
                 <div class="e-mail">E-mail користувача</div>
-                <TextInput Placeholder="user@example.com" Theme="light" State="default" />
+                <TextInput @bind-Value="email" Placeholder="user@example.com" Theme="light" State="default" />
             </div>
 
-            <div class="parent">
-                <div class="e-mail">Пароль користувача</div>
-                <TextInput Placeholder="••••••••••••••••••"
-                           Theme="light"
-                           State="default"
-                           Type="password" />
-
-            </div>
-
-            <!-- Action Buttons -->
+            <!-- Update Profile Button -->
             <div class="button-group">
-                <Button Label="Змінити пароль" Variant="active" />
-                <Button Label="Видалити користувача" Variant="active" Color="#ff3b6b" />
+                <Button Label="@(isUpdating ? "Збереження..." : "Зберегти зміни")"
+                        Variant="@(isUpdating ? "disabled" : "active")"
+                        OnClick="UpdateProfile"
+                        Disabled="@isUpdating" />
+            </div>
+
+            <!-- Password Change Section -->
+            <div class="password-section">
+                <div class="parent">
+                    <div class="e-mail">Старий пароль</div>
+                    <TextInput @bind-Value="oldPassword"
+                               Placeholder="Введіть старий пароль"
+                               Theme="light"
+                               State="default"
+                               Type="password" />
+                </div>
+
+                <div class="parent">
+                    <div class="e-mail">Новий пароль</div>
+                    <TextInput @bind-Value="newPassword"
+                               Placeholder="Введіть новий пароль"
+                               Theme="light"
+                               State="default"
+                               Type="password" />
+                </div>
+
+                <div class="parent">
+                    <div class="e-mail">Підтвердіть новий пароль</div>
+                    <TextInput @bind-Value="confirmPassword"
+                               Placeholder="Підтвердіть новий пароль"
+                               Theme="light"
+                               State="default"
+                               Type="password" />
+                </div>
+
+                <div class="button-group">
+                    <Button Label="@(isChangingPassword ? "Змінюємо..." : "Змінити пароль")"
+                            Variant="@(isChangingPassword ? "disabled" : "active")"
+                            OnClick="ChangePassword"
+                            Disabled="@isChangingPassword" />
+                </div>
+            </div>
+
+            <!-- Danger Zone -->
+            <div class="danger-zone">
+                <div class="danger-title">Небезпечна зона</div>
+                <div class="parent">
+                    <div class="e-mail">Підтвердіть пароль для видалення</div>
+                    <TextInput @bind-Value="deletePassword"
+                               Placeholder="Введіть пароль для підтвердження"
+                               Theme="light"
+                               State="default"
+                               Type="password" />
+                </div>
+
+                <div class="button-group">
+                    <Button Label="@(isDeleting ? "Видаляємо..." : "Видалити користувача")"
+                            Variant="@(isDeleting ? "disabled" : "active")"
+                            Color="#ff3b6b"
+                            OnClick="DeleteUser"
+                            Disabled="@isDeleting" />
+                </div>
             </div>
 
             <!-- Back Button -->

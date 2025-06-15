@@ -7,10 +7,10 @@ namespace CLTI.Diagnosis.Controllers
     [Route("api/[controller]")]
     public class ApiKeyController : ControllerBase
     {
-        private readonly IApiKeyService _apiKeyService;
+        private readonly ApiKeyService _apiKeyService;
         private readonly ILogger<ApiKeyController> _logger;
 
-        public ApiKeyController(IApiKeyService apiKeyService, ILogger<ApiKeyController> logger)
+        public ApiKeyController(ApiKeyService apiKeyService, ILogger<ApiKeyController> logger)
         {
             _apiKeyService = apiKeyService;
             _logger = logger;
