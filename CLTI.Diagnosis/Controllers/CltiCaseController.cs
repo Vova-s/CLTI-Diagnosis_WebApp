@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using CLTI.Diagnosis.Services;
 using CLTI.Diagnosis.Client.Algoritm.Services;
 
@@ -17,6 +18,7 @@ namespace CLTI.Diagnosis.Controllers
 
 
         [HttpPost("save")]
+        [Authorize]
         public async Task<IActionResult> SaveCase([FromBody] StateServiceDto stateData)
         {
             try
@@ -51,6 +53,7 @@ namespace CLTI.Diagnosis.Controllers
 
 
         [HttpPut("{caseId}")]
+        [Authorize]
         public async Task<IActionResult> UpdateCase(int caseId, [FromBody] StateServiceDto stateData)
         {
             try
@@ -67,6 +70,7 @@ namespace CLTI.Diagnosis.Controllers
 
 
         [HttpDelete("{caseId}")]
+        [Authorize]
         public async Task<IActionResult> DeleteCase(int caseId)
         {
             try

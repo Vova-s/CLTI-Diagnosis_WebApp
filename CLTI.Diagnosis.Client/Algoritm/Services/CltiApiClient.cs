@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Json;
 using System.Text.Json;
+using System.Net;
 
 namespace CLTI.Diagnosis.Client.Services
 {
@@ -32,6 +33,14 @@ namespace CLTI.Diagnosis.Client.Services
                         Success = true,
                         Data = result,
                         Message = "Дані успішно збережено"
+                    };
+                }
+                else if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    return new ApiResponse<SaveCaseResponse>
+                    {
+                        Success = false,
+                        Error = "Помилка авторизації"
                     };
                 }
                 else
@@ -70,7 +79,15 @@ namespace CLTI.Diagnosis.Client.Services
                         Message = "Дані успішно отримано"
                     };
                 }
-                else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                else if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    return new ApiResponse<StateServiceDto>
+                    {
+                        Success = false,
+                        Error = "Помилка авторизації"
+                    };
+                }
+                else if (response.StatusCode == HttpStatusCode.NotFound)
                 {
                     return new ApiResponse<StateServiceDto>
                     {
@@ -114,6 +131,14 @@ namespace CLTI.Diagnosis.Client.Services
                         Message = "Дані успішно оновлено"
                     };
                 }
+                else if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    return new ApiResponse<SaveCaseResponse>
+                    {
+                        Success = false,
+                        Error = "Помилка авторизації"
+                    };
+                }
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
@@ -149,7 +174,15 @@ namespace CLTI.Diagnosis.Client.Services
                         Message = "Case успішно видалено"
                     };
                 }
-                else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                else if (response.StatusCode == HttpStatusCode.Unauthorized)
+                {
+                    return new ApiResponse<bool>
+                    {
+                        Success = false,
+                        Error = "Помилка авторизації"
+                    };
+                }
+                else if (response.StatusCode == HttpStatusCode.NotFound)
                 {
                     return new ApiResponse<bool>
                     {
