@@ -1,8 +1,9 @@
 ﻿using CLTI.Diagnosis.Components;
 using CLTI.Diagnosis.Components.Account;
 using CLTI.Diagnosis.Client.Algoritm.Services;
-using CLTI.Diagnosis.Client.Services;  // Add this for CltiCaseService
+using CLTI.Diagnosis.Client.Services;
 using CLTI.Diagnosis.Data;
+using CLTI.Diagnosis.Services;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -15,46 +16,84 @@ builder.Services.AddRazorComponents()
     .AddInteractiveWebAssemblyComponents()
     .AddAuthenticationStateSerialization();
 
-// Dodajeme API kontrolery
+// API controllers
 builder.Services.AddControllers();
 
+// Identity and auth
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-// Client services for both Server and WebAssembly modes
+// DB context (додаємо раніше інших сервісів)
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(connectionString));
+builder.Services.AddDatabaseDeveloperPageExceptionFilter();
+
+// API Key service для читання з БД
+builder.Services.AddScoped<IApiKeyService, ApiKeyService>();
+
+// Shared client services
 builder.Services.AddSingleton<StateService>();
 builder.Services.AddScoped<CLTI.Diagnosis.Services.CltiCaseService>();
 
-// Add HTTP client and client-side services for Server mode
-builder.Services.AddScoped<HttpClient>(sp =>
-{
-    var httpContextAccessor = sp.GetService<IHttpContextAccessor>();
-    var httpContext = httpContextAccessor?.HttpContext;
+// HttpContextAccessor (required for dynamic base URLs)
+builder.Services.AddHttpContextAccessor();
 
-    var client = new HttpClient();
+// Register named HttpClients
+builder.Services.AddHttpClient("Default", (sp, client) =>
+{
+    var httpContext = sp.GetRequiredService<IHttpContextAccessor>().HttpContext;
     if (httpContext != null)
     {
         var request = httpContext.Request;
-        var baseUri = $"{request.Scheme}://{request.Host}";
-        client.BaseAddress = new Uri(baseUri);
+        client.BaseAddress = new Uri($"{request.Scheme}://{request.Host}");
     }
     else
     {
-        // Fallback for development
         client.BaseAddress = new Uri("https://localhost:7124");
     }
-    return client;
+    client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis");
 });
 
-builder.Services.AddScoped<CltiApiClient>();
+builder.Services.AddHttpClient("OpenAI", client =>
+{
+    client.BaseAddress = new Uri("https://api.openai.com/");
+    client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis/1.0");
+    client.Timeout = TimeSpan.FromSeconds(30); // Таймаут 30 секунд
+});
+
+// Register default HttpClient for server-side components
+builder.Services.AddScoped(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    return factory.CreateClient("Default");
+});
+
+// Register CltiApiClient with proper HttpClient
+builder.Services.AddScoped<CltiApiClient>(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = factory.CreateClient("Default");
+    return new CltiApiClient(httpClient);
+});
+
+// Register client-side CltiCaseService
 builder.Services.AddScoped<CLTI.Diagnosis.Client.Services.CltiCaseService>();
 
-// Add HttpContextAccessor for the HttpClient factory above
-builder.Services.AddHttpContextAccessor();
+// Register AI Chat service з використанням API ключа з БД
+builder.Services.AddScoped<AiChatClient>(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    var client = factory.CreateClient("OpenAI");
+    var apiKeyService = sp.GetRequiredService<IApiKeyService>();
+    var logger = sp.GetRequiredService<ILogger<AiChatClient>>();
+    return new AiChatClient(client, apiKeyService, logger);
+});
 
-// Dodajeme CORS pre klientsku cast
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazorClient", policy =>
@@ -66,19 +105,15 @@ builder.Services.AddCors(options =>
     });
 });
 
+// Authentication setup
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = IdentityConstants.ApplicationScheme;
     options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
 })
-    .AddIdentityCookies();
+.AddIdentityCookies();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ??
-    throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
-builder.Services.AddDatabaseDeveloperPageExceptionFilter();
-
+// Identity setup
 builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
@@ -88,7 +123,7 @@ builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSe
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Middleware pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -110,18 +145,13 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(CLTI.Diagnosis.Client._Imports).Assembly);
 
-// Mapujeme API kontrolery
 app.MapControllers();
-
-// Add additional endpoints required by the Identity /Account Razor components.
 app.MapAdditionalIdentityEndpoints();
 
-// Add fallback route for handling 404s - this should be LAST
+// Fallback route
 app.MapFallback(async context =>
 {
     var path = context.Request.Path.Value ?? "/";
-
-    // Don't handle API calls, static files, etc.
     if (path.StartsWith("/api") ||
         path.StartsWith("/_framework") ||
         path.StartsWith("/css") ||
@@ -134,7 +164,6 @@ app.MapFallback(async context =>
         return;
     }
 
-    // Redirect to error page with path information
     context.Response.Redirect($"/Error?path={Uri.EscapeDataString(path)}&type=404");
 });
 

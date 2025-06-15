@@ -8,23 +8,36 @@
     <NavMenuHome />
     <div class="frame-parent">
         <div class="frame-parent-message">
-            <AI_Message Text="Привіт" Role="user" />
-            <AI_Message Text="Привіт! Як я сьогодні можу тобі допомогти?" Role="ai" />
-            <AI_Message Text="Що таке Wifi?" Role="user" />
-            <AI_Message Text="WIfI (Wound, Ischemia, and foot Infection) — це клінічна класифікаційна система, яка використовується судинними хірургами для оцінки ризику ампутації кінцівки та потреби в реваскуляризації у пацієнтів із хронічною критичною ішемією кінцівок (CLTI)." Role="ai" />
+            @foreach (var message in Messages)
+            {
+                <AI_Message Text="@message.Text" Role="@message.Role" />
+            }
+
         </div>
+
         <div class="message-input-wrapper">
-            <input class="message-input" placeholder="Type message" @bind="MessageText" @bind:event="oninput" @onkeydown="OnKeyDown" />
-            <button class="send-button" @onclick="SendMessage">
-                <!-- Тут твоя іконка -->
-                <img class="frame-icon" alt="Send Icon" src="Photo/SendIcon.svg" />
+            <input class="message-input"
+                   placeholder="Напишіть ваше запитання про CLTI діагностику..."
+                   @bind="MessageText"
+                   @bind:event="oninput"
+                   @onkeydown="OnKeyDown"
+                   disabled="@IsLoading" />
+            <button class="send-button"
+                    @onclick="SendMessage"
+                    disabled="@(IsLoading || string.IsNullOrWhiteSpace(MessageText))">
+                @if (IsLoading)
+                {
+                    <div class="loading-spinner-button"></div>
+                }
+                else
+                {
+                    <img class="frame-icon" alt="Send Icon" src="Photo/SendIcon.svg" />
+                }
             </button>
         </div>
-
-        @if (!string.IsNullOrWhiteSpace(LastSentMessage))
-        {
-            <AI_Message Text="@LastSentMessage" Role="user" />
-        }
-   </div>
-
+    </div>
 </div>
+
+<style>
+
+</style>

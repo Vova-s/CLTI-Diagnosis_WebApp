@@ -16,4 +16,8 @@ builder.Services.AddScoped<CltiApiClient>();
 // Додаємо клієнтський сервіс для роботи з CLTI cases
 builder.Services.AddScoped<CltiCaseService>();
 
+// *** НОВИЙ КОД: Додаємо клієнтські AI сервіси ***
+builder.Services.AddScoped<IClientApiKeyService, ClientApiKeyService>();
+builder.Services.AddScoped<AiChatClient>();
+
 await builder.Build().RunAsync();
