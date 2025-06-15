@@ -36,31 +36,104 @@ namespace CLTI.Diagnosis.Client.Services
             try
             {
                 _logger.LogInformation("Attempting to get current user from API");
+                _logger.LogInformation("HttpClient BaseAddress: {BaseAddress}", _httpClient.BaseAddress);
+
+                // ✅ ЛОГУВАННЯ ЗАГОЛОВКІВ ЗАПИТУ
+                var headers = _httpClient.DefaultRequestHeaders.ToList();
+                foreach (var header in headers)
+                {
+                    if (header.Key.Contains("Cookie") || header.Key.Contains("Auth") || header.Key.Contains("User"))
+                    {
+                        _logger.LogInformation("Request Header: {Key} = {Value}",
+                            header.Key, string.Join("; ", header.Value));
+                    }
+                }
 
                 var response = await _httpClient.GetAsync("/api/user/current");
 
                 _logger.LogInformation("API response status: {StatusCode}", response.StatusCode);
 
+                // ✅ ЛОГУВАННЯ ЗАГОЛОВКІВ ВІДПОВІДІ
+                if (response.Headers.Any())
+                {
+                    foreach (var header in response.Headers)
+                    {
+                        _logger.LogInformation("Response Header: {Key} = {Value}",
+                            header.Key, string.Join("; ", header.Value));
+                    }
+                }
+
                 if (response.IsSuccessStatusCode)
                 {
-                    var userInfo = await response.Content.ReadFromJsonAsync<UserInfo>(_jsonOptions);
-                    _logger.LogInformation("Successfully retrieved user info for: {Email}", userInfo?.Email);
-                    OnUserChanged?.Invoke(userInfo);
-                    return userInfo;
+                    var responseContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogInformation("Raw response content: {Content}", responseContent);
+
+                    var userInfo = JsonSerializer.Deserialize<UserInfo>(responseContent, _jsonOptions);
+
+                    if (userInfo != null)
+                    {
+                        _logger.LogInformation("Successfully retrieved user info for: {Email} (ID: {Id})",
+                            userInfo.Email, userInfo.Id);
+                        OnUserChanged?.Invoke(userInfo);
+                        return userInfo;
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Failed to deserialize user info from response");
+                    }
                 }
                 else
                 {
                     var errorContent = await response.Content.ReadAsStringAsync();
                     _logger.LogWarning("Failed to get current user: {StatusCode}, Content: {ErrorContent}",
                         response.StatusCode, errorContent);
+
+                    // ✅ ЯКЩО 401, СПРОБУЄМО ОТРИМАТИ ДОДАТКОВУ ІНФОРМАЦІЮ
+                    if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+                    {
+                        _logger.LogWarning("User is not authenticated. Attempting auth test...");
+                        await TestAuthenticationAsync();
+                    }
                 }
 
                 return null;
             }
+            catch (HttpRequestException ex)
+            {
+                _logger.LogError(ex, "Network error while getting current user");
+                return null;
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "Timeout while getting current user");
+                return null;
+            }
+            catch (JsonException ex)
+            {
+                _logger.LogError(ex, "JSON parsing error while getting current user");
+                return null;
+            }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting current user");
+                _logger.LogError(ex, "Unexpected error getting current user");
                 return null;
+            }
+        }
+
+        // ✅ ДОДАЄМО МЕТОД ДЛЯ ТЕСТУВАННЯ АВТЕНТИФІКАЦІЇ
+        private async Task TestAuthenticationAsync()
+        {
+            try
+            {
+                var response = await _httpClient.GetAsync("/api/user/auth-test");
+                var content = await response.Content.ReadAsStringAsync();
+
+                _logger.LogInformation("Auth test result: Status={StatusCode}, Content={Content}",
+                    response.StatusCode, content);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during auth test");
             }
         }
 
@@ -75,16 +148,21 @@ namespace CLTI.Diagnosis.Client.Services
                     email = email
                 };
 
+                _logger.LogInformation("Attempting to update user: {Email}", email);
+
                 var response = await _httpClient.PutAsJsonAsync("/api/user/update", request, _jsonOptions);
 
                 if (response.IsSuccessStatusCode)
                 {
+                    _logger.LogInformation("User update successful");
                     // Оновлюємо кешовані дані користувача
                     await GetCurrentUserAsync();
                     return true;
                 }
 
-                _logger.LogWarning("Failed to update user: {StatusCode}", response.StatusCode);
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Failed to update user: {StatusCode}, Content: {ErrorContent}",
+                    response.StatusCode, errorContent);
                 return false;
             }
             catch (Exception ex)
@@ -104,6 +182,8 @@ namespace CLTI.Diagnosis.Client.Services
                     newPassword = newPassword
                 };
 
+                _logger.LogInformation("Attempting to change password");
+
                 var response = await _httpClient.PostAsJsonAsync("/api/user/change-password", request, _jsonOptions);
 
                 if (response.IsSuccessStatusCode)
@@ -112,7 +192,9 @@ namespace CLTI.Diagnosis.Client.Services
                     return true;
                 }
 
-                _logger.LogWarning("Failed to change password: {StatusCode}", response.StatusCode);
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Failed to change password: {StatusCode}, Content: {ErrorContent}",
+                    response.StatusCode, errorContent);
                 return false;
             }
             catch (Exception ex)
@@ -126,6 +208,8 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
+                _logger.LogInformation("Attempting to delete user");
+
                 var response = await _httpClient.DeleteAsync("/api/user/delete");
 
                 if (response.IsSuccessStatusCode)
@@ -135,7 +219,9 @@ namespace CLTI.Diagnosis.Client.Services
                     return true;
                 }
 
-                _logger.LogWarning("Failed to delete user: {StatusCode}", response.StatusCode);
+                var errorContent = await response.Content.ReadAsStringAsync();
+                _logger.LogWarning("Failed to delete user: {StatusCode}, Content: {ErrorContent}",
+                    response.StatusCode, errorContent);
                 return false;
             }
             catch (Exception ex)

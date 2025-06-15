@@ -29,41 +29,67 @@ namespace CLTI.Diagnosis.Controllers
                 _logger.LogInformation("GetCurrentUser called from {RemoteIp}",
                     HttpContext.Connection.RemoteIpAddress);
 
-                // ✅ ДЕТАЛЬНЕ ЛОГУВАННЯ АВТЕНТИФІКАЦІЇ
-                _logger.LogInformation("User.Identity.IsAuthenticated: {IsAuthenticated}",
-                    User.Identity?.IsAuthenticated);
-                _logger.LogInformation("User.Identity.Name: {Name}",
-                    User.Identity?.Name);
-                _logger.LogInformation("User.Identity.AuthenticationType: {AuthType}",
-                    User.Identity?.AuthenticationType);
-
-                // ✅ ЛОГУВАННЯ ВСІХ CLAIMS
-                foreach (var claim in User.Claims)
-                {
-                    _logger.LogInformation("Claim: {Type} = {Value}", claim.Type, claim.Value);
-                }
+                // ✅ ДЕТАЛЬНЕ ЛОГУВАННЯ
+                _logger.LogInformation("Request details: Path={Path}, Method={Method}, " +
+                                     "IsAuthenticated={IsAuth}, AuthType={AuthType}, " +
+                                     "UserName={UserName}, CookieCount={CookieCount}",
+                    HttpContext.Request.Path,
+                    HttpContext.Request.Method,
+                    User.Identity?.IsAuthenticated ?? false,
+                    User.Identity?.AuthenticationType,
+                    User.Identity?.Name,
+                    HttpContext.Request.Cookies.Count);
 
                 // ✅ ЛОГУВАННЯ COOKIES
-                foreach (var cookie in Request.Cookies)
+                foreach (var cookie in HttpContext.Request.Cookies)
                 {
-                    _logger.LogInformation("Cookie: {Name} = {Value}",
-                        cookie.Key, cookie.Value?.Substring(0, Math.Min(20, cookie.Value.Length)) + "...");
+                    if (cookie.Key.Contains("Identity") || cookie.Key.Contains("Auth"))
+                    {
+                        _logger.LogInformation("Auth Cookie: {Name} = {Value}",
+                            cookie.Key,
+                            cookie.Value?.Substring(0, Math.Min(20, cookie.Value.Length)) + "...");
+                    }
                 }
 
-                // ✅ ЛОГУВАННЯ HEADERS
-                _logger.LogInformation("Authorization Header: {Auth}",
-                    Request.Headers.Authorization.ToString());
-                _logger.LogInformation("X-User-Id Header: {UserId}",
-                    Request.Headers["X-User-Id"].ToString());
+                // ✅ ЛОГУВАННЯ CLAIMS
+                if (User.Claims.Any())
+                {
+                    foreach (var claim in User.Claims)
+                    {
+                        _logger.LogInformation("Claim: {Type} = {Value}", claim.Type, claim.Value);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("No claims found for user");
+                }
 
+                // ✅ ПЕРЕВІРКА АВТЕНТИФІКАЦІЇ
                 if (!User.Identity?.IsAuthenticated ?? true)
                 {
-                    _logger.LogWarning("User not authenticated - Identity.IsAuthenticated = false");
-                    return Unauthorized(new { error = "User not authenticated" });
+                    _logger.LogWarning("User not authenticated. Identity: {Identity}, " +
+                                     "IsAuthenticated: {IsAuth}, AuthType: {AuthType}",
+                        User.Identity,
+                        User.Identity?.IsAuthenticated,
+                        User.Identity?.AuthenticationType);
+
+                    return Unauthorized(new
+                    {
+                        error = "User not authenticated",
+                        details = new
+                        {
+                            hasIdentity = User.Identity != null,
+                            isAuthenticated = User.Identity?.IsAuthenticated ?? false,
+                            authenticationType = User.Identity?.AuthenticationType,
+                            claimsCount = User.Claims.Count(),
+                            cookiesCount = HttpContext.Request.Cookies.Count
+                        }
+                    });
                 }
 
+                // ✅ ОТРИМАННЯ USER ID З CLAIMS
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                _logger.LogInformation("UserIdClaim: {UserIdClaim}", userIdClaim);
+                _logger.LogInformation("NameIdentifier claim: {UserIdClaim}", userIdClaim);
 
                 if (string.IsNullOrEmpty(userIdClaim))
                 {
@@ -72,7 +98,8 @@ namespace CLTI.Diagnosis.Controllers
                     // ✅ СПРОБУЄМО АЛЬТЕРНАТИВНІ CLAIM TYPES
                     var altUserId = User.FindFirst("sub")?.Value ??
                                    User.FindFirst("id")?.Value ??
-                                   User.FindFirst("userId")?.Value;
+                                   User.FindFirst("userId")?.Value ??
+                                   User.FindFirst("user_id")?.Value;
 
                     if (!string.IsNullOrEmpty(altUserId))
                     {
@@ -81,24 +108,33 @@ namespace CLTI.Diagnosis.Controllers
                     }
                     else
                     {
-                        return Unauthorized(new { error = "User ID claim not found" });
+                        _logger.LogError("No user ID claim found. Available claims: {Claims}",
+                            string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}")));
+
+                        return Unauthorized(new
+                        {
+                            error = "User ID claim not found",
+                            availableClaims = User.Claims.Select(c => new { c.Type, c.Value }).ToList()
+                        });
                     }
                 }
 
                 if (!int.TryParse(userIdClaim, out var userId))
                 {
                     _logger.LogWarning("Cannot parse user ID: {UserIdClaim}", userIdClaim);
-                    return Unauthorized(new { error = "Invalid user ID format" });
+                    return Unauthorized(new { error = "Invalid user ID format", userIdClaim });
                 }
 
+                // ✅ ОТРИМАННЯ КОРИСТУВАЧА З БД
                 var user = await _userService.GetCurrentUserAsync(userId);
                 if (user == null)
                 {
                     _logger.LogWarning("User {UserId} not found in database", userId);
-                    return NotFound(new { error = "User not found" });
+                    return NotFound(new { error = "User not found", userId });
                 }
 
-                _logger.LogInformation("Successfully retrieved user: {Email}", user.Email);
+                _logger.LogInformation("Successfully retrieved user: {Email} (ID: {UserId})",
+                    user.Email, user.Id);
 
                 return Ok(new
                 {
@@ -112,7 +148,12 @@ namespace CLTI.Diagnosis.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting current user");
-                return StatusCode(500, new { error = "Internal server error", details = ex.Message });
+                return StatusCode(500, new
+                {
+                    error = "Internal server error",
+                    details = ex.Message,
+                    type = ex.GetType().Name
+                });
             }
         }
 
@@ -128,11 +169,17 @@ namespace CLTI.Diagnosis.Controllers
                     AuthenticationType = User.Identity?.AuthenticationType,
                     Name = User.Identity?.Name,
                     Claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList(),
-                    Cookies = Request.Cookies.ToDictionary(c => c.Key, c => c.Value?.Length > 20 ? c.Value.Substring(0, 20) + "..." : c.Value),
-                    Headers = Request.Headers.Where(h => h.Key.Contains("Auth") || h.Key.Contains("Cookie") || h.Key.Contains("User"))
-                                           .ToDictionary(h => h.Key, h => h.Value.ToString()),
-                    RequestPath = Request.Path.Value,
-                    Method = Request.Method,
+                    AuthCookies = HttpContext.Request.Cookies
+                        .Where(c => c.Key.Contains("Identity") || c.Key.Contains("Auth") || c.Key.Contains("Cookie"))
+                        .ToDictionary(c => c.Key, c => c.Value?.Length > 20 ? c.Value.Substring(0, 20) + "..." : c.Value),
+                    AllCookies = HttpContext.Request.Cookies.Count,
+                    Headers = HttpContext.Request.Headers
+                        .Where(h => h.Key.Contains("Auth") || h.Key.Contains("Cookie") || h.Key.Contains("User"))
+                        .ToDictionary(h => h.Key, h => h.Value.ToString()),
+                    RequestPath = HttpContext.Request.Path.Value,
+                    Method = HttpContext.Request.Method,
+                    UserAgent = HttpContext.Request.Headers.UserAgent.ToString(),
+                    RemoteIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
                     Timestamp = DateTime.UtcNow
                 };
 
@@ -147,14 +194,20 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpPut("update")]
+        [Authorize] // ✅ Додаємо Authorize атрибут
         public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request)
         {
             try
             {
+                if (!User.Identity?.IsAuthenticated ?? true)
+                {
+                    return Unauthorized(new { error = "User not authenticated" });
+                }
+
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
-                    return Unauthorized(new { error = "User not authenticated" });
+                    return Unauthorized(new { error = "User ID not found" });
                 }
 
                 var updateDto = new UpdateUserDto
@@ -170,6 +223,7 @@ namespace CLTI.Diagnosis.Controllers
                     return BadRequest(new { error = "Failed to update user. Email might be already taken." });
                 }
 
+                _logger.LogInformation("User {UserId} updated successfully", userId);
                 return Ok(new { message = "User updated successfully" });
             }
             catch (Exception ex)
@@ -180,14 +234,20 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpPost("change-password")]
+        [Authorize] // ✅ Додаємо Authorize атрибут
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {
             try
             {
+                if (!User.Identity?.IsAuthenticated ?? true)
+                {
+                    return Unauthorized(new { error = "User not authenticated" });
+                }
+
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
-                    return Unauthorized(new { error = "User not authenticated" });
+                    return Unauthorized(new { error = "User ID not found" });
                 }
 
                 var success = await _userService.ChangePasswordAsync(userId, request.OldPassword, request.NewPassword);
@@ -196,6 +256,7 @@ namespace CLTI.Diagnosis.Controllers
                     return BadRequest(new { error = "Failed to change password. Old password might be incorrect." });
                 }
 
+                _logger.LogInformation("Password changed successfully for user {UserId}", userId);
                 return Ok(new { message = "Password changed successfully" });
             }
             catch (Exception ex)
@@ -206,14 +267,20 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpDelete("delete")]
+        [Authorize] // ✅ Додаємо Authorize атрибут
         public async Task<IActionResult> DeleteUser()
         {
             try
             {
+                if (!User.Identity?.IsAuthenticated ?? true)
+                {
+                    return Unauthorized(new { error = "User not authenticated" });
+                }
+
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
-                    return Unauthorized(new { error = "User not authenticated" });
+                    return Unauthorized(new { error = "User ID not found" });
                 }
 
                 var success = await _userService.DeleteUserAsync(userId);
@@ -223,6 +290,7 @@ namespace CLTI.Diagnosis.Controllers
                 }
 
                 await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+                _logger.LogInformation("User {UserId} deleted successfully", userId);
 
                 return Ok(new { message = "User deleted successfully" });
             }
