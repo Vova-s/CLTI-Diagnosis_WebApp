@@ -2,6 +2,7 @@
 using CLTI.Diagnosis.Client.Services;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using Microsoft.AspNetCore.Components.WebAssembly.Http;
+using System.Net.Http;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
 
