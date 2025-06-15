@@ -36,6 +36,9 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 // API Key service для читання з БД
 builder.Services.AddScoped<ApiKeyService, ApiKeyService>();
 
+// *** ДОДАЄМО AUTHENTICATED HTTP CLIENT SERVICE ***
+builder.Services.AddScoped<IAuthenticatedHttpClientService, AuthenticatedHttpClientService>();
+
 // Shared client services
 builder.Services.AddSingleton<StateService>();
 builder.Services.AddScoped<IUserService, UserService>();
@@ -44,7 +47,7 @@ builder.Services.AddScoped<CLTI.Diagnosis.Services.CltiCaseService>();
 // HttpContextAccessor (required for dynamic base URLs)
 builder.Services.AddHttpContextAccessor();
 
-// Register named HttpClients
+// Register named HttpClients with cookie support
 builder.Services.AddHttpClient("Default", (sp, client) =>
 {
     var httpContext = sp.GetRequiredService<IHttpContextAccessor>().HttpContext;
@@ -52,12 +55,22 @@ builder.Services.AddHttpClient("Default", (sp, client) =>
     {
         var request = httpContext.Request;
         client.BaseAddress = new Uri($"{request.Scheme}://{request.Host}");
+
+        // Передаємо cookies для автентифікації
+        var cookieHeader = request.Headers.Cookie.ToString();
+        if (!string.IsNullOrEmpty(cookieHeader))
+        {
+            client.DefaultRequestHeaders.Add("Cookie", cookieHeader);
+        }
     }
     else
     {
         client.BaseAddress = new Uri("https://localhost:7124");
     }
     client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis");
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
+{
+    UseCookies = false // Вимикаємо автоматичне управління cookies
 });
 
 // HttpClient для OpenAI налаштований правильно
@@ -86,7 +99,8 @@ builder.Services.AddScoped<CltiApiClient>(sp =>
 // Register client-side CltiCaseService
 builder.Services.AddScoped<CLTI.Diagnosis.Client.Services.CltiCaseService>();
 
-// Register AI services з правильною конфігурацією
+// *** ДОДАЄМО КЛІЄНТСЬКІ СЕРВІСИ ДЛЯ СЕРВЕРНОЇ СТОРОНИ ***
+builder.Services.AddScoped<IUserClientService, UserClientService>();
 builder.Services.AddScoped<IClientApiKeyService, ClientApiKeyService>();
 
 // Register AiChatClient для клієнтських компонентів

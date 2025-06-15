@@ -35,16 +35,26 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
+                _logger.LogInformation("Attempting to get current user from API");
+
                 var response = await _httpClient.GetAsync("/api/user/current");
+
+                _logger.LogInformation("API response status: {StatusCode}", response.StatusCode);
 
                 if (response.IsSuccessStatusCode)
                 {
                     var userInfo = await response.Content.ReadFromJsonAsync<UserInfo>(_jsonOptions);
+                    _logger.LogInformation("Successfully retrieved user info for: {Email}", userInfo?.Email);
                     OnUserChanged?.Invoke(userInfo);
                     return userInfo;
                 }
+                else
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to get current user: {StatusCode}, Content: {ErrorContent}",
+                        response.StatusCode, errorContent);
+                }
 
-                _logger.LogWarning("Failed to get current user: {StatusCode}", response.StatusCode);
                 return null;
             }
             catch (Exception ex)

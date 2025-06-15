@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Authorization;
 
 namespace CLTI.Diagnosis.Controllers
 {
@@ -25,17 +26,33 @@ namespace CLTI.Diagnosis.Controllers
         {
             try
             {
+                _logger.LogInformation("GetCurrentUser called");
+                _logger.LogInformation("User.Identity.IsAuthenticated: {IsAuthenticated}", User.Identity?.IsAuthenticated);
+                _logger.LogInformation("User.Identity.Name: {Name}", User.Identity?.Name);
+
+                // Логуємо всі claims
+                foreach (var claim in User.Claims)
+                {
+                    _logger.LogInformation("Claim: {Type} = {Value}", claim.Type, claim.Value);
+                }
+
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                _logger.LogInformation("UserIdClaim: {UserIdClaim}", userIdClaim);
+
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
+                    _logger.LogWarning("User not authenticated or invalid user ID claim");
                     return Unauthorized(new { error = "User not authenticated" });
                 }
 
                 var user = await _userService.GetCurrentUserAsync(userId);
                 if (user == null)
                 {
+                    _logger.LogWarning("User {UserId} not found in database", userId);
                     return NotFound(new { error = "User not found" });
                 }
+
+                _logger.LogInformation("Successfully retrieved user: {Email}", user.Email);
 
                 return Ok(new
                 {
