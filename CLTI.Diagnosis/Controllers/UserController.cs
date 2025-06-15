@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿// ✅ UserController.cs - Використовуємо WebPolicy для cookies
+using Microsoft.AspNetCore.Mvc;
 using CLTI.Diagnosis.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -22,6 +23,7 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpGet("current")]
+        [Authorize(Policy = "WebPolicy")] // ✅ Використовуємо cookies для Blazor Server
         public async Task<IActionResult> GetCurrentUser()
         {
             try
@@ -29,103 +31,12 @@ namespace CLTI.Diagnosis.Controllers
                 _logger.LogInformation("GetCurrentUser called from {RemoteIp}",
                     HttpContext.Connection.RemoteIpAddress);
 
-                // ✅ ДЕТАЛЬНЕ ЛОГУВАННЯ
-                _logger.LogInformation("Request details: Path={Path}, Method={Method}, " +
-                                     "IsAuthenticated={IsAuth}, AuthType={AuthType}, " +
-                                     "UserName={UserName}, CookieCount={CookieCount}",
-                    HttpContext.Request.Path,
-                    HttpContext.Request.Method,
-                    User.Identity?.IsAuthenticated ?? false,
-                    User.Identity?.AuthenticationType,
-                    User.Identity?.Name,
-                    HttpContext.Request.Cookies.Count);
-
-                // ✅ ЛОГУВАННЯ COOKIES
-                foreach (var cookie in HttpContext.Request.Cookies)
-                {
-                    if (cookie.Key.Contains("Identity") || cookie.Key.Contains("Auth"))
-                    {
-                        _logger.LogInformation("Auth Cookie: {Name} = {Value}",
-                            cookie.Key,
-                            cookie.Value?.Substring(0, Math.Min(20, cookie.Value.Length)) + "...");
-                    }
-                }
-
-                // ✅ ЛОГУВАННЯ CLAIMS
-                if (User.Claims.Any())
-                {
-                    foreach (var claim in User.Claims)
-                    {
-                        _logger.LogInformation("Claim: {Type} = {Value}", claim.Type, claim.Value);
-                    }
-                }
-                else
-                {
-                    _logger.LogWarning("No claims found for user");
-                }
-
-                // ✅ ПЕРЕВІРКА АВТЕНТИФІКАЦІЇ
-                if (!User.Identity?.IsAuthenticated ?? true)
-                {
-                    _logger.LogWarning("User not authenticated. Identity: {Identity}, " +
-                                     "IsAuthenticated: {IsAuth}, AuthType: {AuthType}",
-                        User.Identity,
-                        User.Identity?.IsAuthenticated,
-                        User.Identity?.AuthenticationType);
-
-                    return Unauthorized(new
-                    {
-                        error = "User not authenticated",
-                        details = new
-                        {
-                            hasIdentity = User.Identity != null,
-                            isAuthenticated = User.Identity?.IsAuthenticated ?? false,
-                            authenticationType = User.Identity?.AuthenticationType,
-                            claimsCount = User.Claims.Count(),
-                            cookiesCount = HttpContext.Request.Cookies.Count
-                        }
-                    });
-                }
-
-                // ✅ ОТРИМАННЯ USER ID З CLAIMS
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                _logger.LogInformation("NameIdentifier claim: {UserIdClaim}", userIdClaim);
-
-                if (string.IsNullOrEmpty(userIdClaim))
+                if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
-                    _logger.LogWarning("NameIdentifier claim is null or empty");
-
-                    // ✅ СПРОБУЄМО АЛЬТЕРНАТИВНІ CLAIM TYPES
-                    var altUserId = User.FindFirst("sub")?.Value ??
-                                   User.FindFirst("id")?.Value ??
-                                   User.FindFirst("userId")?.Value ??
-                                   User.FindFirst("user_id")?.Value;
-
-                    if (!string.IsNullOrEmpty(altUserId))
-                    {
-                        _logger.LogInformation("Found alternative user ID: {AltUserId}", altUserId);
-                        userIdClaim = altUserId;
-                    }
-                    else
-                    {
-                        _logger.LogError("No user ID claim found. Available claims: {Claims}",
-                            string.Join(", ", User.Claims.Select(c => $"{c.Type}={c.Value}")));
-
-                        return Unauthorized(new
-                        {
-                            error = "User ID claim not found",
-                            availableClaims = User.Claims.Select(c => new { c.Type, c.Value }).ToList()
-                        });
-                    }
+                    return Unauthorized(new { error = "User ID not found" });
                 }
 
-                if (!int.TryParse(userIdClaim, out var userId))
-                {
-                    _logger.LogWarning("Cannot parse user ID: {UserIdClaim}", userIdClaim);
-                    return Unauthorized(new { error = "Invalid user ID format", userIdClaim });
-                }
-
-                // ✅ ОТРИМАННЯ КОРИСТУВАЧА З БД
                 var user = await _userService.GetCurrentUserAsync(userId);
                 if (user == null)
                 {
@@ -157,7 +68,6 @@ namespace CLTI.Diagnosis.Controllers
             }
         }
 
-        // ✅ ДОДАЄМО ЕНДПОІНТ ДЛЯ ТЕСТУВАННЯ АВТЕНТИФІКАЦІЇ
         [HttpGet("auth-test")]
         public IActionResult TestAuthentication()
         {
@@ -194,16 +104,11 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpPut("update")]
-        [Authorize] // ✅ Додаємо Authorize атрибут
+        [Authorize(Policy = "WebPolicy")] // ✅ Використовуємо cookies
         public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request)
         {
             try
             {
-                if (!User.Identity?.IsAuthenticated ?? true)
-                {
-                    return Unauthorized(new { error = "User not authenticated" });
-                }
-
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
@@ -234,16 +139,11 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpPost("change-password")]
-        [Authorize] // ✅ Додаємо Authorize атрибут
+        [Authorize(Policy = "WebPolicy")] // ✅ Використовуємо cookies
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {
             try
             {
-                if (!User.Identity?.IsAuthenticated ?? true)
-                {
-                    return Unauthorized(new { error = "User not authenticated" });
-                }
-
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
@@ -267,16 +167,11 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpDelete("delete")]
-        [Authorize] // ✅ Додаємо Authorize атрибут
+        [Authorize(Policy = "WebPolicy")] // ✅ Використовуємо cookies
         public async Task<IActionResult> DeleteUser()
         {
             try
             {
-                if (!User.Identity?.IsAuthenticated ?? true)
-                {
-                    return Unauthorized(new { error = "User not authenticated" });
-                }
-
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {

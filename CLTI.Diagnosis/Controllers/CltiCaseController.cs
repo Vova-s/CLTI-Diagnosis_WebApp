@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿// ✅ CltiCaseController.cs - Використовуємо HybridPolicy
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using CLTI.Diagnosis.Services;
 using CLTI.Diagnosis.Client.Algoritm.Services;
@@ -16,9 +17,8 @@ namespace CLTI.Diagnosis.Controllers
             _cltiCaseService = cltiCaseService;
         }
 
-
         [HttpPost("save")]
-        [Authorize]
+        [Authorize(Policy = "HybridPolicy")] // ✅ Підтримує і cookies і JWT
         public async Task<IActionResult> SaveCase([FromBody] StateServiceDto stateData)
         {
             try
@@ -33,6 +33,7 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpGet("{caseId}")]
+        [Authorize(Policy = "HybridPolicy")] // ✅ Підтримує і cookies і JWT
         public async Task<IActionResult> GetCase(int caseId)
         {
             try
@@ -51,9 +52,8 @@ namespace CLTI.Diagnosis.Controllers
             }
         }
 
-
         [HttpPut("{caseId}")]
-        [Authorize]
+        [Authorize(Policy = "HybridPolicy")] // ✅ Підтримує і cookies і JWT
         public async Task<IActionResult> UpdateCase(int caseId, [FromBody] StateServiceDto stateData)
         {
             try
@@ -68,9 +68,8 @@ namespace CLTI.Diagnosis.Controllers
             }
         }
 
-
         [HttpDelete("{caseId}")]
-        [Authorize]
+        [Authorize(Policy = "HybridPolicy")] // ✅ Підтримує і cookies і JWT
         public async Task<IActionResult> DeleteCase(int caseId)
         {
             try
