@@ -1,8 +1,4 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.IdentityModel.Clients.ActiveDirectory;
-using System.Security.Claims;
+﻿using System.Security.Claims;
 
 namespace CLTI.Diagnosis.Services
 {
@@ -22,9 +18,9 @@ namespace CLTI.Diagnosis.Services
             IHttpContextAccessor httpContextAccessor,
             ILogger<AuthenticatedHttpClientService> logger)
         {
-            _httpClientFactory = httpClientFactory;
-            _httpContextAccessor = httpContextAccessor;
-            _logger = logger;
+            _httpClientFactory = httpClientFactory ?? throw new ArgumentNullException(nameof(httpClientFactory));
+            _httpContextAccessor = httpContextAccessor ?? throw new ArgumentNullException(nameof(httpContextAccessor));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<HttpClient> CreateClientAsync()
@@ -35,7 +31,7 @@ namespace CLTI.Diagnosis.Services
             if (context?.User?.Identity?.IsAuthenticated == true)
             {
                 // Передаємо cookies з поточного запиту
-                var cookieHeader = context.Request.Headers.Cookie.ToString();
+                var cookieHeader = context.Request.Headers["Cookie"].ToString();
                 if (!string.IsNullOrEmpty(cookieHeader))
                 {
                     client.DefaultRequestHeaders.Remove("Cookie");
@@ -57,7 +53,7 @@ namespace CLTI.Diagnosis.Services
                 _logger.LogDebug("User not authenticated, creating client without auth headers");
             }
 
-            return client;
+            return await Task.FromResult(client);
         }
     }
 }
