@@ -104,22 +104,19 @@
     {
         try
         {
-            // Hash the password using MD5
             var hashedPassword = HashPassword(Input.Password);
 
-            // Find user in sys_user table
             var user = await DbContext.SysUsers
                 .FirstOrDefaultAsync(u => u.Email == Input.Email && u.Password == hashedPassword);
 
             if (user != null)
             {
-                // Create claims for the user
                 var claims = new List<System.Security.Claims.Claim>
-                {
-                    new(System.Security.Claims.ClaimTypes.NameIdentifier, user.Id.ToString()),
-                    new(System.Security.Claims.ClaimTypes.Name, user.Email),
-                    new(System.Security.Claims.ClaimTypes.Email, user.Email)
-                };
+            {
+                new(System.Security.Claims.ClaimTypes.NameIdentifier, user.Id.ToString()),
+                new(System.Security.Claims.ClaimTypes.Name, user.Email),
+                new(System.Security.Claims.ClaimTypes.Email, user.Email)
+            };
 
                 var identity = new System.Security.Claims.ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
                 var principal = new System.Security.Claims.ClaimsPrincipal(identity);
@@ -129,9 +126,10 @@
 
                 Logger.LogInformation("User {Email} logged in.", Input.Email);
 
-                // Use NavigationManager instead of RedirectManager
                 var redirectUrl = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
-                NavigationManager.NavigateTo(redirectUrl, forceLoad: true);
+
+                // 🔄 Безпечний HTTP редирект
+                HttpContext.Response.Redirect(redirectUrl);
             }
             else
             {

@@ -26,7 +26,6 @@ namespace CLTI.Diagnosis.Components.Account.Pages
         {
             try
             {
-                // Check if user already exists
                 var existingUser = await DbContext.SysUsers
                     .FirstOrDefaultAsync(u => u.Email == Input.Email);
 
@@ -36,13 +35,11 @@ namespace CLTI.Diagnosis.Components.Account.Pages
                     return;
                 }
 
-                // Get default status (assuming Active = 1)
                 var activeStatus = await DbContext.SysEnumItems
                     .FirstOrDefaultAsync(e => e.Name == "Active" && e.SysEnum.Name == "UserStatus");
 
                 if (activeStatus == null)
                 {
-                    // Create default status if it doesn't exist
                     var statusEnum = await DbContext.SysEnums
                         .FirstOrDefaultAsync(e => e.Name == "UserStatus");
 
@@ -71,10 +68,8 @@ namespace CLTI.Diagnosis.Components.Account.Pages
                     await DbContext.SaveChangesAsync();
                 }
 
-                // Hash the password
                 var hashedPassword = HashPassword(Input.Password);
 
-                // Create new user
                 var newUser = new SysUser
                 {
                     FirstName = Input.FirstName,
@@ -91,22 +86,20 @@ namespace CLTI.Diagnosis.Components.Account.Pages
 
                 Logger.LogInformation("User {Email} created a new account with password.", Input.Email);
 
-                // Automatically sign in the user
                 var claims = new List<System.Security.Claims.Claim>
-            {
-                new(System.Security.Claims.ClaimTypes.NameIdentifier, newUser.Id.ToString()),
-                new(System.Security.Claims.ClaimTypes.Name, newUser.Email),
-                new(System.Security.Claims.ClaimTypes.Email, newUser.Email)
-            };
+        {
+            new(System.Security.Claims.ClaimTypes.NameIdentifier, newUser.Id.ToString()),
+            new(System.Security.Claims.ClaimTypes.Name, newUser.Email),
+            new(System.Security.Claims.ClaimTypes.Email, newUser.Email)
+        };
 
                 var identity = new System.Security.Claims.ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
                 var principal = new System.Security.Claims.ClaimsPrincipal(identity);
 
                 await HttpContext.SignInAsync(IdentityConstants.ApplicationScheme, principal);
 
-                // Use NavigationManager instead of RedirectManager
-                var redirectUrl = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
-                NavigationManager.NavigateTo(redirectUrl, forceLoad: true);
+                // ✅ Redirect to login page after registration
+                HttpContext.Response.Redirect("/Account/Login");
             }
             catch (Exception ex)
             {
