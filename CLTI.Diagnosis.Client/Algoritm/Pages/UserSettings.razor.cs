@@ -4,17 +4,71 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 {
     public partial class UserSettings
     {
-        private string firstName = string.Empty;
-        private string lastName = string.Empty;
-        private string email = string.Empty;
-        private string oldPassword = string.Empty;
-        private string newPassword = string.Empty;
-        private string confirmPassword = string.Empty;
-        private string deletePassword = string.Empty;
+        private string _firstName = string.Empty;
+        private string _lastName = string.Empty;
+        private string _email = string.Empty;
+        private string _oldPassword = string.Empty;
+        private string _password = string.Empty;
+
+        // Властивості з викликом OnFieldChanged
+        private string firstName
+        {
+            get => _firstName;
+            set
+            {
+                _firstName = value;
+                OnFieldChanged();
+            }
+        }
+
+        private string lastName
+        {
+            get => _lastName;
+            set
+            {
+                _lastName = value;
+                OnFieldChanged();
+            }
+        }
+
+        private string email
+        {
+            get => _email;
+            set
+            {
+                _email = value;
+                OnFieldChanged();
+            }
+        }
+
+        private string oldPassword
+        {
+            get => _oldPassword;
+            set
+            {
+                _oldPassword = value;
+                OnFieldChanged();
+            }
+        }
+
+        private string password
+        {
+            get => _password;
+            set
+            {
+                _password = value;
+                OnFieldChanged();
+            }
+        }
+
+        // Оригінальні значення для порівняння
+        private string originalFirstName = string.Empty;
+        private string originalLastName = string.Empty;
+        private string originalEmail = string.Empty;
 
         private bool isUpdating = false;
-        private bool isChangingPassword = false;
         private bool isDeleting = false;
+        private bool hasChanges = false;
 
         private string successMessage = string.Empty;
         private string errorMessage = string.Empty;
@@ -31,9 +85,16 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
                 var userInfo = await UserService.GetCurrentUserAsync();
                 if (userInfo != null)
                 {
+                    // Встановлюємо поточні значення
                     firstName = userInfo.FirstName ?? string.Empty;
                     lastName = userInfo.LastName ?? string.Empty;
                     email = userInfo.Email ?? string.Empty;
+
+                    // Зберігаємо оригінальні значення
+                    originalFirstName = firstName;
+                    originalLastName = lastName;
+                    originalEmail = email;
+
                     StateHasChanged();
                 }
             }
@@ -43,13 +104,38 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             }
         }
 
-        private async Task UpdateProfile()
+        private void OnFieldChanged()
+        {
+            // Перевіряємо, чи є зміни в полях
+            hasChanges = firstName != originalFirstName ||
+                        lastName != originalLastName ||
+                        email != originalEmail ||
+                        !string.IsNullOrWhiteSpace(password) ||
+                        !string.IsNullOrWhiteSpace(oldPassword);
+
+            StateHasChanged();
+        }
+
+        private async Task SaveChanges()
         {
             ClearMessages();
 
             if (string.IsNullOrWhiteSpace(firstName) || string.IsNullOrWhiteSpace(lastName) || string.IsNullOrWhiteSpace(email))
             {
-                errorMessage = "Всі поля повинні бути заповнені";
+                errorMessage = "Ім'я, прізвище та email повинні бути заповнені";
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(password) && password.Length < 6)
+            {
+                errorMessage = "Пароль повинен містити принаймні 6 символів";
+                return;
+            }
+
+            // Якщо користувач хоче змінити пароль, перевіряємо чи введений старий пароль
+            if (!string.IsNullOrWhiteSpace(password) && string.IsNullOrWhiteSpace(oldPassword))
+            {
+                errorMessage = "Для зміни пароля введіть старий пароль";
                 return;
             }
 
@@ -58,19 +144,59 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
             try
             {
-                var success = await UserService.UpdateUserAsync(firstName, lastName, email);
+                bool success = true;
+
+                // Перевіряємо, чи змінилися дані профілю
+                bool profileChanged = firstName != originalFirstName ||
+                                    lastName != originalLastName ||
+                                    email != originalEmail;
+
+                // Оновлюємо профіль тільки якщо є зміни
+                if (profileChanged)
+                {
+                    success = await UserService.UpdateUserAsync(firstName, lastName, email);
+                }
+
+                // Змінюємо пароль тільки якщо він був введений і профіль успішно оновлено
+                if (success && !string.IsNullOrWhiteSpace(password) && !string.IsNullOrWhiteSpace(oldPassword))
+                {
+                    var passwordSuccess = await UserService.ChangePasswordAsync(oldPassword, password);
+                    if (!passwordSuccess)
+                    {
+                        errorMessage = "Помилка зміни пароля. Перевірте правильність старого пароля.";
+                        success = false;
+                    }
+                }
+
                 if (success)
                 {
-                    successMessage = "Профіль успішно оновлено";
+                    string message = "";
+                    if (profileChanged && !string.IsNullOrWhiteSpace(password))
+                        message = "Профіль та пароль успішно оновлено";
+                    else if (profileChanged)
+                        message = "Профіль успішно оновлено";
+                    else if (!string.IsNullOrWhiteSpace(password))
+                        message = "Пароль успішно змінено";
+
+                    successMessage = message;
+
+                    // Оновлюємо оригінальні значення
+                    originalFirstName = firstName;
+                    originalLastName = lastName;
+                    originalEmail = email;
+                    oldPassword = string.Empty; // Очищуємо поля паролів
+                    password = string.Empty;
+
+                    hasChanges = false;
                 }
-                else
+                else if (string.IsNullOrEmpty(errorMessage)) // Якщо помилка ще не встановлена
                 {
-                    errorMessage = "Помилка оновлення профілю. Можливо, email вже використовується.";
+                    errorMessage = "Помилка збереження налаштувань. Можливо, email вже використовується.";
                 }
             }
             catch (Exception ex)
             {
-                errorMessage = "Виникла помилка при оновленні профілю";
+                errorMessage = "Виникла помилка при збереженні налаштувань";
             }
             finally
             {
@@ -79,71 +205,21 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
             }
         }
 
-        private async Task ChangePassword()
+        private async Task DeleteAccount()
         {
             ClearMessages();
-
-            if (string.IsNullOrWhiteSpace(oldPassword) || string.IsNullOrWhiteSpace(newPassword))
-            {
-                errorMessage = "Введіть старий та новий пароль";
-                return;
-            }
-
-            if (newPassword.Length < 6)
-            {
-                errorMessage = "Новий пароль повинен містити принаймні 6 символів";
-                return;
-            }
-
-            if (newPassword != confirmPassword)
-            {
-                errorMessage = "Нові паролі не співпадають";
-                return;
-            }
-
-            isChangingPassword = true;
-            StateHasChanged();
-
-            try
-            {
-                var success = await UserService.ChangePasswordAsync(oldPassword, newPassword);
-                if (success)
-                {
-                    successMessage = "Пароль успішно змінено";
-                    oldPassword = string.Empty;
-                    newPassword = string.Empty;
-                    confirmPassword = string.Empty;
-                }
-                else
-                {
-                    errorMessage = "Помилка зміни пароля. Перевірте правильність старого пароля.";
-                }
-            }
-            catch (Exception ex)
-            {
-                errorMessage = "Виникла помилка при зміні пароля";
-            }
-            finally
-            {
-                isChangingPassword = false;
-                StateHasChanged();
-            }
-        }
-
-        private async Task DeleteUser()
-        {
-            ClearMessages();
-
-            if (string.IsNullOrWhiteSpace(deletePassword))
-            {
-                errorMessage = "Введіть пароль для підтвердження видалення";
-                return;
-            }
 
             var confirmed = await JS.InvokeAsync<bool>("confirm",
-                "Ви впевнені, що хочете видалити свій акаунт? Цю дію неможливо буде скасувати!");
+                "Ви дійсно хочете видалити свій акаунт?\n\nУвага: Ця дія незворотна! Всі ваші дані будуть втрачені назавжди.\n\nПродовжити?");
 
             if (!confirmed)
+                return;
+
+            // Додаткове підтвердження
+            var doubleConfirmed = await JS.InvokeAsync<bool>("confirm",
+                "Останнє підтвердження!\n\nВи абсолютно впевнені, що хочете видалити акаунт?\nВідновити його буде неможливо!");
+
+            if (!doubleConfirmed)
                 return;
 
             isDeleting = true;
@@ -151,28 +227,20 @@ namespace CLTI.Diagnosis.Client.Algoritm.Pages
 
             try
             {
-                // Спершу перевіряємо пароль через спробу його зміни на той самий
-                var passwordCorrect = await UserService.ChangePasswordAsync(deletePassword, deletePassword);
-                if (!passwordCorrect)
-                {
-                    errorMessage = "Неправильний пароль";
-                    return;
-                }
-
                 var success = await UserService.DeleteUserAsync();
                 if (success)
                 {
-                    // Перенаправляємо на головну сторінку після видалення
+                    await JS.InvokeVoidAsync("alert", "Акаунт успішно видалено. До побачення!");
                     NavigationManager.NavigateTo("/Account/Login", forceLoad: true);
                 }
                 else
                 {
-                    errorMessage = "Помилка видалення користувача";
+                    errorMessage = "Помилка видалення акаунту";
                 }
             }
             catch (Exception ex)
             {
-                errorMessage = "Виникла помилка при видаленні користувача";
+                errorMessage = "Виникла помилка при видаленні акаунту";
             }
             finally
             {

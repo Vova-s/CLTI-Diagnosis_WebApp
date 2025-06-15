@@ -267,7 +267,4 @@
     cursor: not-allowed;
 }
 
-/* Success/Error message spacing */
-.frame-parent > div:first-child {
-    margin-bottom: 20px;
-}
+

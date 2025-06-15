@@ -1,9 +1,12 @@
 ﻿@page "/"
 
 @rendermode InteractiveServer
+@attribute [Authorize]
 @using CLTI.Diagnosis.Client.Shared
 @using CLTI.Diagnosis.Client.Components
+@using Microsoft.AspNetCore.Authorization
 @inject IJSRuntime JS
+
 
 <div class="page-container">
     <NavMenuHome />
