@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,117 +27,171 @@ builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-// DB context (додаємо раніше інших сервісів)
+// DB context
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-// API Key service для читання з БД
+// API Key service
 builder.Services.AddScoped<ApiKeyService, ApiKeyService>();
-
-// *** ДОДАЄМО AUTHENTICATED HTTP CLIENT SERVICE ***
-builder.Services.AddScoped<IAuthenticatedHttpClientService, AuthenticatedHttpClientService>();
 
 // Shared client services
 builder.Services.AddSingleton<StateService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<CLTI.Diagnosis.Services.CltiCaseService>();
 
-// HttpContextAccessor (required for dynamic base URLs)
+// HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
 
-// Register named HttpClients with cookie support
-builder.Services.AddHttpClient("Default", (sp, client) =>
+// ✅ ПОКРАЩЕНА КОНФІГУРАЦІЯ HTTP КЛІЄНТІВ З АВТЕНТИФІКАЦІЄЮ
+builder.Services.AddHttpClient("InternalApi", (sp, client) =>
 {
-    var httpContext = sp.GetRequiredService<IHttpContextAccessor>().HttpContext;
+    var httpContextAccessor = sp.GetRequiredService<IHttpContextAccessor>();
+    var httpContext = httpContextAccessor.HttpContext;
+    var environment = sp.GetRequiredService<IWebHostEnvironment>();
+
+    string baseUrl;
+
     if (httpContext != null)
     {
         var request = httpContext.Request;
-        client.BaseAddress = new Uri($"{request.Scheme}://{request.Host}");
+        baseUrl = $"{request.Scheme}://{request.Host}";
 
-        // Передаємо cookies для автентифікації
+        // ✅ ПОКРАЩЕНА ПЕРЕДАЧА COOKIES
         var cookieHeader = request.Headers.Cookie.ToString();
         if (!string.IsNullOrEmpty(cookieHeader))
         {
+            // Очищаємо попередні cookies
+            client.DefaultRequestHeaders.Remove("Cookie");
             client.DefaultRequestHeaders.Add("Cookie", cookieHeader);
+        }
+
+        // ✅ ДОДАЄМО ANTIFORGERY TOKEN ЯКЩО ДОСТУПНИЙ
+        if (request.Headers.TryGetValue("RequestVerificationToken", out var token))
+        {
+            client.DefaultRequestHeaders.Add("RequestVerificationToken", token.ToString());
+        }
+
+        // ✅ ДОДАЄМО USER INFO ДЛЯ ДЕБАГУ
+        if (httpContext.User?.Identity?.IsAuthenticated == true)
+        {
+            var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                client.DefaultRequestHeaders.Remove("X-User-Id");
+                client.DefaultRequestHeaders.Add("X-User-Id", userId);
+            }
         }
     }
     else
     {
-        client.BaseAddress = new Uri("https://localhost:7124");
+        if (environment.IsDevelopment())
+        {
+            baseUrl = "https://localhost:7124";
+        }
+        else
+        {
+            baseUrl = "https://antsdemo02.demo.dragon-cloud.org";
+        }
     }
-    client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis");
+
+    client.BaseAddress = new Uri(baseUrl);
+    client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Internal");
+    client.Timeout = TimeSpan.FromSeconds(30);
+
+    var logger = sp.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("HttpClient configured - BaseAddress: {BaseUrl}, HasCookies: {HasCookies}",
+        baseUrl, httpContext?.Request.Headers.Cookie.Count > 0);
+
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
 {
-    UseCookies = false // Вимикаємо автоматичне управління cookies
+    UseCookies = false, // Важливо: вимикаємо автоматичне управління cookies
+    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
 });
 
-// HttpClient для OpenAI налаштований правильно
+// HttpClient для OpenAI
 builder.Services.AddHttpClient("OpenAI", client =>
 {
     client.BaseAddress = new Uri("https://api.openai.com/");
     client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis/1.0");
-    client.Timeout = TimeSpan.FromSeconds(60); // Збільшуємо таймаут до 60 секунд
+    client.Timeout = TimeSpan.FromSeconds(60);
 });
 
-// Register default HttpClient for server-side components
+// ✅ DEFAULT HTTP CLIENT
 builder.Services.AddScoped(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
-    return factory.CreateClient("Default");
+    return factory.CreateClient("InternalApi");
 });
 
-// Register CltiApiClient with proper HttpClient
+// ✅ КЛІЄНТСЬКІ СЕРВІСИ З ПРАВИЛЬНИМ HTTP CLIENT
 builder.Services.AddScoped<CltiApiClient>(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
-    var httpClient = factory.CreateClient("Default");
+    var httpClient = factory.CreateClient("InternalApi");
     return new CltiApiClient(httpClient);
 });
 
-// Register client-side CltiCaseService
 builder.Services.AddScoped<CLTI.Diagnosis.Client.Services.CltiCaseService>();
 
-// *** ДОДАЄМО КЛІЄНТСЬКІ СЕРВІСИ ДЛЯ СЕРВЕРНОЇ СТОРОНИ ***
-builder.Services.AddScoped<IUserClientService, UserClientService>();
-builder.Services.AddScoped<IClientApiKeyService, ClientApiKeyService>();
+builder.Services.AddScoped<IUserClientService>(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = factory.CreateClient("InternalApi");
+    var logger = sp.GetRequiredService<ILogger<UserClientService>>();
+    return new UserClientService(httpClient, logger);
+});
 
-// Register AiChatClient для клієнтських компонентів
+builder.Services.AddScoped<IClientApiKeyService>(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpClient = factory.CreateClient("InternalApi");
+    var logger = sp.GetRequiredService<ILogger<ClientApiKeyService>>();
+    return new ClientApiKeyService(httpClient, logger);
+});
+
 builder.Services.AddScoped<AiChatClient>(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
-    var httpClient = factory.CreateClient("Default"); // Використовуємо Default client для звернення до нашого API
+    var httpClient = factory.CreateClient("InternalApi");
     var apiKeyService = sp.GetRequiredService<IClientApiKeyService>();
     var logger = sp.GetRequiredService<ILogger<AiChatClient>>();
     return new AiChatClient(httpClient, apiKeyService, logger);
 });
 
-// Додайте логування для діагностики
+// Логування з більше деталей для діагностики
 builder.Services.AddLogging(logging =>
 {
     logging.AddConsole();
     logging.AddDebug();
+
     if (builder.Environment.IsDevelopment())
     {
         logging.SetMinimumLevel(LogLevel.Information);
+    }
+    else
+    {
+        logging.SetMinimumLevel(LogLevel.Information); // Тимчасово збільшуємо логування в продакшені
+        logging.AddFilter("CLTI.Diagnosis", LogLevel.Information);
+        logging.AddFilter("Microsoft.AspNetCore.Http", LogLevel.Information);
+        logging.AddFilter("System.Net.Http.HttpClient", LogLevel.Information);
     }
 });
 
 // CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("AllowBlazorClient", policy =>
+    options.AddPolicy("AllowAll", policy =>
     {
-        policy.WithOrigins("https://localhost:7124", "http://localhost:5276")
+        policy.AllowAnyOrigin()
               .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowAnyMethod();
     });
 });
 
-// Simple Cookie Authentication (замість повного Identity)
+// ✅ ВИПРАВЛЕНА COOKIE AUTHENTICATION - ВИКОРИСТОВУЄМО СТАНДАРТНУ НАЗВУ
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddCookie(IdentityConstants.ApplicationScheme, options =>
     {
@@ -145,14 +200,55 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
         options.AccessDeniedPath = "/Account/AccessDenied";
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
+
+        // ✅ ВИКОРИСТОВУЄМО СТАНДАРТНУ НАЗВУ COOKIE
+        // options.Cookie.Name = ".AspNetCore.Identity.Application"; // Це вже за замовчуванням
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+        options.Cookie.HttpOnly = true;
+        options.Cookie.IsEssential = true;
+
+        // ✅ ПІДТРИМКА BLAZOR SERVER
+        options.Events.OnRedirectToLogin = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/_blazor") ||
+                context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = 401;
+                return Task.CompletedTask;
+            }
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/_blazor") ||
+                context.Request.Path.StartsWithSegments("/api"))
+            {
+                context.Response.StatusCode = 403;
+                return Task.CompletedTask;
+            }
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
+
+        // ✅ ДОДАЄМО DEBUGGING
+        options.Events.OnValidatePrincipal = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogInformation("Cookie validation - IsAuthenticated: {IsAuth}, Name: {Name}",
+                context.Principal?.Identity?.IsAuthenticated ?? false,
+                context.Principal?.Identity?.Name);
+            return Task.CompletedTask;
+        };
     });
 
-// Add minimal Identity services for compatibility
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
 
-// Middleware pipeline
+// ✅ ПОКРАЩЕНА MIDDLEWARE PIPELINE
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
@@ -164,12 +260,31 @@ else
     app.UseHsts();
 }
 
+// ✅ Правильний порядок middleware
 app.UseHttpsRedirection();
-app.UseCors("AllowBlazorClient");
+app.UseStaticFiles();
+app.UseCors("AllowAll");
+app.UseRouting();
+
+// ✅ ДОДАЄМО MIDDLEWARE ДЛЯ ЛОГУВАННЯ АВТЕНТИФІКАЦІЇ
+app.Use(async (context, next) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+
+    if (context.Request.Path.StartsWithSegments("/api"))
+    {
+        logger.LogInformation("API Request: {Method} {Path}, IsAuthenticated: {IsAuth}, Cookies: {CookieCount}",
+            context.Request.Method,
+            context.Request.Path,
+            context.User?.Identity?.IsAuthenticated ?? false,
+            context.Request.Cookies.Count);
+    }
+
+    await next();
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.UseAntiforgery();
 
 app.MapStaticAssets();
@@ -180,26 +295,49 @@ app.MapRazorComponents<App>()
 
 app.MapControllers();
 
-// Simple logout endpoint
+// ✅ ПОКРАЩЕНИЙ LOGOUT ENDPOINT
 app.MapPost("/Account/Logout", async (HttpContext context) =>
 {
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("User logout requested");
+
     await context.SignOutAsync(IdentityConstants.ApplicationScheme);
+
+    // Очищаємо стандартний cookie
+    context.Response.Cookies.Delete(".AspNetCore.Identity.Application");
+    context.Response.Cookies.Delete(".AspNetCore.Antiforgery.mYlosc6T-lA");
+
+    logger.LogInformation("User logged out successfully");
     return Results.Redirect("/");
+});
+
+// ✅ ДОДАЄМО HEALTH CHECK ENDPOINT
+app.MapGet("/health", () =>
+{
+    return Results.Ok(new
+    {
+        Status = "Healthy",
+        Timestamp = DateTime.UtcNow,
+        Environment = app.Environment.EnvironmentName
+    });
 });
 
 // Fallback route
 app.MapFallback(async context =>
 {
     var path = context.Request.Path.Value ?? "/";
-    if (path.StartsWith("/api") ||
-        path.StartsWith("/_framework") ||
-        path.StartsWith("/css") ||
-        path.StartsWith("/js") ||
-        path.StartsWith("/Photo") ||
-        path.StartsWith("/swagger") ||
-        path.Contains("."))
+
+    if (path.StartsWith("/api", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/_framework", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/css", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/js", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/Photo", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/swagger", StringComparison.OrdinalIgnoreCase) ||
+        path.StartsWith("/_blazor", StringComparison.OrdinalIgnoreCase) ||
+        path.Contains('.', StringComparison.OrdinalIgnoreCase))
     {
         context.Response.StatusCode = 404;
+        await context.Response.WriteAsync("Not Found");
         return;
     }
 
