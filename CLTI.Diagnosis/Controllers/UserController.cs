@@ -1,8 +1,6 @@
-﻿// ✅ UserController.cs - Використовуємо WebPolicy для cookies
+﻿// ✅ UserController.cs - Тепер використовує JWT
 using Microsoft.AspNetCore.Mvc;
 using CLTI.Diagnosis.Services;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
 using System.Security.Claims;
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Authorization;
@@ -11,6 +9,7 @@ namespace CLTI.Diagnosis.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize] // ✅ Тепер використовує JWT за замовчуванням
     public class UserController : ControllerBase
     {
         private readonly IUserService _userService;
@@ -23,18 +22,17 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpGet("current")]
-        [Authorize(Policy = "WebPolicy")] // ✅ Використовуємо cookies для Blazor Server
         public async Task<IActionResult> GetCurrentUser()
         {
             try
             {
-                _logger.LogInformation("GetCurrentUser called from {RemoteIp}",
+                _logger.LogInformation("GetCurrentUser called with JWT from {RemoteIp}",
                     HttpContext.Connection.RemoteIpAddress);
 
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
-                    return Unauthorized(new { error = "User ID not found" });
+                    return Unauthorized(new { error = "User ID not found in JWT token" });
                 }
 
                 var user = await _userService.GetCurrentUserAsync(userId);
@@ -69,6 +67,7 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpGet("auth-test")]
+        [AllowAnonymous] // ✅ Дозволяємо анонімний доступ для тестування
         public IActionResult TestAuthentication()
         {
             try
@@ -79,13 +78,8 @@ namespace CLTI.Diagnosis.Controllers
                     AuthenticationType = User.Identity?.AuthenticationType,
                     Name = User.Identity?.Name,
                     Claims = User.Claims.Select(c => new { c.Type, c.Value }).ToList(),
-                    AuthCookies = HttpContext.Request.Cookies
-                        .Where(c => c.Key.Contains("Identity") || c.Key.Contains("Auth") || c.Key.Contains("Cookie"))
-                        .ToDictionary(c => c.Key, c => c.Value?.Length > 20 ? c.Value.Substring(0, 20) + "..." : c.Value),
-                    AllCookies = HttpContext.Request.Cookies.Count,
-                    Headers = HttpContext.Request.Headers
-                        .Where(h => h.Key.Contains("Auth") || h.Key.Contains("Cookie") || h.Key.Contains("User"))
-                        .ToDictionary(h => h.Key, h => h.Value.ToString()),
+                    HasAuthorizationHeader = Request.Headers.ContainsKey("Authorization"),
+                    AuthorizationHeader = Request.Headers.Authorization.ToString(),
                     RequestPath = HttpContext.Request.Path.Value,
                     Method = HttpContext.Request.Method,
                     UserAgent = HttpContext.Request.Headers.UserAgent.ToString(),
@@ -93,7 +87,7 @@ namespace CLTI.Diagnosis.Controllers
                     Timestamp = DateTime.UtcNow
                 };
 
-                _logger.LogInformation("Auth test result: {@AuthInfo}", authInfo);
+                _logger.LogInformation("JWT Auth test result: {@AuthInfo}", authInfo);
                 return Ok(authInfo);
             }
             catch (Exception ex)
@@ -104,7 +98,6 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpPut("update")]
-        [Authorize(Policy = "WebPolicy")] // ✅ Використовуємо cookies
         public async Task<IActionResult> UpdateUser([FromBody] UpdateUserRequest request)
         {
             try
@@ -112,7 +105,7 @@ namespace CLTI.Diagnosis.Controllers
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
-                    return Unauthorized(new { error = "User ID not found" });
+                    return Unauthorized(new { error = "User ID not found in JWT token" });
                 }
 
                 var updateDto = new UpdateUserDto
@@ -139,7 +132,6 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpPost("change-password")]
-        [Authorize(Policy = "WebPolicy")] // ✅ Використовуємо cookies
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
         {
             try
@@ -147,7 +139,7 @@ namespace CLTI.Diagnosis.Controllers
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
-                    return Unauthorized(new { error = "User ID not found" });
+                    return Unauthorized(new { error = "User ID not found in JWT token" });
                 }
 
                 var success = await _userService.ChangePasswordAsync(userId, request.OldPassword, request.NewPassword);
@@ -167,7 +159,6 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpDelete("delete")]
-        [Authorize(Policy = "WebPolicy")] // ✅ Використовуємо cookies
         public async Task<IActionResult> DeleteUser()
         {
             try
@@ -175,7 +166,7 @@ namespace CLTI.Diagnosis.Controllers
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
-                    return Unauthorized(new { error = "User ID not found" });
+                    return Unauthorized(new { error = "User ID not found in JWT token" });
                 }
 
                 var success = await _userService.DeleteUserAsync(userId);
@@ -184,9 +175,7 @@ namespace CLTI.Diagnosis.Controllers
                     return BadRequest(new { error = "Failed to delete user" });
                 }
 
-                await HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
                 _logger.LogInformation("User {UserId} deleted successfully", userId);
-
                 return Ok(new { message = "User deleted successfully" });
             }
             catch (Exception ex)

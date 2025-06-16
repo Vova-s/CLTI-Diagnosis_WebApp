@@ -1,30 +1,30 @@
-﻿// ✅ CltiCaseController.cs - Використовуємо HybridPolicy
+﻿
+// ✅ CltiCaseController.cs - Тепер використовує JWT
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using CLTI.Diagnosis.Services;
-using CLTI.Diagnosis.Client.Algoritm.Services;
 
 namespace CLTI.Diagnosis.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
+    [Authorize] // ✅ Тепер використовує JWT за замовчуванням
     public class CltiCaseController : ControllerBase
     {
-        private readonly CltiCaseService _cltiCaseService;
+        private readonly CLTI.Diagnosis.Services.CltiCaseService _cltiCaseService;
 
-        public CltiCaseController(CltiCaseService cltiCaseService)
+        public CltiCaseController(CLTI.Diagnosis.Services.CltiCaseService cltiCaseService)
         {
             _cltiCaseService = cltiCaseService;
         }
 
         [HttpPost("save")]
-        [Authorize(Policy = "HybridPolicy")] // ✅ Підтримує і cookies і JWT
         public async Task<IActionResult> SaveCase([FromBody] StateServiceDto stateData)
         {
             try
             {
                 var caseId = await _cltiCaseService.SaveCaseAsync(stateData);
-                return Ok(new { CaseId = caseId, Message = "Дані успішно збережено" });
+                return Ok(new { CaseId = caseId, Message = "Дані успішно збережено", Success = true, SavedAt = DateTime.UtcNow });
             }
             catch (Exception ex)
             {
@@ -33,7 +33,6 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpGet("{caseId}")]
-        [Authorize(Policy = "HybridPolicy")] // ✅ Підтримує і cookies і JWT
         public async Task<IActionResult> GetCase(int caseId)
         {
             try
@@ -53,14 +52,13 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpPut("{caseId}")]
-        [Authorize(Policy = "HybridPolicy")] // ✅ Підтримує і cookies і JWT
         public async Task<IActionResult> UpdateCase(int caseId, [FromBody] StateServiceDto stateData)
         {
             try
             {
                 stateData.CaseId = caseId;
                 var updatedCaseId = await _cltiCaseService.SaveCaseAsync(stateData);
-                return Ok(new { CaseId = updatedCaseId, Message = "Дані успішно оновлено" });
+                return Ok(new { CaseId = updatedCaseId, Message = "Дані успішно оновлено", Success = true, SavedAt = DateTime.UtcNow });
             }
             catch (Exception ex)
             {
@@ -69,7 +67,6 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpDelete("{caseId}")]
-        [Authorize(Policy = "HybridPolicy")] // ✅ Підтримує і cookies і JWT
         public async Task<IActionResult> DeleteCase(int caseId)
         {
             try
@@ -85,6 +82,20 @@ namespace CLTI.Diagnosis.Controllers
             catch (Exception ex)
             {
                 return StatusCode(500, new { Error = "Помилка видалення даних", Details = ex.Message });
+            }
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllCases()
+        {
+            try
+            {
+                var cases = await _cltiCaseService.GetAllCasesAsync();
+                return Ok(cases);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { Error = "Помилка отримання списку cases", Details = ex.Message });
             }
         }
     }
