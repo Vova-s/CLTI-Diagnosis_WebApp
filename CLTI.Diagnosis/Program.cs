@@ -32,8 +32,62 @@ var jwtKey = builder.Configuration["Jwt:Key"] ?? "your-super-secret-jwt-key-min-
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "CLTI.Diagnosis";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "CLTI.Diagnosis.Client";
 
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-.AddJwtBearer(options =>
+builder.Services.AddAuthentication(options =>
+{
+    // ✅ ОСНОВНОЮ СХЕМОЮ РОБИМО COOKIES ДЛЯ BLAZOR SERVER
+    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignOutScheme = IdentityConstants.ApplicationScheme;
+})
+// ✅ COOKIE AUTHENTICATION ДЛЯ BLAZOR SERVER (ОСНОВНЕ)
+.AddCookie(IdentityConstants.ApplicationScheme, options =>
+{
+    options.LoginPath = "/Account/Login";
+    options.LogoutPath = "/Account/Logout";
+    options.AccessDeniedPath = "/Account/AccessDenied";
+    options.ExpireTimeSpan = TimeSpan.FromDays(30);
+    options.SlidingExpiration = true;
+
+    options.Cookie.Name = ".AspNetCore.Identity.Application";
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+
+    // ✅ НАЛАШТУВАННЯ ДЛЯ BLAZOR SERVER
+    options.Events.OnRedirectToLogin = context =>
+    {
+        // Для API запитів повертаємо 401 замість редиректу
+        if (context.Request.Path.StartsWithSegments("/api") ||
+            context.Request.Headers.Accept.ToString().Contains("application/json") ||
+            context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            context.Response.StatusCode = 401;
+            return Task.CompletedTask;
+        }
+
+        // Для звичайних запитів робимо редирект
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
+
+    options.Events.OnRedirectToAccessDenied = context =>
+    {
+        if (context.Request.Path.StartsWithSegments("/api") ||
+            context.Request.Headers.Accept.ToString().Contains("application/json"))
+        {
+            context.Response.StatusCode = 403;
+            return Task.CompletedTask;
+        }
+
+        context.Response.Redirect(context.RedirectUri);
+        return Task.CompletedTask;
+    };
+})
+// ✅ JWT AUTHENTICATION ДЛЯ API ENDPOINTS (ДОДАТКОВЕ)
+.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
 {
     options.SaveToken = true;
     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
@@ -53,25 +107,12 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     {
         OnMessageReceived = context =>
         {
-            // Get token from Authorization header
-            var token = context.Request.Headers.Authorization
-                .FirstOrDefault()?.Replace("Bearer ", "");
+            var accessToken = context.Request.Query["access_token"];
+            var path = context.HttpContext.Request.Path;
 
-            // Try query string for SignalR
-            if (string.IsNullOrEmpty(token))
+            if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/_blazor"))
             {
-                token = context.Request.Query["access_token"];
-            }
-
-            // Try custom header
-            if (string.IsNullOrEmpty(token))
-            {
-                token = context.Request.Headers["X-Access-Token"];
-            }
-
-            if (!string.IsNullOrEmpty(token))
-            {
-                context.Token = token;
+                context.Token = accessToken;
             }
 
             return Task.CompletedTask;
@@ -86,41 +127,44 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
         OnChallenge = context =>
         {
-            // For API requests return JSON instead of HTML redirect
-            if (context.Request.Path.StartsWithSegments("/api") ||
-                context.Request.Headers.Accept.Any(h => h?.Contains("application/json") == true))
-            {
-                context.HandleResponse();
-                context.Response.StatusCode = 401;
-                context.Response.ContentType = "application/json";
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogWarning("JWT Challenge triggered for path: {Path}", context.Request.Path);
 
-                var response = new { error = "Unauthorized", message = "JWT token required" };
-                var json = System.Text.Json.JsonSerializer.Serialize(response);
-                return context.Response.WriteAsync(json);
-            }
-
-            // For web pages redirect to login
-            if (!context.Response.HasStarted)
-            {
-                context.Response.Redirect("/login");
-                context.HandleResponse();
-            }
-
+            // ✅ НЕ РОБИМО АВТОМАТИЧНИЙ CHALLENGE ДЛЯ JWT
+            // Це дозволить основній схемі (cookies) обробити автентифікацію
+            context.HandleResponse();
             return Task.CompletedTask;
         }
     };
 });
 
-// AUTHORIZATION
+// ✅ AUTHORIZATION З ПОЛІТИКАМИ ДЛЯ РІЗНИХ СХЕМ
 builder.Services.AddAuthorizationCore(options =>
 {
     options.AddPolicy("ApiPolicy", policy =>
     {
+        policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
+        policy.RequireAuthenticatedUser();
+    });
+
+    // Політика для Blazor сторінок що використовують cookies
+    options.AddPolicy("WebPolicy", policy =>
+    {
+        policy.AddAuthenticationSchemes(IdentityConstants.ApplicationScheme);
+        policy.RequireAuthenticatedUser();
+    });
+
+    // Комбінована політика (підтримує обидві схеми)
+    options.AddPolicy("HybridPolicy", policy =>
+    {
+        policy.AddAuthenticationSchemes(
+            IdentityConstants.ApplicationScheme,
+            JwtBearerDefaults.AuthenticationScheme);
         policy.RequireAuthenticatedUser();
     });
 });
 
-// JWT AUTHENTICATION STATE PROVIDER
+// ✅ IDENTITY ДЛЯ BLAZOR SERVER
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<AuthenticationStateProvider, JwtAuthenticationStateProvider>();
 
@@ -142,8 +186,8 @@ builder.Services.AddHttpClient("OpenAI", client =>
     client.Timeout = TimeSpan.FromSeconds(60);
 });
 
-// HTTP CLIENT FOR BLAZOR WEBASSEMBLY WITH JWT
-builder.Services.AddScoped(sp =>
+// ✅ HTTP CLIENT ДЛЯ ВНУТРІШНІХ API ЗАПИТІВ
+builder.Services.AddHttpClient("InternalApi", (sp, client) =>
 {
     var tokenService = sp.GetRequiredService<JwtTokenService>();
     var environment = sp.GetRequiredService<IWebHostEnvironment>();
@@ -163,10 +207,47 @@ builder.Services.AddScoped(sp =>
     httpClient.BaseAddress = new Uri(baseUrl);
     httpClient.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Client");
 
-    return httpClient;
+}).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
+{
+    UseCookies = true,
+    ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
 });
 
-// CLIENT SERVICES WITH JWT
+// ✅ DEFAULT HTTP CLIENT для Blazor Server
+builder.Services.AddScoped(sp =>
+{
+    var factory = sp.GetRequiredService<IHttpClientFactory>();
+    var httpContextAccessor = sp.GetRequiredService<IHttpContextAccessor>();
+    var httpContext = httpContextAccessor.HttpContext;
+
+    var client = factory.CreateClient("InternalApi");
+
+    // Для Blazor Server передаємо cookies з поточного HTTP контексту
+    if (httpContext != null)
+    {
+        var cookieHeader = httpContext.Request.Headers.Cookie.ToString();
+        if (!string.IsNullOrEmpty(cookieHeader))
+        {
+            client.DefaultRequestHeaders.Remove("Cookie");
+            client.DefaultRequestHeaders.Add("Cookie", cookieHeader);
+        }
+
+        // Передаємо інформацію про користувача
+        if (httpContext.User?.Identity?.IsAuthenticated == true)
+        {
+            var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (!string.IsNullOrEmpty(userId))
+            {
+                client.DefaultRequestHeaders.Remove("X-User-Id");
+                client.DefaultRequestHeaders.Add("X-User-Id", userId);
+            }
+        }
+    }
+
+    return client;
+});
+
+// ✅ КЛІЄНТСЬКІ СЕРВІСИ
 builder.Services.AddScoped<CltiApiClient>();
 builder.Services.AddScoped<CLTI.Diagnosis.Client.Services.CltiCaseService>();
 builder.Services.AddScoped<IUserClientService, UserClientService>();
@@ -229,10 +310,26 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(CLTI.Diagnosis.Client._Imports).Assembly);
 
-// CONTROLLERS WITH JWT AUTHORIZATION
+// ✅ CONTROLLERS З МОЖЛИВІСТЮ ВИБОРУ ПОЛІТИКИ
 app.MapControllers();
 
-// HEALTH CHECK
+// ✅ LOGOUT ENDPOINT
+app.MapPost("/Account/Logout", async (HttpContext context) =>
+{
+    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("User logout requested");
+
+    await context.SignOutAsync(IdentityConstants.ApplicationScheme);
+
+    // Очищаємо cookies
+    context.Response.Cookies.Delete(".AspNetCore.Identity.Application");
+    context.Response.Cookies.Delete(".AspNetCore.Antiforgery.mYlosc6T-lA");
+
+    logger.LogInformation("User logged out successfully");
+    return Results.Redirect("/");
+});
+
+// ✅ HEALTH CHECK ENDPOINT
 app.MapGet("/health", () =>
 {
     return Results.Ok(new

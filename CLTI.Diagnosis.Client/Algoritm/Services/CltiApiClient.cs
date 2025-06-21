@@ -1,4 +1,5 @@
-﻿using System.Net.Http.Json;
+﻿// ✅ Оновлений CltiApiClient з JWT
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Net;
 
@@ -7,11 +8,13 @@ namespace CLTI.Diagnosis.Client.Services
     public class CltiApiClient
     {
         private readonly HttpClient _httpClient;
+        private readonly JwtTokenService _tokenService;
         private readonly JsonSerializerOptions _jsonOptions;
 
-        public CltiApiClient(HttpClient httpClient)
+        public CltiApiClient(HttpClient httpClient, JwtTokenService tokenService)
         {
             _httpClient = httpClient;
+            _tokenService = tokenService;
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -19,11 +22,27 @@ namespace CLTI.Diagnosis.Client.Services
             };
         }
 
+        private async Task<HttpRequestMessage> CreateAuthenticatedRequestAsync(HttpMethod method, string url)
+        {
+            var request = new HttpRequestMessage(method, url);
+
+            var token = await _tokenService.GetTokenAsync();
+            if (!string.IsNullOrEmpty(token))
+            {
+                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            }
+
+            return request;
+        }
+
         public async Task<ApiResponse<SaveCaseResponse>> SaveCaseAsync(StateServiceDto stateDto)
         {
             try
             {
-                var response = await _httpClient.PostAsJsonAsync("/api/clticase/save", stateDto, _jsonOptions);
+                var request = await CreateAuthenticatedRequestAsync(HttpMethod.Post, "/api/clticase/save");
+                request.Content = JsonContent.Create(stateDto, options: _jsonOptions);
+
+                var response = await _httpClient.SendAsync(request);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -40,7 +59,7 @@ namespace CLTI.Diagnosis.Client.Services
                     return new ApiResponse<SaveCaseResponse>
                     {
                         Success = false,
-                        Error = "Помилка авторизації"
+                        Error = "Помилка авторизації - токен недійсний"
                     };
                 }
                 else
@@ -67,7 +86,8 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
-                var response = await _httpClient.GetAsync($"/api/clticase/{caseId}");
+                var request = await CreateAuthenticatedRequestAsync(HttpMethod.Get, $"/api/clticase/{caseId}");
+                var response = await _httpClient.SendAsync(request);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -84,7 +104,7 @@ namespace CLTI.Diagnosis.Client.Services
                     return new ApiResponse<StateServiceDto>
                     {
                         Success = false,
-                        Error = "Помилка авторизації"
+                        Error = "Помилка авторизації - токен недійсний"
                     };
                 }
                 else if (response.StatusCode == HttpStatusCode.NotFound)
@@ -119,7 +139,10 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
-                var response = await _httpClient.PutAsJsonAsync($"/api/clticase/{caseId}", stateDto, _jsonOptions);
+                var request = await CreateAuthenticatedRequestAsync(HttpMethod.Put, $"/api/clticase/{caseId}");
+                request.Content = JsonContent.Create(stateDto, options: _jsonOptions);
+
+                var response = await _httpClient.SendAsync(request);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -136,7 +159,7 @@ namespace CLTI.Diagnosis.Client.Services
                     return new ApiResponse<SaveCaseResponse>
                     {
                         Success = false,
-                        Error = "Помилка авторизації"
+                        Error = "Помилка авторизації - токен недійсний"
                     };
                 }
                 else
@@ -163,7 +186,8 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
-                var response = await _httpClient.DeleteAsync($"/api/clticase/{caseId}");
+                var request = await CreateAuthenticatedRequestAsync(HttpMethod.Delete, $"/api/clticase/{caseId}");
+                var response = await _httpClient.SendAsync(request);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -179,7 +203,7 @@ namespace CLTI.Diagnosis.Client.Services
                     return new ApiResponse<bool>
                     {
                         Success = false,
-                        Error = "Помилка авторизації"
+                        Error = "Помилка авторизації - токен недійсний"
                     };
                 }
                 else if (response.StatusCode == HttpStatusCode.NotFound)
@@ -297,7 +321,7 @@ namespace CLTI.Diagnosis.Client.Services
         // === Додаткові поля ===
         public bool CannotSaveLimb { get; set; }
 
-        // === Розраховані значення (тільки для читання) ===
+        // === Розраховані значення ===
         public int? WLevelValue { get; set; }
         public int? ILevelValue { get; set; }
         public int? FILevelValue { get; set; }
@@ -324,4 +348,4 @@ namespace CLTI.Diagnosis.Client.Services
     }
 }
 
-#endregion
+    #endregion
