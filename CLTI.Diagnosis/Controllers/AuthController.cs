@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿// /app/CLTI.Diagnosis/Controllers/AuthController.cs
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -34,59 +35,79 @@ namespace CLTI.Diagnosis.Controllers
         {
             try
             {
-                _logger.LogInformation("Login attempt for user: {Email}", request.Email);
+                _logger.LogInformation("API Login attempt for user: {Email}", request.Email);
 
-                // Валідація запиту
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(new { message = "Invalid request data" });
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid request data",
+                        Data = ModelState
+                    });
                 }
 
-                // Хешування пароля
+                // Hash password
                 var hashedPassword = HashPassword(request.Password);
 
-                // Пошук користувача в базі даних
+                // Find user in database
                 var user = await _context.SysUsers
                     .Include(u => u.StatusEnumItem)
                     .FirstOrDefaultAsync(u => u.Email == request.Email && u.Password == hashedPassword);
 
                 if (user == null)
                 {
-                    _logger.LogWarning("Login failed for user {Email} - invalid credentials", request.Email);
-                    return Unauthorized(new { message = "Invalid email or password" });
+                    _logger.LogWarning("API Login failed for user {Email} - invalid credentials", request.Email);
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid email or password"
+                    });
                 }
 
-                // Перевірка статусу користувача
+                // Check user status
                 if (user.StatusEnumItem?.Name != "Active")
                 {
-                    _logger.LogWarning("Login failed for user {Email} - account not active", request.Email);
-                    return Unauthorized(new { message = "Account is not active" });
+                    _logger.LogWarning("API Login failed for user {Email} - account not active", request.Email);
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Account is not active"
+                    });
                 }
 
-                // Генерація JWT токена
+                // Generate JWT token
                 var token = GenerateJwtToken(user, request.RememberMe);
 
-                _logger.LogInformation("Login successful for user: {Email} (ID: {UserId})", user.Email, user.Id);
+                _logger.LogInformation("API Login successful for user: {Email} (ID: {UserId})", user.Email, user.Id);
 
-                // Повертаємо токен та інформацію про користувача
-                return Ok(new LoginResponse
+                return Ok(new ApiResponse<LoginResponse>
                 {
-                    Token = token,
-                    User = new UserInfo
+                    Success = true,
+                    Message = "Login successful",
+                    Data = new LoginResponse
                     {
-                        Id = user.Id,
-                        FirstName = user.FirstName ?? "",
-                        LastName = user.LastName,
-                        Email = user.Email,
-                        FullName = $"{user.FirstName} {user.LastName}".Trim()
-                    },
-                    Message = "Login successful"
+                        Token = token,
+                        User = new UserDto
+                        {
+                            Id = user.Id,
+                            FirstName = user.FirstName ?? "",
+                            LastName = user.LastName,
+                            Email = user.Email,
+                            FullName = $"{user.FirstName} {user.LastName}".Trim()
+                        },
+                        ExpiresAt = DateTime.UtcNow.AddHours(request.RememberMe ? 24 * 30 : 24)
+                    }
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during login for user {Email}", request.Email);
-                return StatusCode(500, new { message = "An error occurred during login" });
+                _logger.LogError(ex, "Error during API login for user {Email}", request.Email);
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred during login"
+                });
             }
         }
 
@@ -95,31 +116,39 @@ namespace CLTI.Diagnosis.Controllers
         {
             try
             {
-                _logger.LogInformation("Registration attempt for user: {Email}", request.Email);
+                _logger.LogInformation("API Registration attempt for user: {Email}", request.Email);
 
-                // Валідація запиту
                 if (!ModelState.IsValid)
                 {
-                    return BadRequest(new { message = "Invalid request data" });
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid request data",
+                        Data = ModelState
+                    });
                 }
 
-                // Перевірка чи користувач вже існує
+                // Check if user already exists
                 var existingUser = await _context.SysUsers
                     .FirstOrDefaultAsync(u => u.Email == request.Email);
 
                 if (existingUser != null)
                 {
-                    _logger.LogWarning("Registration failed - user {Email} already exists", request.Email);
-                    return BadRequest(new { message = "User with this email already exists" });
+                    _logger.LogWarning("API Registration failed - user {Email} already exists", request.Email);
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "User with this email already exists"
+                    });
                 }
 
-                // Отримання або створення статусу "Active"
+                // Get or create active status
                 var activeStatus = await GetOrCreateActiveStatusAsync();
 
-                // Хешування пароля
+                // Hash password
                 var hashedPassword = HashPassword(request.Password);
 
-                // Створення нового користувача
+                // Create new user
                 var newUser = new SysUser
                 {
                     FirstName = request.FirstName,
@@ -137,7 +166,7 @@ namespace CLTI.Diagnosis.Controllers
                 _logger.LogInformation("User {Email} registered successfully with ID {UserId}",
                     newUser.Email, newUser.Id);
 
-                return Ok(new RegisterResponse
+                return Ok(new ApiResponse<object>
                 {
                     Success = true,
                     Message = "Registration successful. You can now log in."
@@ -145,8 +174,12 @@ namespace CLTI.Diagnosis.Controllers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during registration for user {Email}", request.Email);
-                return StatusCode(500, new { message = "An error occurred during registration" });
+                _logger.LogError(ex, "Error during API registration for user {Email}", request.Email);
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred during registration"
+                });
             }
         }
 
@@ -155,17 +188,21 @@ namespace CLTI.Diagnosis.Controllers
         {
             try
             {
-                _logger.LogInformation("User logout requested");
-
-                // В JWT-based auth, logout обробляється на клієнті
-                // Тут можна додати логіку для blacklist токенів якщо потрібно
-
-                return Ok(new { message = "Logout successful" });
+                _logger.LogInformation("API User logout requested");
+                return Ok(new ApiResponse<object>
+                {
+                    Success = true,
+                    Message = "Logout successful"
+                });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during logout");
-                return StatusCode(500, new { message = "An error occurred during logout" });
+                _logger.LogError(ex, "Error during API logout");
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred during logout"
+                });
             }
         }
 
@@ -174,63 +211,134 @@ namespace CLTI.Diagnosis.Controllers
         {
             try
             {
-                // Базова валідація токена
                 if (string.IsNullOrEmpty(request.Token))
                 {
-                    return BadRequest(new { message = "Token is required" });
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Token is required"
+                    });
                 }
 
-                // Декодування токена без валідації підпису для отримання claims
+                // Decode token without validating signature to get claims
                 var handler = new JwtSecurityTokenHandler();
                 var jsonToken = handler.ReadJwtToken(request.Token);
 
                 var userIdClaim = jsonToken.Claims.FirstOrDefault(c => c.Type == ClaimTypes.NameIdentifier)?.Value;
                 if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out var userId))
                 {
-                    return BadRequest(new { message = "Invalid token" });
+                    return BadRequest(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid token"
+                    });
                 }
 
-                // Отримання користувача
+                // Get user
                 var user = await _context.SysUsers
                     .Include(u => u.StatusEnumItem)
                     .FirstOrDefaultAsync(u => u.Id == userId);
 
                 if (user == null || user.StatusEnumItem?.Name != "Active")
                 {
-                    return Unauthorized(new { message = "User not found or not active" });
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "User not found or not active"
+                    });
                 }
 
-                // Генерація нового токена
+                // Generate new token
                 var newToken = GenerateJwtToken(user, false);
 
-                _logger.LogInformation("Token refreshed for user: {Email}", user.Email);
+                _logger.LogInformation("API Token refreshed for user: {Email}", user.Email);
 
-                return Ok(new LoginResponse
+                return Ok(new ApiResponse<LoginResponse>
                 {
-                    Token = newToken,
-                    User = new UserInfo
+                    Success = true,
+                    Message = "Token refreshed successfully",
+                    Data = new LoginResponse
+                    {
+                        Token = newToken,
+                        User = new UserDto
+                        {
+                            Id = user.Id,
+                            FirstName = user.FirstName ?? "",
+                            LastName = user.LastName,
+                            Email = user.Email,
+                            FullName = $"{user.FirstName} {user.LastName}".Trim()
+                        },
+                        ExpiresAt = DateTime.UtcNow.AddHours(24)
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during API token refresh");
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred during token refresh"
+                });
+            }
+        }
+
+        [HttpGet("me")]
+        [Microsoft.AspNetCore.Authorization.Authorize]
+        public async Task<IActionResult> GetCurrentUser()
+        {
+            try
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                if (!int.TryParse(userIdClaim, out var userId))
+                {
+                    return Unauthorized(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "Invalid user token"
+                    });
+                }
+
+                var user = await _context.SysUsers
+                    .Include(u => u.StatusEnumItem)
+                    .FirstOrDefaultAsync(u => u.Id == userId);
+
+                if (user == null)
+                {
+                    return NotFound(new ApiResponse<object>
+                    {
+                        Success = false,
+                        Message = "User not found"
+                    });
+                }
+
+                return Ok(new ApiResponse<UserDto>
+                {
+                    Success = true,
+                    Message = "User retrieved successfully",
+                    Data = new UserDto
                     {
                         Id = user.Id,
                         FirstName = user.FirstName ?? "",
                         LastName = user.LastName,
                         Email = user.Email,
                         FullName = $"{user.FirstName} {user.LastName}".Trim()
-                    },
-                    Message = "Token refreshed successfully"
+                    }
                 });
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error during token refresh");
-                return StatusCode(500, new { message = "An error occurred during token refresh" });
+                _logger.LogError(ex, "Error getting current user");
+                return StatusCode(500, new ApiResponse<object>
+                {
+                    Success = false,
+                    Message = "An error occurred while retrieving user information"
+                });
             }
         }
 
         #region Private Methods
 
-        /// <summary>
-        /// Генерує JWT токен для користувача
-        /// </summary>
         private string GenerateJwtToken(SysUser user, bool rememberMe)
         {
             var jwtKey = _configuration["Jwt:Key"] ?? "your-super-secret-jwt-key-min-256-bits-long-for-security";
@@ -254,10 +362,9 @@ namespace CLTI.Diagnosis.Controllers
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            // Встановлюємо час життя токена
             var expiry = rememberMe
-                ? DateTime.UtcNow.AddDays(30)  // 30 днів для "Remember Me"
-                : DateTime.UtcNow.AddHours(24); // 24 години для звичайного входу
+                ? DateTime.UtcNow.AddDays(30)
+                : DateTime.UtcNow.AddHours(24);
 
             var token = new JwtSecurityToken(
                 issuer: jwtIssuer,
@@ -270,9 +377,6 @@ namespace CLTI.Diagnosis.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        /// <summary>
-        /// Хешує пароль користувача
-        /// </summary>
         private static string HashPassword(string password)
         {
             using var md5 = MD5.Create();
@@ -281,9 +385,6 @@ namespace CLTI.Diagnosis.Controllers
             return Convert.ToHexString(hashBytes).ToLower();
         }
 
-        /// <summary>
-        /// Отримує або створює статус "Active"
-        /// </summary>
         private async Task<SysEnumItem> GetOrCreateActiveStatusAsync()
         {
             var activeStatus = await _context.SysEnumItems
@@ -325,7 +426,15 @@ namespace CLTI.Diagnosis.Controllers
         #endregion
     }
 
-    #region Request/Response Models
+    #region DTOs
+
+    public class ApiResponse<T>
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public T? Data { get; set; }
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+    }
 
     public class LoginRequest
     {
@@ -367,17 +476,11 @@ namespace CLTI.Diagnosis.Controllers
     public class LoginResponse
     {
         public string Token { get; set; } = string.Empty;
-        public UserInfo User { get; set; } = new();
-        public string Message { get; set; } = string.Empty;
+        public UserDto User { get; set; } = new();
+        public DateTime ExpiresAt { get; set; }
     }
 
-    public class RegisterResponse
-    {
-        public bool Success { get; set; }
-        public string Message { get; set; } = string.Empty;
-    }
-
-    public class UserInfo
+    public class UserDto
     {
         public int Id { get; set; }
         public string FirstName { get; set; } = string.Empty;
@@ -385,6 +488,6 @@ namespace CLTI.Diagnosis.Controllers
         public string Email { get; set; } = string.Empty;
         public string FullName { get; set; } = string.Empty;
     }
-}
 
     #endregion
+}

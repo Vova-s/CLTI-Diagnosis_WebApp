@@ -1,167 +1,146 @@
-﻿@page "/Account/Login"
+﻿@* /app/CLTI.Diagnosis/Components/Pages/Login.razor *@
+@page "/login"
+@using CLTI.Diagnosis.Client.Services
+@inject AuthApiService AuthApi
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
 
-@using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Authentication
-@using Microsoft.AspNetCore.Identity
-@using CLTI.Diagnosis.Data
-@using CLTI.Diagnosis.Data.Entities
-@using CLTI.Diagnosis.Services
-@using Microsoft.EntityFrameworkCore
-@using System.Security.Cryptography
-@using System.Text
+<PageTitle>Login - CLTI Diagnosis</PageTitle>
 
-@inject ApplicationDbContext DbContext
-@inject ILogger<Login> Logger
-@inject NavigationManager NavigationManager
+<div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div class="max-w-md w-full space-y-8">
+        <div>
+            <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                Sign in to your account
+            </h2>
+        </div>
+        <div class="mt-8 space-y-6">
+            <EditForm Model="@loginModel" OnValidSubmit="@HandleLogin">
+                <DataAnnotationsValidator />
 
-<PageTitle>Log in</PageTitle>
+                @if (!string.IsNullOrEmpty(errorMessage))
+                {
+                    <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative" role="alert">
+                        <span class="block sm:inline">@errorMessage</span>
+                    </div>
+                }
 
-<div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
-    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md mb-4">
-        <h2 class="text-2xl font-bold text-center mb-6">Log in</h2>
+                <div class="rounded-md shadow-sm -space-y-px">
+                    <div>
+                        <label for="email" class="sr-only">Email address</label>
+                        <InputText @bind-Value="loginModel.Email" type="email" autocomplete="email" required
+                                   class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                   placeholder="Email address" />
+                        <ValidationMessage For="@(() => loginModel.Email)" class="text-red-600 text-sm" />
+                    </div>
+                    <div>
+                        <label for="password" class="sr-only">Password</label>
+                        <InputText @bind-Value="loginModel.Password" type="password" autocomplete="current-password" required
+                                   class="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                                   placeholder="Password" />
+                        <ValidationMessage For="@(() => loginModel.Password)" class="text-red-600 text-sm" />
+                    </div>
+                </div>
 
-        @if (!string.IsNullOrEmpty(errorMessage))
-        {
-            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-                <p>@errorMessage</p>
-            </div>
-        }
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center">
+                        <InputCheckbox @bind-Value="loginModel.RememberMe"
+                                       class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded" />
+                        <label for="remember-me" class="ml-2 block text-sm text-gray-900">
+                            Remember me
+                        </label>
+                    </div>
+                </div>
 
-        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-            <DataAnnotationsValidator />
+                <div>
+                    <button type="submit" disabled="@isLoading"
+                            class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50">
+                        @if (isLoading)
+                        {
+                            <span class="absolute left-0 inset-y-0 flex items-center pl-3">
+                                <svg class="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                            </span>
+                            <span class="ml-3">Signing in...</span>
+                        }
+                        else
+                        {
+                            <span>Sign in</span>
+                        }
+                    </button>
+                </div>
 
-            <!-- Email field -->
-            <div class="mb-4">
-                <label for="Input.Email" class="block text-gray-700 text-sm font-bold mb-2">Email *</label>
-                <InputText @bind-Value="Input.Email"
-                           id="Input.Email"
-                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                           autocomplete="username"
-                           aria-required="true"
-                           placeholder="name@example.com" />
-                <ValidationMessage For="() => Input.Email" class="text-red-500 text-sm mt-1" />
-            </div>
-
-            <!-- Password field -->
-            <div class="mb-4">
-                <label for="Input.Password" class="block text-gray-700 text-sm font-bold mb-2">Password *</label>
-                <InputText type="password"
-                           @bind-Value="Input.Password"
-                           id="Input.Password"
-                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
-                           autocomplete="current-password"
-                           aria-required="true"
-                           placeholder="Enter your password" />
-                <ValidationMessage For="() => Input.Password" class="text-red-500 text-sm mt-1" />
-            </div>
-
-            <!-- Remember me checkbox -->
-            <div class="mb-4">
-                <label class="flex items-center">
-                    <InputCheckbox @bind-Value="Input.RememberMe"
-                                   class="mr-2 border-gray-300 rounded" />
-                    <span class="text-sm text-gray-700">Remember me</span>
-                </label>
-            </div>
-
-            <!-- Login button -->
-            <div class="mb-6">
-                <button type="submit"
-                        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded w-full transition duration-200">
-                    Log in
-                </button>
-            </div>
-
-            <!-- Links section -->
-            <div class="text-center text-sm">
-                <p class="mb-2">
-                    <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))"
-                       class="text-blue-500 hover:underline">Register as a new user</a>
-                </p>
-            </div>
-        </EditForm>
+                <div class="text-center">
+                    <p class="text-sm text-gray-600">
+                        Don't have an account?
+                        <a href="/register" class="font-medium text-indigo-600 hover:text-indigo-500">
+                            Sign up
+                        </a>
+                    </p>
+                </div>
+            </EditForm>
+        </div>
     </div>
 </div>
 
 @code {
-    private string? errorMessage;
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
-
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
+    private LoginModel loginModel = new();
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
 
     [SupplyParameterFromQuery]
-    private string? ReturnUrl { get; set; }
+    public string? ReturnUrl { get; set; }
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        // No external authentication setup needed
+        // Check if user is already authenticated
+        if (await AuthApi.IsAuthenticatedAsync())
+        {
+            Navigation.NavigateTo(ReturnUrl ?? "/", true);
+        }
     }
 
-    public async Task LoginUser()
+    private async Task HandleLogin()
     {
         try
         {
-            var hashedPassword = HashPassword(Input.Password);
+            isLoading = true;
+            errorMessage = string.Empty;
 
-            var user = await DbContext.SysUsers
-                .FirstOrDefaultAsync(u => u.Email == Input.Email && u.Password == hashedPassword);
+            var result = await AuthApi.LoginAsync(loginModel.Email, loginModel.Password, loginModel.RememberMe);
 
-            if (user != null)
+            if (result.Success && result.Data != null)
             {
-                var claims = new List<System.Security.Claims.Claim>
-            {
-                new(System.Security.Claims.ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new(System.Security.Claims.ClaimTypes.Name, user.Email),
-                new(System.Security.Claims.ClaimTypes.Email, user.Email)
-            };
-
-                var identity = new System.Security.Claims.ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
-                var principal = new System.Security.Claims.ClaimsPrincipal(identity);
-
-                await HttpContext.SignInAsync(IdentityConstants.ApplicationScheme, principal,
-                    new AuthenticationProperties { IsPersistent = Input.RememberMe });
-
-                Logger.LogInformation("User {Email} logged in.", Input.Email);
-
-                var redirectUrl = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
-
-                // 🔄 Безпечний HTTP редирект
-                HttpContext.Response.Redirect(redirectUrl);
+                // Redirect to return URL or home
+                Navigation.NavigateTo(ReturnUrl ?? "/", true);
             }
             else
             {
-                errorMessage = "Error: Invalid login attempt.";
+                errorMessage = result.Message;
             }
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error during login for user {Email}", Input.Email);
-            errorMessage = "Error: An error occurred during login.";
+            errorMessage = "An error occurred during login. Please try again.";
+        }
+        finally
+        {
+            isLoading = false;
         }
     }
 
-    private static string HashPassword(string password)
-    {
-        using var md5 = MD5.Create();
-        var inputBytes = Encoding.UTF8.GetBytes(password);
-        var hashBytes = md5.ComputeHash(inputBytes);
-        return Convert.ToHexString(hashBytes).ToLower();
-    }
-
-    private sealed class InputModel
+    public class LoginModel
     {
         [Required]
         [EmailAddress]
-        public string Email { get; set; } = "";
+        public string Email { get; set; } = string.Empty;
 
         [Required]
-        [DataType(DataType.Password)]
-        public string Password { get; set; } = "";
+        [MinLength(6)]
+        public string Password { get; set; } = string.Empty;
 
-        [Display(Name = "Remember me?")]
-        public bool RememberMe { get; set; }
+        public bool RememberMe { get; set; } = false;
     }
 }
