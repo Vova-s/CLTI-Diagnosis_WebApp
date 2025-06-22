@@ -1,32 +1,43 @@
-﻿using Microsoft.IdentityModel.Tokens;
-using System.IdentityModel.Tokens.Jwt;
+﻿using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
-using System.Text;
+using System.Text.Json;
 using Microsoft.JSInterop;
 
-namespace CLTI.Diagnosis.Services
+namespace CLTI.Diagnosis.Client.Services
 {
     /// <summary>
     /// Сервіс для роботи з JWT токенами
     /// </summary>
     public class JwtTokenService
     {
-        private readonly IConfiguration _configuration;
         private readonly IJSRuntime _jsRuntime;
         private readonly ILogger<JwtTokenService> _logger;
         private readonly JwtSecurityTokenHandler _tokenHandler;
+        private const string TOKEN_KEY = "clti_jwt_token";
+        private const string USER_KEY = "clti_current_user";
 
-        private const string TOKEN_KEY = "jwt_token";
-
-        public JwtTokenService(
-            IConfiguration configuration,
-            IJSRuntime jsRuntime,
-            ILogger<JwtTokenService> logger)
+        public JwtTokenService(IJSRuntime jsRuntime, ILogger<JwtTokenService> logger)
         {
-            _configuration = configuration;
             _jsRuntime = jsRuntime;
             _logger = logger;
             _tokenHandler = new JwtSecurityTokenHandler();
+        }
+
+        /// <summary>
+        /// Зберігає JWT токен в localStorage
+        /// </summary>
+        public async Task SetTokenAsync(string token)
+        {
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, token);
+                _logger.LogInformation("Token saved successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving token to localStorage");
+                throw;
+            }
         }
 
         /// <summary>
@@ -52,7 +63,7 @@ namespace CLTI.Diagnosis.Services
                 else
                 {
                     _logger.LogWarning("Token found but expired, removing from localStorage");
-                    await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY);
+                    await RemoveTokenAsync();
                     return null;
                 }
             }
@@ -64,23 +75,6 @@ namespace CLTI.Diagnosis.Services
         }
 
         /// <summary>
-        /// Зберігає JWT токен в localStorage
-        /// </summary>
-        public async Task SetTokenAsync(string token)
-        {
-            try
-            {
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, token);
-                _logger.LogDebug("Token stored in localStorage");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error storing token in localStorage");
-                throw;
-            }
-        }
-
-        /// <summary>
         /// Видаляє JWT токен з localStorage
         /// </summary>
         public async Task RemoveTokenAsync()
@@ -88,7 +82,8 @@ namespace CLTI.Diagnosis.Services
             try
             {
                 await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY);
-                _logger.LogDebug("Token removed from localStorage");
+                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", USER_KEY);
+                _logger.LogInformation("Token removed successfully");
             }
             catch (Exception ex)
             {
@@ -190,39 +185,6 @@ namespace CLTI.Diagnosis.Services
         }
 
         /// <summary>
-        /// Валідує JWT токен за допомогою ключа
-        /// </summary>
-        public bool ValidateToken(string token)
-        {
-            try
-            {
-                var jwtKey = _configuration["Jwt:Key"] ?? "your-super-secret-jwt-key-min-256-bits-long-for-security-purposes-12345";
-                var jwtIssuer = _configuration["Jwt:Issuer"] ?? "CLTI.Diagnosis";
-                var jwtAudience = _configuration["Jwt:Audience"] ?? "CLTI.Diagnosis.Client";
-
-                var tokenValidationParameters = new TokenValidationParameters
-                {
-                    ValidateIssuer = true,
-                    ValidateAudience = true,
-                    ValidateLifetime = true,
-                    ValidateIssuerSigningKey = true,
-                    ValidIssuer = jwtIssuer,
-                    ValidAudience = jwtAudience,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey)),
-                    ClockSkew = TimeSpan.Zero
-                };
-
-                _tokenHandler.ValidateToken(token, tokenValidationParameters, out var validatedToken);
-                return validatedToken != null;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug("Token validation failed: {Error}", ex.Message);
-                return false;
-            }
-        }
-
-        /// <summary>
         /// Отримує час закінчення дії токена
         /// </summary>
         public DateTime? GetTokenExpiration(string token)
@@ -252,6 +214,43 @@ namespace CLTI.Diagnosis.Services
                 return true;
 
             return expiration.Value <= DateTime.UtcNow.AddMinutes(5);
+        }
+
+        /// <summary>
+        /// Зберігає інформацію про користувача
+        /// </summary>
+        public async Task SetUserAsync(UserInfo user)
+        {
+            try
+            {
+                var userJson = JsonSerializer.Serialize(user);
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", USER_KEY, userJson);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving user to localStorage");
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Отримує збережену інформацію про користувача
+        /// </summary>
+        public async Task<UserInfo?> GetUserAsync()
+        {
+            try
+            {
+                var userJson = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", USER_KEY);
+                if (string.IsNullOrEmpty(userJson))
+                    return null;
+
+                return JsonSerializer.Deserialize<UserInfo>(userJson);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting user from localStorage");
+                return null;
+            }
         }
     }
 }

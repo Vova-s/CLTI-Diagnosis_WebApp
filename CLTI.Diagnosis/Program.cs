@@ -10,6 +10,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication;
+using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -189,7 +192,7 @@ builder.Services.AddHttpClient("OpenAI", client =>
 // ✅ HTTP CLIENT ДЛЯ ВНУТРІШНІХ API ЗАПИТІВ
 builder.Services.AddHttpClient("InternalApi", (sp, client) =>
 {
-    var tokenService = sp.GetRequiredService<JwtTokenService>();
+
     var environment = sp.GetRequiredService<IWebHostEnvironment>();
 
     var httpClient = new HttpClient();
@@ -253,6 +256,7 @@ builder.Services.AddScoped<CLTI.Diagnosis.Client.Services.CltiCaseService>();
 builder.Services.AddScoped<IUserClientService, UserClientService>();
 builder.Services.AddScoped<IClientApiKeyService, ClientApiKeyService>();
 builder.Services.AddScoped<AiChatClient>();
+builder.Services.AddScoped<AuthApiService>();
 
 // Logging
 builder.Services.AddLogging(logging =>

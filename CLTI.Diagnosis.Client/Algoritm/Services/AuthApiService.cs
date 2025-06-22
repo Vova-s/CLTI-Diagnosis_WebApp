@@ -25,7 +25,7 @@ namespace CLTI.Diagnosis.Client.Services
             };
         }
 
-        public async Task<ApiResult<LoginResponse>> LoginAsync(string email, string password, bool rememberMe = false)
+        public async Task<AuthApiResult<AuthLoginResponse>> LoginAsync(string email, string password, bool rememberMe = false)
         {
             try
             {
@@ -41,7 +41,7 @@ namespace CLTI.Diagnosis.Client.Services
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var apiResponse = JsonSerializer.Deserialize<ApiResponse<LoginResponse>>(content, _jsonOptions);
+                    var apiResponse = JsonSerializer.Deserialize<AuthApiResponse<AuthLoginResponse>>(content, _jsonOptions);
 
                     if (apiResponse?.Success == true && apiResponse.Data != null)
                     {
@@ -53,7 +53,7 @@ namespace CLTI.Diagnosis.Client.Services
                         _httpClient.DefaultRequestHeaders.Authorization =
                             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiResponse.Data.Token);
 
-                        return new ApiResult<LoginResponse>
+                        return new AuthApiResult<AuthLoginResponse>
                         {
                             Success = true,
                             Data = apiResponse.Data,
@@ -62,8 +62,8 @@ namespace CLTI.Diagnosis.Client.Services
                     }
                 }
 
-                var errorResponse = JsonSerializer.Deserialize<ApiResponse<object>>(content, _jsonOptions);
-                return new ApiResult<LoginResponse>
+                var errorResponse = JsonSerializer.Deserialize<AuthApiResponse<object>>(content, _jsonOptions);
+                return new AuthApiResult<AuthLoginResponse>
                 {
                     Success = false,
                     Message = errorResponse?.Message ?? "Login failed"
@@ -71,7 +71,7 @@ namespace CLTI.Diagnosis.Client.Services
             }
             catch (Exception ex)
             {
-                return new ApiResult<LoginResponse>
+                return new AuthApiResult<AuthLoginResponse>
                 {
                     Success = false,
                     Message = $"Network error: {ex.Message}"
@@ -79,7 +79,7 @@ namespace CLTI.Diagnosis.Client.Services
             }
         }
 
-        public async Task<ApiResult<object>> RegisterAsync(string email, string password, string firstName, string lastName)
+        public async Task<AuthApiResult<object>> RegisterAsync(string email, string password, string firstName, string lastName)
         {
             try
             {
@@ -94,9 +94,9 @@ namespace CLTI.Diagnosis.Client.Services
                 var response = await _httpClient.PostAsJsonAsync("/api/auth/register", request);
                 var content = await response.Content.ReadAsStringAsync();
 
-                var apiResponse = JsonSerializer.Deserialize<ApiResponse<object>>(content, _jsonOptions);
+                var apiResponse = JsonSerializer.Deserialize<AuthApiResponse<object>>(content, _jsonOptions);
 
-                return new ApiResult<object>
+                return new AuthApiResult<object>
                 {
                     Success = apiResponse?.Success ?? false,
                     Message = apiResponse?.Message ?? "Registration failed",
@@ -105,7 +105,7 @@ namespace CLTI.Diagnosis.Client.Services
             }
             catch (Exception ex)
             {
-                return new ApiResult<object>
+                return new AuthApiResult<object>
                 {
                     Success = false,
                     Message = $"Network error: {ex.Message}"
@@ -113,7 +113,7 @@ namespace CLTI.Diagnosis.Client.Services
             }
         }
 
-        public async Task<ApiResult<object>> LogoutAsync()
+        public async Task<AuthApiResult<object>> LogoutAsync()
         {
             try
             {
@@ -127,7 +127,7 @@ namespace CLTI.Diagnosis.Client.Services
                 // Clear authorization header
                 _httpClient.DefaultRequestHeaders.Authorization = null;
 
-                return new ApiResult<object>
+                return new AuthApiResult<object>
                 {
                     Success = true,
                     Message = "Logged out successfully"
@@ -135,7 +135,7 @@ namespace CLTI.Diagnosis.Client.Services
             }
             catch (Exception ex)
             {
-                return new ApiResult<object>
+                return new AuthApiResult<object>
                 {
                     Success = false,
                     Message = $"Logout error: {ex.Message}"
@@ -143,14 +143,14 @@ namespace CLTI.Diagnosis.Client.Services
             }
         }
 
-        public async Task<ApiResult<UserDto>> GetCurrentUserAsync()
+        public async Task<AuthApiResult<AuthUserDto>> GetCurrentUserAsync()
         {
             try
             {
                 var token = await GetTokenAsync();
                 if (string.IsNullOrEmpty(token))
                 {
-                    return new ApiResult<UserDto>
+                    return new AuthApiResult<AuthUserDto>
                     {
                         Success = false,
                         Message = "No authentication token"
@@ -165,9 +165,9 @@ namespace CLTI.Diagnosis.Client.Services
 
                 if (response.IsSuccessStatusCode)
                 {
-                    var apiResponse = JsonSerializer.Deserialize<ApiResponse<UserDto>>(content, _jsonOptions);
+                    var apiResponse = JsonSerializer.Deserialize<AuthApiResponse<AuthUserDto>>(content, _jsonOptions);
 
-                    return new ApiResult<UserDto>
+                    return new AuthApiResult<AuthUserDto>
                     {
                         Success = apiResponse?.Success ?? false,
                         Data = apiResponse?.Data,
@@ -175,8 +175,8 @@ namespace CLTI.Diagnosis.Client.Services
                     };
                 }
 
-                var errorResponse = JsonSerializer.Deserialize<ApiResponse<object>>(content, _jsonOptions);
-                return new ApiResult<UserDto>
+                var errorResponse = JsonSerializer.Deserialize<AuthApiResponse<object>>(content, _jsonOptions);
+                return new AuthApiResult<AuthUserDto>
                 {
                     Success = false,
                     Message = errorResponse?.Message ?? "Failed to get user info"
@@ -184,7 +184,7 @@ namespace CLTI.Diagnosis.Client.Services
             }
             catch (Exception ex)
             {
-                return new ApiResult<UserDto>
+                return new AuthApiResult<AuthUserDto>
                 {
                     Success = false,
                     Message = $"Network error: {ex.Message}"
@@ -204,7 +204,7 @@ namespace CLTI.Diagnosis.Client.Services
             }
         }
 
-        public async Task<UserDto?> GetStoredUserAsync()
+        public async Task<AuthUserDto?> GetStoredUserAsync()
         {
             try
             {
@@ -212,7 +212,7 @@ namespace CLTI.Diagnosis.Client.Services
                 if (string.IsNullOrEmpty(userJson))
                     return null;
 
-                return JsonSerializer.Deserialize<UserDto>(userJson, _jsonOptions);
+                return JsonSerializer.Deserialize<AuthUserDto>(userJson, _jsonOptions);
             }
             catch
             {
@@ -229,14 +229,14 @@ namespace CLTI.Diagnosis.Client.Services
     }
 
     #region DTOs
-    public class ApiResult<T>
+    public class AuthApiResult<T>
     {
         public bool Success { get; set; }
         public T? Data { get; set; }
         public string Message { get; set; } = string.Empty;
     }
 
-    public class ApiResponse<T>
+    public class AuthApiResponse<T>
     {
         public bool Success { get; set; }
         public string Message { get; set; } = string.Empty;
@@ -244,14 +244,14 @@ namespace CLTI.Diagnosis.Client.Services
         public DateTime Timestamp { get; set; }
     }
 
-    public class LoginResponse
+    public class AuthLoginResponse
     {
         public string Token { get; set; } = string.Empty;
-        public UserDto User { get; set; } = new();
+        public AuthUserDto User { get; set; } = new();
         public DateTime ExpiresAt { get; set; }
     }
 
-    public class UserDto
+    public class AuthUserDto
     {
         public int Id { get; set; }
         public string FirstName { get; set; } = string.Empty;

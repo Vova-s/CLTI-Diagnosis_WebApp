@@ -1,30 +1,22 @@
 ﻿using Microsoft.AspNetCore.Components.Authorization;
-using Microsoft.JSInterop;
 using System.Security.Claims;
-using System.Text.Json;
 
-namespace CLTI.Diagnosis.Services
+namespace CLTI.Diagnosis.Client.Services
 {
     /// <summary>
-    /// JWT-based Authentication State Provider
+    /// JWT-based Authentication State Provider для Blazor WebAssembly
     /// </summary>
     public class JwtAuthenticationStateProvider : AuthenticationStateProvider
     {
-        private readonly IJSRuntime _jsRuntime;
-        private readonly ILogger<JwtAuthenticationStateProvider> _logger;
         private readonly JwtTokenService _tokenService;
-
-        private const string TOKEN_KEY = "jwt_token";
-        private const string USER_KEY = "current_user";
+        private readonly ILogger<JwtAuthenticationStateProvider> _logger;
 
         public JwtAuthenticationStateProvider(
-            IJSRuntime jsRuntime,
-            ILogger<JwtAuthenticationStateProvider> logger,
-            JwtTokenService tokenService)
+            JwtTokenService tokenService,
+            ILogger<JwtAuthenticationStateProvider> logger)
         {
-            _jsRuntime = jsRuntime;
-            _logger = logger;
             _tokenService = tokenService;
+            _logger = logger;
         }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
@@ -33,7 +25,7 @@ namespace CLTI.Diagnosis.Services
             {
                 _logger.LogDebug("Getting authentication state...");
 
-                var token = await GetTokenAsync();
+                var token = await _tokenService.GetTokenAsync();
 
                 if (string.IsNullOrEmpty(token))
                 {
@@ -41,7 +33,7 @@ namespace CLTI.Diagnosis.Services
                     return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                 }
 
-                // Валідуємо токен
+                // Валідуємо токен та отримуємо claims
                 var claims = _tokenService.GetClaimsFromToken(token);
                 if (claims == null || !claims.Any())
                 {
@@ -77,8 +69,8 @@ namespace CLTI.Diagnosis.Services
                 _logger.LogInformation("Setting authentication for user: {Email}", user.Email);
 
                 // Зберігаємо токен та інформацію про користувача
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, token);
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", USER_KEY, JsonSerializer.Serialize(user));
+                await _tokenService.SetTokenAsync(token);
+                await _tokenService.SetUserAsync(user);
 
                 // Отримуємо claims з токена
                 var claims = _tokenService.GetClaimsFromToken(token);
@@ -112,8 +104,7 @@ namespace CLTI.Diagnosis.Services
             {
                 _logger.LogInformation("Clearing authentication");
 
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY);
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", USER_KEY);
+                await _tokenService.RemoveTokenAsync();
 
                 var anonymous = new ClaimsPrincipal(new ClaimsIdentity());
                 NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(anonymous)));
@@ -128,64 +119,50 @@ namespace CLTI.Diagnosis.Services
         }
 
         /// <summary>
-        /// Отримує поточний JWT токен
-        /// </summary>
-        public async Task<string?> GetTokenAsync()
-        {
-            try
-            {
-                return await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", TOKEN_KEY);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting token from localStorage");
-                return null;
-            }
-        }
-
-        /// <summary>
-        /// Отримує поточного користувача
-        /// </summary>
-        public async Task<UserInfo?> GetUserAsync()
-        {
-            try
-            {
-                var userJson = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", USER_KEY);
-                if (string.IsNullOrEmpty(userJson))
-                    return null;
-
-                return JsonSerializer.Deserialize<UserInfo>(userJson);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting user from localStorage");
-                return null;
-            }
-        }
-
-        /// <summary>
         /// Перевіряє чи користувач автентифікований
         /// </summary>
         public async Task<bool> IsAuthenticatedAsync()
         {
-            var token = await GetTokenAsync();
+            var token = await _tokenService.GetTokenAsync();
             if (string.IsNullOrEmpty(token))
                 return false;
 
             var claims = _tokenService.GetClaimsFromToken(token);
             return claims != null && claims.Any();
         }
-    }
 
-    /// <summary>
-    /// Модель інформації про користувача
-    /// </summary>
-    public class UserInfo
-    {
-        public int Id { get; set; }
-        public string FirstName { get; set; } = string.Empty;
-        public string LastName { get; set; } = string.Empty;
-        public string Email { get; set; } = string.Empty;
-        public string FullName { get; set; } = string.Empty;
+        /// <summary>
+        /// Отримує поточного користувача
+        /// </summary>
+        public async Task<UserInfo?> GetCurrentUserAsync()
+        {
+            try
+            {
+                var token = await _tokenService.GetTokenAsync();
+                if (string.IsNullOrEmpty(token))
+                    return null;
+
+                // Спочатку намагаємося отримати з токена
+                var userFromToken = _tokenService.GetUserFromToken(token);
+                if (userFromToken != null)
+                    return userFromToken;
+
+                // Якщо не вдалося з токена, отримуємо збережену інформацію
+                return await _tokenService.GetUserAsync();
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting current user");
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Оновлює стан автентифікації
+        /// </summary>
+        public void NotifyAuthenticationStateChangedManually()
+        {
+            NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+        }
     }
 }

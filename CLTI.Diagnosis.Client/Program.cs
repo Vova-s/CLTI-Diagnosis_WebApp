@@ -10,9 +10,11 @@ builder.Services.AddAuthorizationCore();
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddSingleton<StateService>();
 
-// Use existing JWT-based authentication state provider
-builder.Services.AddScoped<AuthenticationStateProvider, TokenAuthenticationStateProvider>();
-
+// JWT Authentication Services
+builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<JwtAuthenticationStateProvider>();
+builder.Services.AddScoped<AuthenticationStateProvider>(provider => provider.GetRequiredService<JwtAuthenticationStateProvider>());
+builder.Services.AddScoped<AuthApiService>();
 // HTTP Client for API calls
 builder.Services.AddScoped(sp =>
 {
@@ -21,8 +23,6 @@ builder.Services.AddScoped(sp =>
     httpClient.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Client");
     return httpClient;
 });
-
-builder.Services.AddScoped<AuthApiService>();
 
 // API Client services
 builder.Services.AddScoped<CltiApiClient>();
@@ -36,5 +36,8 @@ builder.Services.AddScoped<AiChatClient>();
 
 // User Client Service
 builder.Services.AddScoped<IUserClientService, UserClientService>();
+
+// JWT Authentication Service
+builder.Services.AddScoped<JwtAuthenticationService>();
 
 await builder.Build().RunAsync();
