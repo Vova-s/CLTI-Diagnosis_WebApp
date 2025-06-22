@@ -12,7 +12,9 @@ namespace CLTI.Diagnosis.Components.Account.Pages
 {
     public partial class Register
     {
-        private string? identityErrors;
+        private string? Message;
+        private string? successMessage;
+        private bool isLoading = false;
 
         [SupplyParameterFromForm]
         private InputModel Input { get; set; } = new();
@@ -20,104 +22,63 @@ namespace CLTI.Diagnosis.Components.Account.Pages
         [SupplyParameterFromQuery]
         private string? ReturnUrl { get; set; }
 
-        private string? Message => identityErrors;
-
-        public async Task RegisterUser(EditContext editContext)
+        public async Task RegisterUser()
         {
+            if (isLoading)
+                return;
+
             try
             {
-                var existingUser = await DbContext.SysUsers
-                    .FirstOrDefaultAsync(u => u.Email == Input.Email);
+                isLoading = true;
+                Message = null;
+                successMessage = null;
+                StateHasChanged();
 
-                if (existingUser != null)
+                Logger.LogInformation("Attempting JWT registration for user: {Email}", Input.Email);
+
+                // Використовуємо AuthApiService для JWT реєстрації
+                var result = await AuthApi.RegisterAsync(Input.Email, Input.Password, Input.FirstName ?? "", Input.LastName);
+
+                if (result.Success)
                 {
-                    identityErrors = "Error: User with this email already exists.";
-                    return;
+                    Logger.LogInformation("JWT Registration successful for user: {Email}", Input.Email);
+
+                    successMessage = "Registration successful! You can now log in.";
+
+                    // Очищаємо форму
+                    Input = new InputModel();
+
+                    // Через кілька секунд перенаправляємо на логін
+                    await Task.Delay(2000);
+                    NavigationManager.NavigateTo("/Account/Login", forceLoad: true);
                 }
-
-                var activeStatus = await DbContext.SysEnumItems
-                    .FirstOrDefaultAsync(e => e.Name == "Active" && e.SysEnum.Name == "UserStatus");
-
-                if (activeStatus == null)
+                else
                 {
-                    var statusEnum = await DbContext.SysEnums
-                        .FirstOrDefaultAsync(e => e.Name == "UserStatus");
-
-                    if (statusEnum == null)
-                    {
-                        statusEnum = new SysEnum
-                        {
-                            Name = "UserStatus",
-                            OrderingType = "Manual",
-                            OrderingTypeEditor = "Manual",
-                            Guid = Guid.NewGuid()
-                        };
-                        DbContext.SysEnums.Add(statusEnum);
-                        await DbContext.SaveChangesAsync();
-                    }
-
-                    activeStatus = new SysEnumItem
-                    {
-                        SysEnumId = statusEnum.Id,
-                        Name = "Active",
-                        Value = "1",
-                        OrderIndex = 1,
-                        Guid = Guid.NewGuid()
-                    };
-                    DbContext.SysEnumItems.Add(activeStatus);
-                    await DbContext.SaveChangesAsync();
+                    Message = result.Message ?? "Registration failed";
+                    Logger.LogWarning("JWT Registration failed for user {Email}: {Error}", Input.Email, Message);
                 }
-
-                var hashedPassword = HashPassword(Input.Password);
-
-                var newUser = new SysUser
-                {
-                    FirstName = Input.FirstName,
-                    LastName = Input.LastName,
-                    Email = Input.Email,
-                    Password = hashedPassword,
-                    CreatedAt = DateTime.UtcNow,
-                    StatusEnumItemId = activeStatus.Id,
-                    Guid = Guid.NewGuid()
-                };
-
-                DbContext.SysUsers.Add(newUser);
-                await DbContext.SaveChangesAsync();
-
-                Logger.LogInformation("User {Email} created a new account with password.", Input.Email);
-
-                var claims = new List<System.Security.Claims.Claim>
-        {
-            new(System.Security.Claims.ClaimTypes.NameIdentifier, newUser.Id.ToString()),
-            new(System.Security.Claims.ClaimTypes.Name, newUser.Email),
-            new(System.Security.Claims.ClaimTypes.Email, newUser.Email)
-        };
-
-                var identity = new System.Security.Claims.ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
-                var principal = new System.Security.Claims.ClaimsPrincipal(identity);
-
-                await HttpContext.SignInAsync(IdentityConstants.ApplicationScheme, principal);
-
-                // ✅ Redirect to login page after registration
-                HttpContext.Response.Redirect("/Account/Login");
+            }
+            catch (HttpRequestException ex)
+            {
+                Logger.LogError(ex, "Network error during JWT registration for user {Email}", Input.Email);
+                Message = "Network error. Please check your connection and try again.";
+            }
+            catch (TaskCanceledException ex)
+            {
+                Logger.LogError(ex, "Timeout during JWT registration for user {Email}", Input.Email);
+                Message = "Request timed out. Please try again.";
             }
             catch (Exception ex)
             {
-                Logger.LogError(ex, "Error creating user {Email}", Input.Email);
-                identityErrors = "Error: An error occurred during registration.";
+                Logger.LogError(ex, "Unexpected error during JWT registration for user {Email}", Input.Email);
+                Message = "An unexpected error occurred. Please try again.";
+            }
+            finally
+            {
+                isLoading = false;
+                StateHasChanged();
             }
         }
-
-        private static string HashPassword(string password)
-        {
-            using var md5 = MD5.Create();
-            var inputBytes = Encoding.UTF8.GetBytes(password);
-            var hashBytes = md5.ComputeHash(inputBytes);
-            return Convert.ToHexString(hashBytes).ToLower();
-        }
-
-        [CascadingParameter]
-        private HttpContext HttpContext { get; set; } = default!;
 
         private sealed class InputModel
         {

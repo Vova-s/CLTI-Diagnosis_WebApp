@@ -10,6 +10,7 @@ namespace CLTI.Diagnosis.Client.Services
     {
         private readonly JwtTokenService _tokenService;
         private readonly ILogger<JwtAuthenticationStateProvider> _logger;
+        private bool _isInitialized = false;
 
         public JwtAuthenticationStateProvider(
             JwtTokenService tokenService,
@@ -30,7 +31,7 @@ namespace CLTI.Diagnosis.Client.Services
                 if (string.IsNullOrEmpty(token))
                 {
                     _logger.LogDebug("No token found, returning anonymous state");
-                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                    return CreateAnonymousState();
                 }
 
                 // Валідуємо токен та отримуємо claims
@@ -38,8 +39,18 @@ namespace CLTI.Diagnosis.Client.Services
                 if (claims == null || !claims.Any())
                 {
                     _logger.LogWarning("Token is invalid or expired, clearing authentication");
-                    await ClearAuthenticationAsync();
-                    return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+
+                    // Очищаємо тільки якщо JS доступний
+                    try
+                    {
+                        await ClearAuthenticationAsync();
+                    }
+                    catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+                    {
+                        _logger.LogDebug("Cannot clear authentication during static rendering");
+                    }
+
+                    return CreateAnonymousState();
                 }
 
                 var identity = new ClaimsIdentity(claims, "jwt");
@@ -52,10 +63,15 @@ namespace CLTI.Diagnosis.Client.Services
 
                 return new AuthenticationState(principal);
             }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogDebug("Cannot get authentication state during static rendering, returning anonymous");
+                return CreateAnonymousState();
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting authentication state");
-                return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
+                return CreateAnonymousState();
             }
         }
 
@@ -88,6 +104,11 @@ namespace CLTI.Diagnosis.Client.Services
                     throw new InvalidOperationException("Invalid JWT token");
                 }
             }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogWarning("Cannot set authentication during static rendering: {Error}", ex.Message);
+                // Не кидаємо помилку, просто логуємо
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error setting authentication");
@@ -106,10 +127,15 @@ namespace CLTI.Diagnosis.Client.Services
 
                 await _tokenService.RemoveTokenAsync();
 
-                var anonymous = new ClaimsPrincipal(new ClaimsIdentity());
-                NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(anonymous)));
+                var anonymous = CreateAnonymousState();
+                NotifyAuthenticationStateChanged(Task.FromResult(anonymous));
 
                 _logger.LogInformation("Authentication cleared successfully");
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogWarning("Cannot clear authentication during static rendering: {Error}", ex.Message);
+                // Не кидаємо помилку, просто логуємо
             }
             catch (Exception ex)
             {
@@ -123,12 +149,25 @@ namespace CLTI.Diagnosis.Client.Services
         /// </summary>
         public async Task<bool> IsAuthenticatedAsync()
         {
-            var token = await _tokenService.GetTokenAsync();
-            if (string.IsNullOrEmpty(token))
-                return false;
+            try
+            {
+                var token = await _tokenService.GetTokenAsync();
+                if (string.IsNullOrEmpty(token))
+                    return false;
 
-            var claims = _tokenService.GetClaimsFromToken(token);
-            return claims != null && claims.Any();
+                var claims = _tokenService.GetClaimsFromToken(token);
+                return claims != null && claims.Any();
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogDebug("Cannot check authentication during static rendering, returning false");
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking authentication status");
+                return false;
+            }
         }
 
         /// <summary>
@@ -150,6 +189,11 @@ namespace CLTI.Diagnosis.Client.Services
                 // Якщо не вдалося з токена, отримуємо збережену інформацію
                 return await _tokenService.GetUserAsync();
             }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogDebug("Cannot get current user during static rendering, returning null");
+                return null;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting current user");
@@ -163,6 +207,43 @@ namespace CLTI.Diagnosis.Client.Services
         public void NotifyAuthenticationStateChangedManually()
         {
             NotifyAuthenticationStateChanged(GetAuthenticationStateAsync());
+        }
+
+        /// <summary>
+        /// Ініціалізація після завантаження компонента
+        /// </summary>
+        public async Task InitializeAsync()
+        {
+            if (_isInitialized)
+                return;
+
+            try
+            {
+                _logger.LogDebug("Initializing JWT authentication state provider");
+
+                // Перевіряємо автентифікацію
+                var authState = await GetAuthenticationStateAsync();
+
+                if (authState.User.Identity?.IsAuthenticated == true)
+                {
+                    _logger.LogInformation("User is authenticated after initialization");
+                    NotifyAuthenticationStateChanged(Task.FromResult(authState));
+                }
+
+                _isInitialized = true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error during JWT authentication state provider initialization");
+            }
+        }
+
+        /// <summary>
+        /// Створює анонімний стан автентифікації
+        /// </summary>
+        private static AuthenticationState CreateAnonymousState()
+        {
+            return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
         }
     }
 }

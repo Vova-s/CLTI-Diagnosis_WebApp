@@ -2,6 +2,7 @@
 using System.Security.Claims;
 using System.Text.Json;
 using Microsoft.JSInterop;
+using Microsoft.AspNetCore.Components;
 
 namespace CLTI.Diagnosis.Client.Services
 {
@@ -24,14 +25,40 @@ namespace CLTI.Diagnosis.Client.Services
         }
 
         /// <summary>
+        /// Перевіряє чи доступний JavaScript runtime
+        /// </summary>
+        private bool IsJavaScriptAvailable()
+        {
+            try
+            {
+                return _jsRuntime is IJSInProcessRuntime ||
+                       !(_jsRuntime.GetType().Name.Contains("UnsupportedJavaScriptRuntime"));
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        /// <summary>
         /// Зберігає JWT токен в localStorage
         /// </summary>
         public async Task SetTokenAsync(string token)
         {
             try
             {
+                if (!IsJavaScriptAvailable())
+                {
+                    _logger.LogWarning("JavaScript not available, cannot save token to localStorage");
+                    return;
+                }
+
                 await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, token);
                 _logger.LogInformation("Token saved successfully");
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogWarning("Cannot save token during static rendering: {Error}", ex.Message);
             }
             catch (Exception ex)
             {
@@ -47,6 +74,12 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
+                if (!IsJavaScriptAvailable())
+                {
+                    _logger.LogDebug("JavaScript not available, returning null token");
+                    return null;
+                }
+
                 var token = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", TOKEN_KEY);
 
                 if (string.IsNullOrEmpty(token))
@@ -67,6 +100,11 @@ namespace CLTI.Diagnosis.Client.Services
                     return null;
                 }
             }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogDebug("Cannot get token during static rendering, returning null");
+                return null;
+            }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting token from localStorage");
@@ -81,9 +119,19 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
+                if (!IsJavaScriptAvailable())
+                {
+                    _logger.LogWarning("JavaScript not available, cannot remove token from localStorage");
+                    return;
+                }
+
                 await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY);
                 await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", USER_KEY);
                 _logger.LogInformation("Token removed successfully");
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogWarning("Cannot remove token during static rendering: {Error}", ex.Message);
             }
             catch (Exception ex)
             {
@@ -223,8 +271,18 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
+                if (!IsJavaScriptAvailable())
+                {
+                    _logger.LogWarning("JavaScript not available, cannot save user to localStorage");
+                    return;
+                }
+
                 var userJson = JsonSerializer.Serialize(user);
                 await _jsRuntime.InvokeVoidAsync("localStorage.setItem", USER_KEY, userJson);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogWarning("Cannot save user during static rendering: {Error}", ex.Message);
             }
             catch (Exception ex)
             {
@@ -240,11 +298,22 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
+                if (!IsJavaScriptAvailable())
+                {
+                    _logger.LogDebug("JavaScript not available, returning null user");
+                    return null;
+                }
+
                 var userJson = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", USER_KEY);
                 if (string.IsNullOrEmpty(userJson))
                     return null;
 
                 return JsonSerializer.Deserialize<UserInfo>(userJson);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogDebug("Cannot get user during static rendering, returning null");
+                return null;
             }
             catch (Exception ex)
             {

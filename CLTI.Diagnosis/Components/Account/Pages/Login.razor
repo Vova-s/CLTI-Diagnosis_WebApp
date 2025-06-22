@@ -1,18 +1,10 @@
 ﻿@page "/Account/Login"
 
 @using System.ComponentModel.DataAnnotations
-@using Microsoft.AspNetCore.Authentication
-@using Microsoft.AspNetCore.Identity
-@using CLTI.Diagnosis.Data
-@using CLTI.Diagnosis.Data.Entities
-@using CLTI.Diagnosis.Services
-@using Microsoft.EntityFrameworkCore
-@using System.Security.Cryptography
-@using System.Text
-
-@inject ApplicationDbContext DbContext
-@inject ILogger<Login> Logger
+@using CLTI.Diagnosis.Client.Services
+@inject AuthApiService AuthApi
 @inject NavigationManager NavigationManager
+@inject ILogger<Login> Logger
 
 <PageTitle>Log in</PageTitle>
 
@@ -27,6 +19,14 @@
             </div>
         }
 
+        @if (isLoading)
+        {
+            <div class="flex justify-center items-center mb-6">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <span class="ml-2 text-gray-600">Logging in...</span>
+            </div>
+        }
+
         <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
             <DataAnnotationsValidator />
 
@@ -38,7 +38,8 @@
                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                            autocomplete="username"
                            aria-required="true"
-                           placeholder="name@example.com" />
+                           placeholder="name@example.com"
+                           disabled="@isLoading" />
                 <ValidationMessage For="() => Input.Email" class="text-red-500 text-sm mt-1" />
             </div>
 
@@ -51,7 +52,8 @@
                            class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
                            autocomplete="current-password"
                            aria-required="true"
-                           placeholder="Enter your password" />
+                           placeholder="Enter your password"
+                           disabled="@isLoading" />
                 <ValidationMessage For="() => Input.Password" class="text-red-500 text-sm mt-1" />
             </div>
 
@@ -59,7 +61,8 @@
             <div class="mb-4">
                 <label class="flex items-center">
                     <InputCheckbox @bind-Value="Input.RememberMe"
-                                   class="mr-2 border-gray-300 rounded" />
+                                   class="mr-2 border-gray-300 rounded"
+                                   disabled="@isLoading" />
                     <span class="text-sm text-gray-700">Remember me</span>
                 </label>
             </div>
@@ -67,8 +70,16 @@
             <!-- Login button -->
             <div class="mb-6">
                 <button type="submit"
-                        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded w-full transition duration-200">
-                    Log in
+                        class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded w-full transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                        disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span>Logging in...</span>
+                    }
+                    else
+                    {
+                        <span>Log in</span>
+                    }
                 </button>
             </div>
 
@@ -78,6 +89,9 @@
                     <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))"
                        class="text-blue-500 hover:underline">Register as a new user</a>
                 </p>
+                <p>
+                    <a href="/Account/ForgotPassword" class="text-blue-500 hover:underline">Forgot your password?</a>
+                </p>
             </div>
         </EditForm>
     </div>
@@ -85,9 +99,7 @@
 
 @code {
     private string? errorMessage;
-
-    [CascadingParameter]
-    private HttpContext HttpContext { get; set; } = default!;
+    private bool isLoading = false;
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();
@@ -95,60 +107,56 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
-    protected override void OnInitialized()
-    {
-        // No external authentication setup needed
-    }
-
     public async Task LoginUser()
     {
+        if (isLoading)
+            return;
+
         try
         {
-            var hashedPassword = HashPassword(Input.Password);
+            isLoading = true;
+            errorMessage = null;
+            StateHasChanged();
 
-            var user = await DbContext.SysUsers
-                .FirstOrDefaultAsync(u => u.Email == Input.Email && u.Password == hashedPassword);
+            Logger.LogInformation("Attempting JWT login for user: {Email}", Input.Email);
 
-            if (user != null)
+            // Використовуємо AuthApiService для JWT логіну
+            var result = await AuthApi.LoginAsync(Input.Email, Input.Password, Input.RememberMe);
+
+            if (result.Success)
             {
-                var claims = new List<System.Security.Claims.Claim>
-            {
-                new(System.Security.Claims.ClaimTypes.NameIdentifier, user.Id.ToString()),
-                new(System.Security.Claims.ClaimTypes.Name, user.Email),
-                new(System.Security.Claims.ClaimTypes.Email, user.Email)
-            };
+                Logger.LogInformation("JWT Login successful for user: {Email}", Input.Email);
 
-                var identity = new System.Security.Claims.ClaimsIdentity(claims, IdentityConstants.ApplicationScheme);
-                var principal = new System.Security.Claims.ClaimsPrincipal(identity);
-
-                await HttpContext.SignInAsync(IdentityConstants.ApplicationScheme, principal,
-                    new AuthenticationProperties { IsPersistent = Input.RememberMe });
-
-                Logger.LogInformation("User {Email} logged in.", Input.Email);
-
+                // Перенаправляємо на потрібну сторінку
                 var redirectUrl = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
-
-                // 🔄 Безпечний HTTP редирект
-                HttpContext.Response.Redirect(redirectUrl);
+                NavigationManager.NavigateTo(redirectUrl, forceLoad: true);
             }
             else
             {
-                errorMessage = "Error: Invalid login attempt.";
+                errorMessage = result.Message ?? "Login failed";
+                Logger.LogWarning("JWT Login failed for user {Email}: {Error}", Input.Email, errorMessage);
             }
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "Network error during JWT login for user {Email}", Input.Email);
+            errorMessage = "Network error. Please check your connection and try again.";
+        }
+        catch (TaskCanceledException ex)
+        {
+            Logger.LogError(ex, "Timeout during JWT login for user {Email}", Input.Email);
+            errorMessage = "Request timed out. Please try again.";
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Error during login for user {Email}", Input.Email);
-            errorMessage = "Error: An error occurred during login.";
+            Logger.LogError(ex, "Unexpected error during JWT login for user {Email}", Input.Email);
+            errorMessage = "An unexpected error occurred. Please try again.";
         }
-    }
-
-    private static string HashPassword(string password)
-    {
-        using var md5 = MD5.Create();
-        var inputBytes = Encoding.UTF8.GetBytes(password);
-        var hashBytes = md5.ComputeHash(inputBytes);
-        return Convert.ToHexString(hashBytes).ToLower();
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
     }
 
     private sealed class InputModel

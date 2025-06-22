@@ -10,25 +10,40 @@ namespace CLTI.Diagnosis.Client.Services
         private readonly HttpClient _httpClient;
         private readonly IJSRuntime _jsRuntime;
         private readonly JsonSerializerOptions _jsonOptions;
+        private readonly ILogger<AuthApiService> _logger;
+        private readonly string _baseUrl;
 
         private const string TOKEN_KEY = "jwt_token";
         private const string USER_KEY = "current_user";
 
-        public AuthApiService(HttpClient httpClient, IJSRuntime jsRuntime)
+        public AuthApiService(HttpClient httpClient, IJSRuntime jsRuntime, ILogger<AuthApiService> logger)
         {
             _httpClient = httpClient;
             _jsRuntime = jsRuntime;
+            _logger = logger;
+
+            // Визначаємо базову URL напряму в сервісі
+            #if DEBUG
+                _baseUrl = "https://localhost:7124/";
+            #else
+                _baseUrl = "https://antsdemo02.demo.dragon-cloud.org/";
+            #endif
+
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                 PropertyNameCaseInsensitive = true
             };
+
+            _logger.LogInformation("AuthApiService initialized with base URL: {BaseUrl}", _baseUrl);
         }
 
         public async Task<AuthApiResult<AuthLoginResponse>> LoginAsync(string email, string password, bool rememberMe = false)
         {
             try
             {
+                _logger.LogInformation("Attempting login for user: {Email}", email);
+
                 var request = new
                 {
                     email = email,
@@ -36,8 +51,15 @@ namespace CLTI.Diagnosis.Client.Services
                     rememberMe = rememberMe
                 };
 
-                var response = await _httpClient.PostAsJsonAsync("/api/auth/login", request);
+                var loginUrl = $"{_baseUrl}api/auth/login";
+                _logger.LogInformation("Sending login request to: {LoginUrl}", loginUrl);
+
+                var response = await _httpClient.PostAsJsonAsync(loginUrl, request, _jsonOptions);
+
+                _logger.LogInformation("Login response status: {StatusCode}", response.StatusCode);
+
                 var content = await response.Content.ReadAsStringAsync();
+                _logger.LogDebug("Login response content: {Content}", content);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -45,9 +67,11 @@ namespace CLTI.Diagnosis.Client.Services
 
                     if (apiResponse?.Success == true && apiResponse.Data != null)
                     {
-                        // Store token and user info
-                        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, apiResponse.Data.Token);
-                        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", USER_KEY, JsonSerializer.Serialize(apiResponse.Data.User, _jsonOptions));
+                        _logger.LogInformation("Login successful, storing token and user info");
+
+                        // Store token and user info safely
+                        await StoreTokenAsync(apiResponse.Data.Token);
+                        await StoreUserAsync(apiResponse.Data.User);
 
                         // Set authorization header for future requests
                         _httpClient.DefaultRequestHeaders.Authorization =
@@ -57,7 +81,7 @@ namespace CLTI.Diagnosis.Client.Services
                         {
                             Success = true,
                             Data = apiResponse.Data,
-                            Message = apiResponse.Message
+                            Message = apiResponse.Message ?? "Login successful"
                         };
                     }
                 }
@@ -69,12 +93,31 @@ namespace CLTI.Diagnosis.Client.Services
                     Message = errorResponse?.Message ?? "Login failed"
                 };
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
+                _logger.LogError(ex, "HTTP error during login");
                 return new AuthApiResult<AuthLoginResponse>
                 {
                     Success = false,
                     Message = $"Network error: {ex.Message}"
+                };
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "Timeout during login");
+                return new AuthApiResult<AuthLoginResponse>
+                {
+                    Success = false,
+                    Message = "Request timed out"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error during login");
+                return new AuthApiResult<AuthLoginResponse>
+                {
+                    Success = false,
+                    Message = $"Unexpected error: {ex.Message}"
                 };
             }
         }
@@ -83,6 +126,8 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
+                _logger.LogInformation("Attempting registration for user: {Email}", email);
+
                 var request = new
                 {
                     email = email,
@@ -91,8 +136,15 @@ namespace CLTI.Diagnosis.Client.Services
                     lastName = lastName
                 };
 
-                var response = await _httpClient.PostAsJsonAsync("/api/auth/register", request);
+                var registerUrl = $"{_baseUrl}api/auth/register";
+                _logger.LogInformation("Sending registration request to: {RegisterUrl}", registerUrl);
+
+                var response = await _httpClient.PostAsJsonAsync(registerUrl, request, _jsonOptions);
+
+                _logger.LogInformation("Registration response status: {StatusCode}", response.StatusCode);
+
                 var content = await response.Content.ReadAsStringAsync();
+                _logger.LogDebug("Registration response content: {Content}", content);
 
                 var apiResponse = JsonSerializer.Deserialize<AuthApiResponse<object>>(content, _jsonOptions);
 
@@ -103,12 +155,31 @@ namespace CLTI.Diagnosis.Client.Services
                     Data = apiResponse?.Data
                 };
             }
-            catch (Exception ex)
+            catch (HttpRequestException ex)
             {
+                _logger.LogError(ex, "HTTP error during registration");
                 return new AuthApiResult<object>
                 {
                     Success = false,
                     Message = $"Network error: {ex.Message}"
+                };
+            }
+            catch (TaskCanceledException ex)
+            {
+                _logger.LogError(ex, "Timeout during registration");
+                return new AuthApiResult<object>
+                {
+                    Success = false,
+                    Message = "Request timed out"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error during registration");
+                return new AuthApiResult<object>
+                {
+                    Success = false,
+                    Message = $"Unexpected error: {ex.Message}"
                 };
             }
         }
@@ -117,12 +188,19 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
-                // Call logout endpoint
-                await _httpClient.PostAsync("/api/auth/logout", null);
+                // Call logout endpoint if available
+                try
+                {
+                    var logoutUrl = $"{_baseUrl}api/auth/logout";
+                    await _httpClient.PostAsync(logoutUrl, null);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error calling logout endpoint, continuing with local cleanup");
+                }
 
                 // Clear local storage
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY);
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", USER_KEY);
+                await RemoveTokenAsync();
 
                 // Clear authorization header
                 _httpClient.DefaultRequestHeaders.Authorization = null;
@@ -135,6 +213,7 @@ namespace CLTI.Diagnosis.Client.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error during logout");
                 return new AuthApiResult<object>
                 {
                     Success = false,
@@ -160,7 +239,8 @@ namespace CLTI.Diagnosis.Client.Services
                 _httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                var response = await _httpClient.GetAsync("/api/auth/me");
+                var userUrl = $"{_baseUrl}api/auth/me";
+                var response = await _httpClient.GetAsync(userUrl);
                 var content = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
@@ -184,11 +264,45 @@ namespace CLTI.Diagnosis.Client.Services
             }
             catch (Exception ex)
             {
+                _logger.LogError(ex, "Error getting current user");
                 return new AuthApiResult<AuthUserDto>
                 {
                     Success = false,
                     Message = $"Network error: {ex.Message}"
                 };
+            }
+        }
+
+        private async Task StoreTokenAsync(string token)
+        {
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, token);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogWarning("Cannot store token during static rendering");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error storing token");
+            }
+        }
+
+        private async Task StoreUserAsync(AuthUserDto user)
+        {
+            try
+            {
+                var userJson = JsonSerializer.Serialize(user, _jsonOptions);
+                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", USER_KEY, userJson);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogWarning("Cannot store user during static rendering");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error storing user");
             }
         }
 
@@ -198,8 +312,14 @@ namespace CLTI.Diagnosis.Client.Services
             {
                 return await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", TOKEN_KEY);
             }
-            catch
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
             {
+                _logger.LogDebug("Cannot get token during static rendering");
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting token");
                 return null;
             }
         }
@@ -214,9 +334,32 @@ namespace CLTI.Diagnosis.Client.Services
 
                 return JsonSerializer.Deserialize<AuthUserDto>(userJson, _jsonOptions);
             }
-            catch
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
             {
+                _logger.LogDebug("Cannot get user during static rendering");
                 return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting stored user");
+                return null;
+            }
+        }
+
+        private async Task RemoveTokenAsync()
+        {
+            try
+            {
+                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY);
+                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", USER_KEY);
+            }
+            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
+            {
+                _logger.LogWarning("Cannot remove token during static rendering");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing token");
             }
         }
 
