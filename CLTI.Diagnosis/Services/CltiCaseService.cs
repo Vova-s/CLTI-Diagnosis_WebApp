@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Threading.Tasks;
+using CLTI.Diagnosis.Core.Domain.Entities;
 using CLTI.Diagnosis.Data;
 using CLTI.Diagnosis.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -44,21 +45,21 @@ namespace CLTI.Diagnosis.Services
 
             // WiFI рівні
             var w = stateDto.WLevelValue ?? 0;
-            entity.W1 = w == 1;
-            entity.W2 = w == 2;
-            entity.W3 = w == 3;
+            entity.WifiCriteria.W1 = w == 1;
+            entity.WifiCriteria.W2 = w == 2;
+            entity.WifiCriteria.W3 = w == 3;
 
             var i = stateDto.ILevelValue ?? 0;
-            entity.I0 = i == 0;
-            entity.I1 = i == 1;
-            entity.I2 = i == 2;
-            entity.I3 = i == 3;
+            entity.WifiCriteria.I0 = i == 0;
+            entity.WifiCriteria.I1 = i == 1;
+            entity.WifiCriteria.I2 = i == 2;
+            entity.WifiCriteria.I3 = i == 3;
 
             var fi = stateDto.FILevelValue ?? 0;
-            entity.FI0 = fi == 0;
-            entity.FI1 = fi == 1;
-            entity.FI2 = fi == 2;
-            entity.FI3 = fi == 3;
+            entity.WifiCriteria.FI0 = fi == 0;
+            entity.WifiCriteria.FI1 = fi == 1;
+            entity.WifiCriteria.FI2 = fi == 2;
+            entity.WifiCriteria.FI3 = fi == 3;
 
             // CRAB та 2YLE
             entity.ClinicalStageWIfIEnumItemId = stateDto.ClinicalStage;
@@ -66,27 +67,27 @@ namespace CLTI.Diagnosis.Services
             entity.TwoYLE = stateDto.YLETotalScore ?? 0.0;
 
             // GLASS дані
-            entity.GlassAidI = stateDto.GLASSSelectedStage == "Stage I";
-            entity.GlassAidII = stateDto.GLASSSelectedStage == "Stage II";
-            entity.GlassAidA = stateDto.GLASSSubStage == "A";
-            entity.GlassAidB = stateDto.GLASSSubStage == "B";
+            entity.GlassCriteria.AidI = stateDto.GLASSSelectedStage == "Stage I";
+            entity.GlassCriteria.AidII = stateDto.GLASSSelectedStage == "Stage II";
+            entity.GlassCriteria.AidA = stateDto.GLASSSubStage == "A";
+            entity.GlassCriteria.AidB = stateDto.GLASSSubStage == "B";
 
             // Парсинг стадій GLASS
             if (TryParseStageNumber(stateDto.GLASSFemoroPoplitealStage, out var fps))
-                entity.GlassFps = fps;
+                entity.GlassCriteria.Fps = fps;
             if (TryParseStageNumber(stateDto.GLASSInfrapoplitealStage, out var ips))
-                entity.GlassIps = ips;
+                entity.GlassCriteria.Ips = ips;
 
             // Фінальна стадія GLASS
-            entity.GlassIid = !string.IsNullOrEmpty(stateDto.GLASSFinalStage);
-            entity.GlassIidI = stateDto.GLASSFinalStage == "I";
-            entity.GlassIidII = stateDto.GLASSFinalStage == "II";
-            entity.GlassIidIII = stateDto.GLASSFinalStage == "III";
+            entity.GlassCriteria.Iid = !string.IsNullOrEmpty(stateDto.GLASSFinalStage);
+            entity.GlassCriteria.IidI = stateDto.GLASSFinalStage == "I";
+            entity.GlassCriteria.IidII = stateDto.GLASSFinalStage == "II";
+            entity.GlassCriteria.IidIII = stateDto.GLASSFinalStage == "III";
 
             // Підкісточкова хвороба
-            entity.GlassImdP0 = stateDto.SubmalleolarDescriptor == "P0";
-            entity.GlassImdP1 = stateDto.SubmalleolarDescriptor == "P1";
-            entity.GlassImdP2 = stateDto.SubmalleolarDescriptor == "P2";
+            entity.GlassCriteria.ImdP0 = stateDto.SubmalleolarDescriptor == "P0";
+            entity.GlassCriteria.ImdP1 = stateDto.SubmalleolarDescriptor == "P1";
+            entity.GlassCriteria.ImdP2 = stateDto.SubmalleolarDescriptor == "P2";
 
             await _context.SaveChangesAsync();
             return entity.Id;
@@ -121,12 +122,12 @@ namespace CLTI.Diagnosis.Services
                 YLETotalScore = entity.TwoYLE,
 
                 // GLASS дані
-                GLASSSelectedStage = entity.GlassAidI ? "Stage I" :
-                                   entity.GlassAidII ? "Stage II" : null,
-                GLASSSubStage = entity.GlassAidA ? "A" :
-                               entity.GlassAidB ? "B" : null,
-                GLASSFemoroPoplitealStage = $"Stage{entity.GlassFps}",
-                GLASSInfrapoplitealStage = $"Stage{entity.GlassIps}",
+                GLASSSelectedStage = entity.GlassCriteria.AidI ? "Stage I" :
+                                   entity.GlassCriteria.AidII ? "Stage II" : null,
+                GLASSSubStage = entity.GlassCriteria.AidA ? "A" :
+                               entity.GlassCriteria.AidB ? "B" : null,
+                GLASSFemoroPoplitealStage = $"Stage{entity.GlassCriteria.Fps}",
+                GLASSInfrapoplitealStage = $"Stage{entity.GlassCriteria.Ips}",
                 GLASSFinalStage = GetGLASSFinalStage(entity),
                 SubmalleolarDescriptor = GetSubmalleolarDescriptor(entity)
             };
@@ -189,43 +190,43 @@ namespace CLTI.Diagnosis.Services
 
         private static int? GetWLevel(CltiCase entity)
         {
-            if (entity.W1) return 1;
-            if (entity.W2) return 2;
-            if (entity.W3) return 3;
+            if (entity.WifiCriteria.W1) return 1;
+            if (entity.WifiCriteria.W2) return 2;
+            if (entity.WifiCriteria.W3) return 3;
             return 0;
         }
 
         private static int? GetILevel(CltiCase entity)
         {
-            if (entity.I0) return 0;
-            if (entity.I1) return 1;
-            if (entity.I2) return 2;
-            if (entity.I3) return 3;
+            if (entity.WifiCriteria.I0) return 0;
+            if (entity.WifiCriteria.I1) return 1;
+            if (entity.WifiCriteria.I2) return 2;
+            if (entity.WifiCriteria.I3) return 3;
             return null;
         }
 
         private static int? GetFILevel(CltiCase entity)
         {
-            if (entity.FI0) return 0;
-            if (entity.FI1) return 1;
-            if (entity.FI2) return 2;
-            if (entity.FI3) return 3;
+            if (entity.WifiCriteria.FI0) return 0;
+            if (entity.WifiCriteria.FI1) return 1;
+            if (entity.WifiCriteria.FI2) return 2;
+            if (entity.WifiCriteria.FI3) return 3;
             return null;
         }
 
         private static string? GetGLASSFinalStage(CltiCase entity)
         {
-            if (entity.GlassIidI) return "I";
-            if (entity.GlassIidII) return "II";
-            if (entity.GlassIidIII) return "III";
+            if (entity.GlassCriteria.IidI) return "I";
+            if (entity.GlassCriteria.IidII) return "II";
+            if (entity.GlassCriteria.IidIII) return "III";
             return null;
         }
 
         private static string? GetSubmalleolarDescriptor(CltiCase entity)
         {
-            if (entity.GlassImdP0) return "P0";
-            if (entity.GlassImdP1) return "P1";
-            if (entity.GlassImdP2) return "P2";
+            if (entity.GlassCriteria.ImdP0) return "P0";
+            if (entity.GlassCriteria.ImdP1) return "P1";
+            if (entity.GlassCriteria.ImdP2) return "P2";
             return null;
         }
 

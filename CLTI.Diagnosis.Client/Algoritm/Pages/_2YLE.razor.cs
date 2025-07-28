@@ -1,12 +1,14 @@
-﻿using Microsoft.AspNetCore.Components;
+﻿using CLTI.Diagnosis.Client.Algoritm.Services;
+using Microsoft.AspNetCore.Components;
 
 namespace CLTI.Diagnosis.Client.Algoritm.Pages
 {
-    public partial class _2YLE
+    public partial class _2YLE  : ComponentBase
+
     {
         [Inject]
         public CLTI.Diagnosis.Client.Services.CltiCaseService? CaseService { get; set; }
-
+        
         protected override void OnInitialized()
         {
             StateService.OnChange += HandleStateChanged;

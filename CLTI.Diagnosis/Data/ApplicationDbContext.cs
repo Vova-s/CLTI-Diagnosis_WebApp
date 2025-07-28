@@ -1,3 +1,4 @@
+using CLTI.Diagnosis.Core.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using CLTI.Diagnosis.Data.Entities;

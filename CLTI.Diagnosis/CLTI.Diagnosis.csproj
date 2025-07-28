@@ -28,4 +28,45 @@
     <ProjectReference Include="..\CLTI.Diagnosis.Client\CLTI.Diagnosis.Client.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Core\Application\Common\Behaviors\" />
+    <Folder Include="Core\Application\Common\Interfaces\" />
+    <Folder Include="Core\Application\Common\Models\" />
+    <Folder Include="Core\Application\DTOs\" />
+    <Folder Include="Core\Application\Features\Commands\" />
+    <Folder Include="Core\Application\Features\Queries\" />
+    <Folder Include="Core\Application\Mappings\" />
+    <Folder Include="Core\Application\Services\" />
+    <Folder Include="Core\Application\Validators\" />
+    <Folder Include="Core\Domain\Enums\" />
+    <Folder Include="Core\Domain\Events\" />
+    <Folder Include="Core\Domain\Exceptions\" />
+    <Folder Include="Core\Domain\ValueObjects\" />
+    <Folder Include="Core\DTOs\" />
+    <Folder Include="Core\Interfaces\" />
+    <Folder Include="Core\Repositories\" />
+    <Folder Include="Core\Services\" />
+    <Folder Include="Data\Entities\" />
+    <Folder Include="Infrastructure\Data\Configurations\" />
+    <Folder Include="Infrastructure\Data\Context\" />
+    <Folder Include="Infrastructure\Data\Migrations\" />
+    <Folder Include="Infrastructure\Data\Repositories\" />
+    <Folder Include="Infrastructure\Extensions\" />
+    <Folder Include="Infrastructure\Services\Email\" />
+    <Folder Include="Infrastructure\Services\Identity\" />
+    <Folder Include="Infrastructure\Services\Storage\" />
+    <Folder Include="Shared\Constants\" />
+    <Folder Include="Shared\Extensions\" />
+    <Folder Include="Shared\Helpers\" />
+    <Folder Include="Tests\Functional\" />
+    <Folder Include="Tests\Integration\" />
+    <Folder Include="Tests\Unit\" />
+    <Folder Include="Web\Controllers\" />
+    <Folder Include="Web\Extensions\" />
+    <Folder Include="Web\Filters\" />
+    <Folder Include="Web\Middleware\" />
+    <Folder Include="Web\Models\Request\" />
+    <Folder Include="Web\Models\Response\" />
+  </ItemGroup>
+
 </Project>
