@@ -2,7 +2,7 @@ using System.Security.Claims;
 using System.Text.Json;
 using CLTI.Diagnosis.Components.Account.Pages;
 using CLTI.Diagnosis.Components.Account.Pages.Manage;
-using CLTI.Diagnosis.Data;
+using CLTI.Diagnosis.Infrastructure.Data.Context;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Http.Extensions;

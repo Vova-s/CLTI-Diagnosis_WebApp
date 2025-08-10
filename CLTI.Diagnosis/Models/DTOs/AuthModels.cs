@@ -61,4 +61,3 @@ namespace CLTI.Diagnosis.Models.DTOs
         public string FullName { get; set; } = string.Empty;
     }
 }
-

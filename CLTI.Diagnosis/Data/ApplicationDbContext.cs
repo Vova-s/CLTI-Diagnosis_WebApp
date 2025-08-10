@@ -1,9 +1,10 @@
 using CLTI.Diagnosis.Core.Domain.Entities;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
-using CLTI.Diagnosis.Data.Entities;
+using CLTI.Diagnosis.Core.Domain.Entities;
 
 namespace CLTI.Diagnosis.Data;
+using CLTI.Diagnosis.Infrastructure.Data.Context;
 
 public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
     : IdentityDbContext<ApplicationUser>(options)

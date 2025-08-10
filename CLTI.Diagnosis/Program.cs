@@ -2,7 +2,7 @@
 using CLTI.Diagnosis.Components;
 using CLTI.Diagnosis.Client.Algoritm.Services;
 using CLTI.Diagnosis.Client.Services;
-using CLTI.Diagnosis.Data;
+using CLTI.Diagnosis.Infrastructure.Data.Context;
 using CLTI.Diagnosis.Services;
 using CLTI.Diagnosis.Middleware;
 using Microsoft.AspNetCore.Components.Authorization;

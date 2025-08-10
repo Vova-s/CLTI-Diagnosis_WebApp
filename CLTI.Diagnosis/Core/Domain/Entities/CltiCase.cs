@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using CLTI.Diagnosis.Core.Domain.Entities.Base;
-using CLTI.Diagnosis.Data.Entities;
+using CLTI.Diagnosis.Core.Domain.Entities;
 using CLTI.Diagnosis.Data.Entities.ValueObjects;
 
 namespace CLTI.Diagnosis.Core.Domain.Entities;

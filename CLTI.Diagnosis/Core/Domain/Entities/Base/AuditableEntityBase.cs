@@ -1,4 +1,5 @@
 namespace CLTI.Diagnosis.Core.Domain.Entities.Base;
+using CLTI.Diagnosis.Core.Domain.Entities.Base;
 
 public abstract class AuditableEntity : BaseEntity, IAuditableEntity, ISoftDeletable
 {

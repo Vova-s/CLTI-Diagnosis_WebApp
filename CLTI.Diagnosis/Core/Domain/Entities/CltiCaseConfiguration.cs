@@ -1,5 +1,5 @@
 using CLTI.Diagnosis.Core.Domain.Entities;
-using CLTI.Diagnosis.Data.Entities;
+using CLTI.Diagnosis.Core.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 

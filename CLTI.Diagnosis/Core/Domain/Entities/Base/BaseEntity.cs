@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 
 namespace CLTI.Diagnosis.Core.Domain.Entities.Base;
+using CLTI.Diagnosis.Core.Domain.Entities.Base;
 
 public abstract class BaseEntity
 {

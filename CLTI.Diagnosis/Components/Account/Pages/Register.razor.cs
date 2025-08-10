@@ -1,4 +1,4 @@
-﻿using CLTI.Diagnosis.Data.Entities;
+﻿using CLTI.Diagnosis.Core.Domain.Entities;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Forms;
 using Microsoft.AspNetCore.Components;
@@ -107,4 +107,3 @@ namespace CLTI.Diagnosis.Components.Account.Pages
         }
     }
 }
-

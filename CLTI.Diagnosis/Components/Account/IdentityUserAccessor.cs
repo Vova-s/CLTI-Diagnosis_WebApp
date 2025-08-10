@@ -1,5 +1,5 @@
-using CLTI.Diagnosis.Data;
-using CLTI.Diagnosis.Data.Entities;
+using CLTI.Diagnosis.Infrastructure.Data.Context;
+using CLTI.Diagnosis.Core.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 
