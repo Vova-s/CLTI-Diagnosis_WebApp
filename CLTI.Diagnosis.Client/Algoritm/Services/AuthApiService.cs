@@ -14,13 +14,7 @@ namespace CLTI.Diagnosis.Client.Services
         private readonly string _baseUrl;
 
         private const string TOKEN_KEY = "jwt_token";
-        private const string REFRESH_TOKEN_KEY = "refresh_token";
         private const string USER_KEY = "current_user";
-
-        // Pending values captured during prerender when JS is unavailable
-        private string? _pendingToken;
-        private string? _pendingRefreshToken;
-        private AuthUserDto? _pendingUser;
 
         public AuthApiService(HttpClient httpClient, IJSRuntime jsRuntime, ILogger<AuthApiService> logger)
         {
@@ -28,8 +22,12 @@ namespace CLTI.Diagnosis.Client.Services
             _jsRuntime = jsRuntime;
             _logger = logger;
 
-            // Use same-origin base by default; HttpClient.BaseAddress is configured in Program.cs
-            _baseUrl = string.Empty; // relative URLs like "api/..."
+            // Визначаємо базову URL напряму в сервісі
+            #if DEBUG
+                _baseUrl = "https://localhost:7124/";
+            #else
+                _baseUrl = "https://antsdemo02.demo.dragon-cloud.org/";
+            #endif
 
             _jsonOptions = new JsonSerializerOptions
             {
@@ -37,7 +35,7 @@ namespace CLTI.Diagnosis.Client.Services
                 PropertyNameCaseInsensitive = true
             };
 
-            _logger.LogInformation("AuthApiService initialized. HttpClient BaseAddress: {Base}", _httpClient.BaseAddress);
+            _logger.LogInformation("AuthApiService initialized with base URL: {BaseUrl}", _baseUrl);
         }
 
         public async Task<AuthApiResult<AuthLoginResponse>> LoginAsync(string email, string password, bool rememberMe = false)
@@ -53,7 +51,7 @@ namespace CLTI.Diagnosis.Client.Services
                     rememberMe = rememberMe
                 };
 
-                var loginUrl = "api/auth/login";
+                var loginUrl = $"{_baseUrl}api/auth/login";
                 _logger.LogInformation("Sending login request to: {LoginUrl}", loginUrl);
 
                 var response = await _httpClient.PostAsJsonAsync(loginUrl, request, _jsonOptions);
@@ -71,17 +69,13 @@ namespace CLTI.Diagnosis.Client.Services
                     {
                         _logger.LogInformation("Login successful, storing token and user info");
 
-                        // Store token, refresh token and user info safely
+                        // Store token and user info safely
                         await StoreTokenAsync(apiResponse.Data.Token);
-                        await StoreRefreshTokenAsync(apiResponse.Data.RefreshToken);
                         await StoreUserAsync(apiResponse.Data.User);
 
                         // Set authorization header for future requests
                         _httpClient.DefaultRequestHeaders.Authorization =
                             new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiResponse.Data.Token);
-
-                        // Try to flush any deferred persistence if now interactive
-                        await TryFlushPendingAsync();
 
                         return new AuthApiResult<AuthLoginResponse>
                         {
@@ -128,7 +122,7 @@ namespace CLTI.Diagnosis.Client.Services
             }
         }
 
-        public async Task<AuthApiResult<object>> RegisterAsync(string email, string password, string? firstName, string lastName)
+        public async Task<AuthApiResult<object>> RegisterAsync(string email, string password, string firstName, string lastName)
         {
             try
             {
@@ -142,7 +136,7 @@ namespace CLTI.Diagnosis.Client.Services
                     lastName = lastName
                 };
 
-                var registerUrl = "api/auth/register";
+                var registerUrl = $"{_baseUrl}api/auth/register";
                 _logger.LogInformation("Sending registration request to: {RegisterUrl}", registerUrl);
 
                 var response = await _httpClient.PostAsJsonAsync(registerUrl, request, _jsonOptions);
@@ -197,7 +191,7 @@ namespace CLTI.Diagnosis.Client.Services
                 // Call logout endpoint if available
                 try
                 {
-                    var logoutUrl = "api/auth/logout";
+                    var logoutUrl = $"{_baseUrl}api/auth/logout";
                     await _httpClient.PostAsync(logoutUrl, null);
                 }
                 catch (Exception ex)
@@ -245,7 +239,7 @@ namespace CLTI.Diagnosis.Client.Services
                 _httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
-                var userUrl = "api/auth/me";
+                var userUrl = $"{_baseUrl}api/auth/me";
                 var response = await _httpClient.GetAsync(userUrl);
                 var content = await response.Content.ReadAsStringAsync();
 
@@ -287,30 +281,11 @@ namespace CLTI.Diagnosis.Client.Services
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
             {
-                // Defer storing until interactive phase
-                _pendingToken = token;
-                _logger.LogInformation("Deferring token storage until interactive rendering");
+                _logger.LogWarning("Cannot store token during static rendering");
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error storing token");
-            }
-        }
-
-        private async Task StoreRefreshTokenAsync(string refreshToken)
-        {
-            try
-            {
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", REFRESH_TOKEN_KEY, refreshToken);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
-            {
-                _pendingRefreshToken = refreshToken;
-                _logger.LogInformation("Deferring refresh token storage until interactive rendering");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error storing refresh token");
             }
         }
 
@@ -323,8 +298,7 @@ namespace CLTI.Diagnosis.Client.Services
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
             {
-                _pendingUser = user;
-                _logger.LogInformation("Deferring user storage until interactive rendering");
+                _logger.LogWarning("Cannot store user during static rendering");
             }
             catch (Exception ex)
             {
@@ -346,24 +320,6 @@ namespace CLTI.Diagnosis.Client.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting token");
-                return null;
-            }
-        }
-
-        public async Task<string?> GetRefreshTokenAsync()
-        {
-            try
-            {
-                return await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", REFRESH_TOKEN_KEY);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
-            {
-                _logger.LogDebug("Cannot get refresh token during static rendering");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting refresh token");
                 return null;
             }
         }
@@ -395,7 +351,6 @@ namespace CLTI.Diagnosis.Client.Services
             try
             {
                 await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY);
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", REFRESH_TOKEN_KEY);
                 await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", USER_KEY);
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
@@ -415,210 +370,19 @@ namespace CLTI.Diagnosis.Client.Services
             return !string.IsNullOrEmpty(token) && user != null;
         }
 
-        public async Task<AuthApiResult<AuthLoginResponse>> RefreshTokenAsync()
-        {
-            try
-            {
-                var refreshToken = await GetRefreshTokenAsync();
-                if (string.IsNullOrEmpty(refreshToken))
-                {
-                    return new AuthApiResult<AuthLoginResponse>
-                    {
-                        Success = false,
-                        Message = "No refresh token available"
-                    };
-                }
-
-                _logger.LogInformation("Attempting to refresh token");
-
-                var request = new
-                {
-                    refreshToken = refreshToken
-                };
-
-                var refreshUrl = "api/auth/refresh";
-                var response = await _httpClient.PostAsJsonAsync(refreshUrl, request, _jsonOptions);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var content = await response.Content.ReadAsStringAsync();
-                    var apiResponse = JsonSerializer.Deserialize<AuthApiResponse<AuthLoginResponse>>(content, _jsonOptions);
-
-                    if (apiResponse?.Success == true && apiResponse.Data != null)
-                    {
-                        _logger.LogInformation("Token refresh successful");
-
-                        // Store new tokens and user info
-                        await StoreTokenAsync(apiResponse.Data.Token);
-                        await StoreRefreshTokenAsync(apiResponse.Data.RefreshToken);
-                        await StoreUserAsync(apiResponse.Data.User);
-
-                        // Update authorization header
-                        _httpClient.DefaultRequestHeaders.Authorization =
-                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiResponse.Data.Token);
-
-                        return new AuthApiResult<AuthLoginResponse>
-                        {
-                            Success = true,
-                            Data = apiResponse.Data,
-                            Message = "Token refreshed successfully"
-                        };
-                    }
-                }
-
-                // If refresh fails, clear stored tokens
-                await RemoveTokenAsync();
-                _httpClient.DefaultRequestHeaders.Authorization = null;
-
-                var errorContent = await response.Content.ReadAsStringAsync();
-                var errorResponse = JsonSerializer.Deserialize<AuthApiResponse<object>>(errorContent, _jsonOptions);
-
-                return new AuthApiResult<AuthLoginResponse>
-                {
-                    Success = false,
-                    Message = errorResponse?.Message ?? "Token refresh failed"
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error refreshing token");
-                await RemoveTokenAsync();
-                _httpClient.DefaultRequestHeaders.Authorization = null;
-                return new AuthApiResult<AuthLoginResponse>
-                {
-                    Success = false,
-                    Message = $"Token refresh failed: {ex.Message}"
-                };
-            }
-        }
-
-        public async Task<AuthApiResult<object>> ForgotPasswordAsync(string email)
-        {
-            try
-            {
-                _logger.LogInformation("Requesting password reset for {Email}", email);
-                var url = "api/auth/forgot-password";
-                var response = await _httpClient.PostAsJsonAsync(url, new { email }, _jsonOptions);
-                var content = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<AuthApiResponse<object>>(content, _jsonOptions);
-                return new AuthApiResult<object>
-                {
-                    Success = apiResponse?.Success ?? response.IsSuccessStatusCode,
-                    Message = apiResponse?.Message ?? (response.IsSuccessStatusCode ? "Password reset email sent" : "Request failed"),
-                    Data = apiResponse?.Data
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error requesting forgot password");
-                return new AuthApiResult<object> { Success = false, Message = ex.Message };
-            }
-        }
-
-        public async Task<AuthApiResult<object>> ResetPasswordAsync(string email, string code, string newPassword)
-        {
-            try
-            {
-                _logger.LogInformation("Resetting password for {Email}", email);
-                var url = "api/auth/reset-password";
-                var response = await _httpClient.PostAsJsonAsync(url, new { email, code, newPassword }, _jsonOptions);
-                var content = await response.Content.ReadAsStringAsync();
-                var apiResponse = JsonSerializer.Deserialize<AuthApiResponse<object>>(content, _jsonOptions);
-                return new AuthApiResult<object>
-                {
-                    Success = apiResponse?.Success ?? response.IsSuccessStatusCode,
-                    Message = apiResponse?.Message ?? (response.IsSuccessStatusCode ? "Password has been reset" : "Reset failed"),
-                    Data = apiResponse?.Data
-                };
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error resetting password");
-                return new AuthApiResult<object> { Success = false, Message = ex.Message };
-            }
-        }
-
-        private async Task<bool> IsJsAvailableAsync()
-        {
-            try
-            {
-                _ = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", TOKEN_KEY);
-                return true;
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
-            {
-                return false;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        public async Task<bool> TryFlushPendingAsync()
-        {
-            if (!await IsJsAvailableAsync())
-            {
-                return false;
-            }
-
-            var flushed = false;
-
-            try
-            {
-                if (!string.IsNullOrEmpty(_pendingToken))
-                {
-                    await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, _pendingToken);
-                    _pendingToken = null;
-                    flushed = true;
-                    _logger.LogInformation("Flushed deferred token to localStorage");
-                }
-
-                if (!string.IsNullOrEmpty(_pendingRefreshToken))
-                {
-                    await _jsRuntime.InvokeVoidAsync("localStorage.setItem", REFRESH_TOKEN_KEY, _pendingRefreshToken);
-                    _pendingRefreshToken = null;
-                    flushed = true;
-                    _logger.LogInformation("Flushed deferred refresh token to localStorage");
-                }
-
-                if (_pendingUser != null)
-                {
-                    var userJson = JsonSerializer.Serialize(_pendingUser, _jsonOptions);
-                    await _jsRuntime.InvokeVoidAsync("localStorage.setItem", USER_KEY, userJson);
-                    _pendingUser = null;
-                    flushed = true;
-                    _logger.LogInformation("Flushed deferred user to localStorage");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error flushing deferred auth data to localStorage");
-            }
-
-            return flushed;
-        }
-
-        // Stores pending tokens/user after the app becomes interactive
         public async Task StorePendingTokensAsync()
         {
-            try
-            {
-                var flushed = await TryFlushPendingAsync();
-                if (flushed)
-                {
-                    _logger.LogInformation("Stored pending tokens to browser storage");
-                }
-                else
-                {
-                    _logger.LogInformation("No pending tokens to store or JS not yet available");
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error in StorePendingTokensAsync");
-                throw;
-            }
+            throw new NotImplementedException();
+        }
+
+        public async Task TryFlushPendingAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public async Task<object> ForgotPasswordAsync(string inputEmail)
+        {
+            throw new NotImplementedException();
         }
     }
 
@@ -641,7 +405,6 @@ namespace CLTI.Diagnosis.Client.Services
     public class AuthLoginResponse
     {
         public string Token { get; set; } = string.Empty;
-        public string RefreshToken { get; set; } = string.Empty;
         public AuthUserDto User { get; set; } = new();
         public DateTime ExpiresAt { get; set; }
     }
