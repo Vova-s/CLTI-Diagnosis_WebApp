@@ -14,8 +14,9 @@ namespace CLTI.Diagnosis.Client.Services
         private readonly IJSRuntime _jsRuntime;
         private readonly ILogger<JwtTokenService> _logger;
         private readonly JwtSecurityTokenHandler _tokenHandler;
-        private const string TOKEN_KEY = "clti_jwt_token";
-        private const string USER_KEY = "clti_current_user";
+        // Use shared keys with AuthApiService to keep storage consistent across the app
+        private const string TOKEN_KEY = "jwt_token";
+        private const string USER_KEY = "current_user";
 
         public JwtTokenService(IJSRuntime jsRuntime, ILogger<JwtTokenService> logger)
         {

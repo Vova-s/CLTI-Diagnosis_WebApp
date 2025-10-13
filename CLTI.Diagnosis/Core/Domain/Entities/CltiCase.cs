@@ -1,10 +1,10 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using CLTI.Diagnosis.Core.Domain.Entities.Base;
-using CLTI.Diagnosis.Core.Domain.Entities;
-using CLTI.Diagnosis.Data.Entities.ValueObjects;
+using CLTI.Diagnosis.Core.Domain.Entities.ValueObjects;
 
 namespace CLTI.Diagnosis.Core.Domain.Entities;
+
 
 [Table("u_clti")]
 public sealed class CltiCase : BaseEntity, IValidatableObject

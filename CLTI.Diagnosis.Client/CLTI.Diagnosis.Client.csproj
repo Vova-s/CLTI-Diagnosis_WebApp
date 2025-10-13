@@ -22,4 +22,35 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.2.0" />
   </ItemGroup>
 
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="Components\Pages\AccessDenied.razor" />
+    <_ContentIncludedByDefault Remove="Components\Pages\ForgotPassword.razor" />
+    <_ContentIncludedByDefault Remove="Components\Pages\Login.razor" />
+    <_ContentIncludedByDefault Remove="Components\Pages\Logout.razor" />
+    <_ContentIncludedByDefault Remove="Components\Pages\Register.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <RazorComponent Remove="Account/**/*.razor" />
+    <RazorGenerate Remove="Account/**/*.razor" />
+    <Content Remove="Account/**/*.razor" />
+    <Compile Remove="Account/**/*.razor.cs" />
+    <None Remove="Account/**/*.razor" />
+    <None Remove="Account/**/*.razor.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Account/**/*.razor" Visible="false" />
+    <None Include="Account/**/*.razor.cs" Visible="false" />
+  </ItemGroup>
+  
+  <!-- Re-include the JWT authentication pages -->
+  <ItemGroup>
+    <RazorComponent Include="Account/Pages/Login.razor" />
+    <RazorComponent Include="Account/Pages/Register.razor" />
+    <RazorComponent Include="Account/Pages/Logout.razor" />
+    <RazorComponent Include="Account/Pages/AccessDenied.razor" />
+    <RazorComponent Include="Account/Pages/ForgotPassword.razor" />
+  </ItemGroup>
+
 </Project>

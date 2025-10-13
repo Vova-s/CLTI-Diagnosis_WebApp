@@ -2,7 +2,8 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace CLTI.Diagnosis.Data.Entities;
+namespace CLTI.Diagnosis.Core.Domain.Entities;
+
 
 [Table("sys_user")]
 public class SysUser
@@ -38,6 +39,13 @@ public class SysUser
 
     public SysEnumItem? StatusEnumItem { get; set; }
 
+    [MaxLength(20)]
+    public string? PasswordHashType { get; set; }
+
     [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public Guid Guid { get; set; }
+
+    // Navigation properties
+    public ICollection<SysUserRole> SysUserRoles { get; set; } = new List<SysUserRole>();
+    public ICollection<SysRefreshToken> SysRefreshTokens { get; set; } = new List<SysRefreshToken>();
 }

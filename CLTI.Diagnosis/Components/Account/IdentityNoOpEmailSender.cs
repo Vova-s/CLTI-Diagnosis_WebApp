@@ -1,4 +1,3 @@
-using CLTI.Diagnosis.Infrastructure.Data.Context;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.UI.Services;
 

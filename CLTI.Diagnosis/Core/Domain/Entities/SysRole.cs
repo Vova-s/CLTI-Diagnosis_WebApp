@@ -2,7 +2,7 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace CLTI.Diagnosis.Data.Entities;
+namespace CLTI.Diagnosis.Core.Domain.Entities;
 
 [Table("sys_role")]
 public class SysRole
@@ -15,7 +15,6 @@ public class SysRole
     public string Name { get; set; } = string.Empty;
 
     public string? Description { get; set; }
-
-    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    
     public Guid Guid { get; set; }
 }

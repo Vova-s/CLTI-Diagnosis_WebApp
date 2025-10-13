@@ -15,17 +15,17 @@
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="9.0.5" />
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="9.0.5" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.5" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.5">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
     <PackageReference Include="Microsoft.NET.Runtime.WebAssembly.Sdk" Version="9.0.5" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\CLTI.Diagnosis.Client\CLTI.Diagnosis.Client.csproj" />
+    <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
+    <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
+    <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
   </ItemGroup>
 
   <ItemGroup>
@@ -46,7 +46,6 @@
     <Folder Include="Core\Interfaces\" />
     <Folder Include="Core\Repositories\" />
     <Folder Include="Core\Services\" />
-    <Folder Include="Data\Entities\" />
     <Folder Include="Infrastructure\Data\Configurations\" />
     <Folder Include="Infrastructure\Data\Context\" />
     <Folder Include="Infrastructure\Data\Migrations\" />
@@ -55,6 +54,7 @@
     <Folder Include="Infrastructure\Services\Email\" />
     <Folder Include="Infrastructure\Services\Identity\" />
     <Folder Include="Infrastructure\Services\Storage\" />
+    <Folder Include="logs\" />
     <Folder Include="Shared\Constants\" />
     <Folder Include="Shared\Extensions\" />
     <Folder Include="Shared\Helpers\" />
@@ -67,6 +67,49 @@
     <Folder Include="Web\Middleware\" />
     <Folder Include="Web\Models\Request\" />
     <Folder Include="Web\Models\Response\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\AccessDenied.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\ConfirmEmail.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\ConfirmEmailChange.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\ExternalLogin.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\ForgotPassword.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\ForgotPasswordConfirmation.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\InvalidPasswordReset.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\InvalidUser.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Lockout.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Login.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\LoginWith2fa.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\LoginWithRecoveryCode.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\ChangePassword.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\DeletePersonalData.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\Disable2fa.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\Email.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\EnableAuthenticator.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\ExternalLogins.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\GenerateRecoveryCodes.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\Index.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\PersonalData.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\ResetAuthenticator.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\SetPassword.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\TwoFactorAuthentication.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\_Imports.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\Register.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\RegisterConfirmation.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\ResendEmailConfirmation.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\ResetPassword.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\ResetPasswordConfirmation.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Pages\_Imports.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Shared\ExternalLoginPicker.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Shared\ManageLayout.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Shared\ManageNavMenu.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Shared\ShowRecoveryCodes.razor" />
+    <_ContentIncludedByDefault Remove="Components\Account\Shared\StatusMessage.razor" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\CLTI.Diagnosis.Client\CLTI.Diagnosis.Client.csproj" />
   </ItemGroup>
 
 </Project>

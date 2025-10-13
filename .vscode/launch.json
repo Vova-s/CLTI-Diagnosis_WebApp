@@ -5,11 +5,64 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Launch CLTI.Diagnosis (HTTPS)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/CLTI.Diagnosis/bin/Debug/net9.0/CLTI.Diagnosis.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/CLTI.Diagnosis",
+            "stopAtEntry": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s",
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "https://localhost:7124;http://localhost:5276"
+            },
+            "sourceFileMap": {
+                "/Views": "${workspaceFolder}/Views"
+            }
+        },
+        {
+            "name": "Launch CLTI.Diagnosis (HTTP)",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/CLTI.Diagnosis/bin/Debug/net9.0/CLTI.Diagnosis.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/CLTI.Diagnosis",
+            "stopAtEntry": false,
+            "serverReadyAction": {
+                "action": "openExternally",
+                "pattern": "\\bNow listening on:\\s+(https?://\\S+)",
+                "uriFormat": "%s",
+            },
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development",
+                "ASPNETCORE_URLS": "http://localhost:5276"
+            },
+            "sourceFileMap": {
+                "/Views": "${workspaceFolder}/Views"
+            }
+        },
+        {
+            "name": "Launch Chrome against localhost (HTTPS)",
             "type": "chrome",
             "request": "launch",
-            "name": "Launch Chrome against localhost",
             "url": "https://localhost:7124",
-            "webRoot": "${workspaceFolder}"
+            "webRoot": "${workspaceFolder}",
+            "preLaunchTask": "build"
+        },
+        {
+            "name": "Launch Chrome against localhost (HTTP)",
+            "type": "chrome",
+            "request": "launch",
+            "url": "http://localhost:5276",
+            "webRoot": "${workspaceFolder}",
+            "preLaunchTask": "build"
         }
     ]
 }

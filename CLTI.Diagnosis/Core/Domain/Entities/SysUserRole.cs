@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace CLTI.Diagnosis.Data.Entities;
+namespace CLTI.Diagnosis.Core.Domain.Entities;
 
 [Table("sys_user_role")]
 public class SysUserRole

@@ -1,9 +1,9 @@
 using CLTI.Diagnosis.Core.Domain.Entities;
-using CLTI.Diagnosis.Core.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace CLTI.Diagnosis.Data.EntityConfigurations;
+
 
 public class CltiCaseConfiguration : IEntityTypeConfiguration<CltiCase>
 {

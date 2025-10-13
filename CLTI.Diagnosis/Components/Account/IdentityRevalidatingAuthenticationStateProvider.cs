@@ -1,5 +1,4 @@
 using System.Security.Claims;
-using CLTI.Diagnosis.Infrastructure.Data.Context;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Components.Server;
 using Microsoft.AspNetCore.Identity;

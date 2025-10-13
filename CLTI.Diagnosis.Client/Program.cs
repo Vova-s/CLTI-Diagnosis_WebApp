@@ -16,13 +16,11 @@ builder.Services.AddScoped<JwtAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
     provider.GetRequiredService<JwtAuthenticationStateProvider>());
 
-// HTTP Client for API calls - ВИПРАВЛЕНО
+// HTTP Client for API calls - use same-origin base address
 builder.Services.AddScoped(sp =>
 {
-    // Визначаємо базову адресу напряму
-    var baseAddress = builder.HostEnvironment.IsDevelopment()
-        ? "https://localhost:7124/"
-        : "https://antsdemo02.demo.dragon-cloud.org/";
+    // Use the app's hosting origin to avoid port/host mismatches
+    var baseAddress = builder.HostEnvironment.BaseAddress;
 
     var httpClient = new HttpClient
     {
@@ -32,10 +30,9 @@ builder.Services.AddScoped(sp =>
     httpClient.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Client");
     httpClient.Timeout = TimeSpan.FromSeconds(30);
 
-    // Логування для діагностики
+    // Diagnostics logging
     var logger = sp.GetRequiredService<ILogger<Program>>();
-    logger.LogInformation("HttpClient configured with BaseAddress: {BaseAddress} (IsDevelopment: {IsDevelopment})",
-        httpClient.BaseAddress, builder.HostEnvironment.IsDevelopment());
+    logger.LogInformation("HttpClient configured with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
 
     return httpClient;
 });
@@ -72,5 +69,9 @@ using (var scope = app.Services.CreateScope())
 // Ініціалізуємо JWT провайдер після завантаження
 var authStateProvider = app.Services.GetRequiredService<JwtAuthenticationStateProvider>();
 await authStateProvider.InitializeAsync();
+
+// Після того як застосунок став інтерактивним, спробуємо зберегти відкладені токени/користувача
+var authApiService = app.Services.GetRequiredService<AuthApiService>();
+await authApiService.TryFlushPendingAsync();
 
 await app.RunAsync();
