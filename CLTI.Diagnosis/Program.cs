@@ -1,8 +1,8 @@
-﻿// /app/CLTI.Diagnosis/Program.cs
+// /app/CLTI.Diagnosis/Program.cs
 using CLTI.Diagnosis.Components;
 using CLTI.Diagnosis.Client.Algoritm.Services;
 using CLTI.Diagnosis.Client.Services;
-using CLTI.Diagnosis.Infrastructure.Data.Context;
+using CLTI.Diagnosis.Data;
 using CLTI.Diagnosis.Services;
 using CLTI.Diagnosis.Middleware;
 using Microsoft.AspNetCore.Components.Authorization;
@@ -10,11 +10,53 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Authentication;
-using System.Security.Claims;
+using Serilog;
+using Serilog.Events;
+
+ // Configure Serilog early
+Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Debug()
+    .MinimumLevel.Override("Microsoft", LogEventLevel.Information)
+    .MinimumLevel.Override("Microsoft.AspNetCore", LogEventLevel.Warning)
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Warning)
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .Enrich.WithEnvironmentName()
+    .WriteTo.Console(
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss} {Level:u3}] {Message:lj} {Properties:j}{NewLine}{Exception}")
+    .WriteTo.File(
+        path: "C:\\inetpub\\CLTI\\logs\\app-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 30,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] [{SourceContext}] [{ThreadId}] {Message:lj} {Properties:j}{NewLine}{Exception}",
+        shared: true,
+        flushToDiskInterval: TimeSpan.FromSeconds(1))
+    .WriteTo.File(
+        path: "C:\\inetpub\\CLTI\\logs\\errors-.log",
+        rollingInterval: RollingInterval.Day,
+        retainedFileCountLimit: 90,
+        restrictedToMinimumLevel: LogEventLevel.Warning,
+        outputTemplate: "[{Timestamp:yyyy-MM-dd HH:mm:ss.fff} {Level:u3}] [{SourceContext}] [{ThreadId}] {Message:lj} {Properties:j}{NewLine}{Exception}",
+        shared: true,
+        flushToDiskInterval: TimeSpan.FromSeconds(1))
+    .CreateLogger();
+
+try
+{
+    Log.Information("Starting CLTI.Diagnosis application");
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Add Serilog to the application
+builder.Host.UseSerilog((context, services, configuration) => configuration
+    .ReadFrom.Configuration(context.Configuration)
+    .ReadFrom.Services(services)
+    .Enrich.FromLogContext()
+    .Enrich.WithMachineName()
+    .Enrich.WithThreadId()
+    .Enrich.WithEnvironmentName());
+
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -30,67 +72,19 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
-// JWT CONFIGURATION - PURE JWT, NO COOKIES
+// JWT CONFIGURATION - ONLY JWT AUTHENTICATION
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "your-super-secret-jwt-key-min-256-bits-long-for-security-purposes-12345";
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "CLTI.Diagnosis";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "CLTI.Diagnosis.Client";
 
 builder.Services.AddAuthentication(options =>
 {
-    // ✅ ОСНОВНОЮ СХЕМОЮ РОБИМО COOKIES ДЛЯ BLAZOR SERVER
-    options.DefaultScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultAuthenticateScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultChallengeScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignInScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignOutScheme = IdentityConstants.ApplicationScheme;
+    // JWT as the default and only authentication scheme
+    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
 })
-// ✅ COOKIE AUTHENTICATION ДЛЯ BLAZOR SERVER (ОСНОВНЕ)
-.AddCookie(IdentityConstants.ApplicationScheme, options =>
-{
-    options.LoginPath = "/Account/Login";
-    options.LogoutPath = "/Account/Logout";
-    options.AccessDeniedPath = "/Account/AccessDenied";
-    options.ExpireTimeSpan = TimeSpan.FromDays(30);
-    options.SlidingExpiration = true;
-
-    options.Cookie.Name = ".AspNetCore.Identity.Application";
-    options.Cookie.SameSite = SameSiteMode.Lax;
-    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-
-    // ✅ НАЛАШТУВАННЯ ДЛЯ BLAZOR SERVER
-    options.Events.OnRedirectToLogin = context =>
-    {
-        // Для API запитів повертаємо 401 замість редиректу
-        if (context.Request.Path.StartsWithSegments("/api") ||
-            context.Request.Headers.Accept.ToString().Contains("application/json") ||
-            context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
-        {
-            context.Response.StatusCode = 401;
-            return Task.CompletedTask;
-        }
-
-        // Для звичайних запитів робимо редирект
-        context.Response.Redirect(context.RedirectUri);
-        return Task.CompletedTask;
-    };
-
-    options.Events.OnRedirectToAccessDenied = context =>
-    {
-        if (context.Request.Path.StartsWithSegments("/api") ||
-            context.Request.Headers.Accept.ToString().Contains("application/json"))
-        {
-            context.Response.StatusCode = 403;
-            return Task.CompletedTask;
-        }
-
-        context.Response.Redirect(context.RedirectUri);
-        return Task.CompletedTask;
-    };
-})
-// ✅ JWT AUTHENTICATION ДЛЯ API ENDPOINTS (ДОДАТКОВЕ)
-.AddJwtBearer(JwtBearerDefaults.AuthenticationScheme, options =>
+.AddJwtBearer(options =>
 {
     options.SaveToken = true;
     options.RequireHttpsMetadata = !builder.Environment.IsDevelopment();
@@ -124,50 +118,46 @@ builder.Services.AddAuthentication(options =>
         OnAuthenticationFailed = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning("JWT Authentication failed: {Error}", context.Exception.Message);
+            logger.LogWarning("JWT Authentication failed: {Error}, Path: {Path}, RemoteIp: {RemoteIp}", 
+                context.Exception.Message, 
+                context.Request.Path,
+                context.HttpContext.Connection.RemoteIpAddress);
             return Task.CompletedTask;
         },
 
         OnChallenge = context =>
         {
             var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
-            logger.LogWarning("JWT Challenge triggered for path: {Path}", context.Request.Path);
+            logger.LogWarning("JWT Challenge triggered for path: {Path}, Error: {Error}, RemoteIp: {RemoteIp}", 
+                context.Request.Path,
+                context.Error,
+                context.HttpContext.Connection.RemoteIpAddress);
+            return Task.CompletedTask;
+        },
 
-            // ✅ НЕ РОБИМО АВТОМАТИЧНИЙ CHALLENGE ДЛЯ JWT
-            // Це дозволить основній схемі (cookies) обробити автентифікацію
-            context.HandleResponse();
+        OnTokenValidated = context =>
+        {
+            var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+            logger.LogDebug("JWT Token validated successfully for user: {User}, Path: {Path}", 
+                context.Principal?.Identity?.Name,
+                context.Request.Path);
             return Task.CompletedTask;
         }
     };
 });
 
-// ✅ AUTHORIZATION З ПОЛІТИКАМИ ДЛЯ РІЗНИХ СХЕМ
+// Authorization
 builder.Services.AddAuthorizationCore(options =>
 {
-    options.AddPolicy("ApiPolicy", policy =>
-    {
-        policy.AddAuthenticationSchemes(JwtBearerDefaults.AuthenticationScheme);
-        policy.RequireAuthenticatedUser();
-    });
-
-    // Політика для Blazor сторінок що використовують cookies
-    options.AddPolicy("WebPolicy", policy =>
-    {
-        policy.AddAuthenticationSchemes(IdentityConstants.ApplicationScheme);
-        policy.RequireAuthenticatedUser();
-    });
-
-    // Комбінована політика (підтримує обидві схеми)
-    options.AddPolicy("HybridPolicy", policy =>
-    {
-        policy.AddAuthenticationSchemes(
-            IdentityConstants.ApplicationScheme,
-            JwtBearerDefaults.AuthenticationScheme);
-        policy.RequireAuthenticatedUser();
-    });
+    options.AddPolicy("RequireAdminRole", policy => policy.RequireRole("Admin"));
+    options.AddPolicy("RequireDoctorRole", policy => policy.RequireRole("Doctor", "Admin"));
+    options.AddPolicy("RequireUserRole", policy => policy.RequireRole("User", "Doctor", "Admin"));
 });
 
-// ✅ IDENTITY ДЛЯ BLAZOR SERVER
+// Cascading authentication state for Blazor
+builder.Services.AddCascadingAuthenticationState();
+builder.Services.AddScoped<AuthenticationStateProvider, JwtAuthenticationStateProvider>();
+
 builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<AuthenticationStateProvider, JwtAuthenticationStateProvider>();
 
@@ -189,13 +179,11 @@ builder.Services.AddHttpClient("OpenAI", client =>
     client.Timeout = TimeSpan.FromSeconds(60);
 });
 
-// ✅ HTTP CLIENT ДЛЯ ВНУТРІШНІХ API ЗАПИТІВ
+// HTTP CLIENT for internal API requests (no cookies, JWT only)
 builder.Services.AddHttpClient("InternalApi", (sp, client) =>
 {
-
     var environment = sp.GetRequiredService<IWebHostEnvironment>();
-
-    var httpClient = new HttpClient();
+    var logger = sp.GetRequiredService<ILogger<Program>>();
 
     string baseUrl;
     if (environment.IsDevelopment())
@@ -207,50 +195,25 @@ builder.Services.AddHttpClient("InternalApi", (sp, client) =>
         baseUrl = "https://antsdemo02.demo.dragon-cloud.org";
     }
 
-    httpClient.BaseAddress = new Uri(baseUrl);
-    httpClient.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Client");
+    logger.LogInformation("Configuring InternalApi HttpClient with base URL: {BaseUrl}", baseUrl);
+
+    client.BaseAddress = new Uri(baseUrl);
+    client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Client");
 
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
 {
-    UseCookies = true,
+    UseCookies = false, // Disable cookies - using JWT only
     ServerCertificateCustomValidationCallback = (message, cert, chain, errors) => true
 });
 
-// ✅ DEFAULT HTTP CLIENT для Blazor Server
+// Default HTTP Client for Blazor (JWT-based)
 builder.Services.AddScoped(sp =>
 {
     var factory = sp.GetRequiredService<IHttpClientFactory>();
-    var httpContextAccessor = sp.GetRequiredService<IHttpContextAccessor>();
-    var httpContext = httpContextAccessor.HttpContext;
-
-    var client = factory.CreateClient("InternalApi");
-
-    // Для Blazor Server передаємо cookies з поточного HTTP контексту
-    if (httpContext != null)
-    {
-        var cookieHeader = httpContext.Request.Headers.Cookie.ToString();
-        if (!string.IsNullOrEmpty(cookieHeader))
-        {
-            client.DefaultRequestHeaders.Remove("Cookie");
-            client.DefaultRequestHeaders.Add("Cookie", cookieHeader);
-        }
-
-        // Передаємо інформацію про користувача
-        if (httpContext.User?.Identity?.IsAuthenticated == true)
-        {
-            var userId = httpContext.User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            if (!string.IsNullOrEmpty(userId))
-            {
-                client.DefaultRequestHeaders.Remove("X-User-Id");
-                client.DefaultRequestHeaders.Add("X-User-Id", userId);
-            }
-        }
-    }
-
-    return client;
+    return factory.CreateClient("InternalApi");
 });
 
-// ✅ КЛІЄНТСЬКІ СЕРВІСИ
+// Client services
 builder.Services.AddScoped<CltiApiClient>();
 builder.Services.AddScoped<CLTI.Diagnosis.Client.Services.CltiCaseService>();
 builder.Services.AddScoped<IUserClientService, UserClientService>();
@@ -258,22 +221,8 @@ builder.Services.AddScoped<IClientApiKeyService, ClientApiKeyService>();
 builder.Services.AddScoped<AiChatClient>();
 builder.Services.AddScoped<AuthApiService>();
 
-// Logging
-builder.Services.AddLogging(logging =>
-{
-    logging.AddConsole();
-    logging.AddDebug();
-
-    if (builder.Environment.IsDevelopment())
-    {
-        logging.SetMinimumLevel(LogLevel.Information);
-    }
-    else
-    {
-        logging.SetMinimumLevel(LogLevel.Information);
-        logging.AddFilter("CLTI.Diagnosis", LogLevel.Information);
-    }
-});
+// Logging - Now handled by Serilog
+// The old AddLogging configuration is replaced by Serilog
 
 // CORS
 builder.Services.AddCors(options =>
@@ -286,18 +235,32 @@ builder.Services.AddCors(options =>
     });
 });
 
+
+
 var app = builder.Build();
+
+// Log application startup
+var startupLogger = app.Services.GetRequiredService<ILogger<Program>>();
+startupLogger.LogInformation("Application starting. Environment: {Environment}, MachineName: {MachineName}", 
+    app.Environment.EnvironmentName, 
+    Environment.MachineName);
 
 // MIDDLEWARE PIPELINE
 if (app.Environment.IsDevelopment())
 {
     app.UseWebAssemblyDebugging();
+    startupLogger.LogInformation("Development mode: WebAssembly debugging enabled");
 }
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
+    startupLogger.LogInformation("Production mode: Exception handler and HSTS enabled");
 }
+
+// Add custom middleware for logging
+app.UseRequestLogging();
+app.UseGlobalExceptionHandler();
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
@@ -314,26 +277,10 @@ app.MapRazorComponents<App>()
     .AddInteractiveWebAssemblyRenderMode()
     .AddAdditionalAssemblies(typeof(CLTI.Diagnosis.Client._Imports).Assembly);
 
-// ✅ CONTROLLERS З МОЖЛИВІСТЮ ВИБОРУ ПОЛІТИКИ
+// API Controllers
 app.MapControllers();
 
-// ✅ LOGOUT ENDPOINT
-app.MapPost("/Account/Logout", async (HttpContext context) =>
-{
-    var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-    logger.LogInformation("User logout requested");
-
-    await context.SignOutAsync(IdentityConstants.ApplicationScheme);
-
-    // Очищаємо cookies
-    context.Response.Cookies.Delete(".AspNetCore.Identity.Application");
-    context.Response.Cookies.Delete(".AspNetCore.Antiforgery.mYlosc6T-lA");
-
-    logger.LogInformation("User logged out successfully");
-    return Results.Redirect("/");
-});
-
-// ✅ HEALTH CHECK ENDPOINT
+// Health check endpoint
 app.MapGet("/health", () =>
 {
     return Results.Ok(new
@@ -357,6 +304,9 @@ app.MapFallback(async context =>
         path.StartsWith("/_blazor", StringComparison.OrdinalIgnoreCase) ||
         path.Contains('.', StringComparison.OrdinalIgnoreCase))
     {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning("404 Not Found: {Path} from {RemoteIp}", path, context.Connection.RemoteIpAddress);
+        
         context.Response.StatusCode = 404;
         await context.Response.WriteAsync("Not Found");
         return;
@@ -365,4 +315,17 @@ app.MapFallback(async context =>
     context.Response.Redirect($"/Error?path={Uri.EscapeDataString(path)}&type=404");
 });
 
+startupLogger.LogInformation("Application started successfully. Listening on configured URLs");
+
 app.Run();
+
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "Application terminated unexpectedly");
+}
+finally
+{
+    Log.Information("Shutting down CLTI.Diagnosis application");
+    Log.CloseAndFlush();
+}

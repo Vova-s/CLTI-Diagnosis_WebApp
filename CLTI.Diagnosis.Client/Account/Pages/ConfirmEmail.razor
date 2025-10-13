@@ -1,0 +1,93 @@
+﻿@page "/Account/ConfirmEmail"
+@using System.Text
+@using CLTI.Diagnosis.Components.Account
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.WebUtilities
+
+@using Microsoft.AspNetCore.Http
+@inject UserManager<ApplicationUser> UserManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Confirm email</PageTitle>
+
+<div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+    <div class="bg-white shadow-md rounded-lg p-8 max-w-md w-full text-center">
+        <h1 class="text-2xl font-bold mb-4">Confirm Email</h1>
+
+        @if (statusMessage != null)
+        {
+            @if (statusMessage.Contains("Thank you"))
+            {
+                <div class="mb-6">
+                    <svg class="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="text-green-600 font-medium">@statusMessage</p>
+                </div>
+
+                <div class="mt-6">
+                    <a href="/login" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded transition duration-200">
+                        Go to Login
+                    </a>
+                </div>
+            }
+            else
+            {
+                <div class="mb-6">
+                    <svg class="w-16 h-16 text-red-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <p class="text-red-600 font-medium">@statusMessage</p>
+                </div>
+
+                <div class="mt-6">
+                    <a href="/" class="bg-blue-500 hover:bg-blue-600 text-white font-medium py-2 px-6 rounded transition duration-200">
+                        Return to Home
+                    </a>
+                </div>
+            }
+        }
+        else
+        {
+            <div class="mb-6">
+                <div class="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
+                <p class="mt-4 text-gray-600">Verifying your email...</p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string? statusMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromQuery]
+    private string? UserId { get; set; }
+
+    [SupplyParameterFromQuery]
+    private string? Code { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (UserId is null || Code is null)
+        {
+            RedirectManager.RedirectTo("");
+            return;
+        }
+
+        var user = await UserManager.FindByIdAsync(UserId);
+        if (user is null)
+        {
+            HttpContext.Response.StatusCode = StatusCodes.Status404NotFound;
+            statusMessage = $"Error loading user with ID {UserId}";
+        }
+        else
+        {
+            var code = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(Code));
+            var result = await UserManager.ConfirmEmailAsync(user, code);
+            statusMessage = result.Succeeded ? "Thank you for confirming your email." : "Error confirming your email.";
+        }
+    }
+}

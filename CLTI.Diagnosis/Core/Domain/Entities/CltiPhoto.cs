@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using CLTI.Diagnosis.Core.Domain.Entities;
 
-namespace CLTI.Diagnosis.Data.Entities;
+namespace CLTI.Diagnosis.Core.Domain.Entities;
 
 [Table("u_clti_photos")]
 public class CltiPhoto

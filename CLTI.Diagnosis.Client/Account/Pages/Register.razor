@@ -1,0 +1,217 @@
+﻿@page "/Account/Register"
+@page "/register"
+
+@using System.ComponentModel.DataAnnotations
+@using CLTI.Diagnosis.Client.Services
+@inject AuthApiService AuthApi
+@inject NavigationManager NavigationManager
+@inject ILogger<Register> Logger
+
+<PageTitle>Register</PageTitle>
+
+<div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md mb-4">
+        <h2 class="text-2xl font-bold text-center mb-6">Register</h2>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
+                <p>@errorMessage</p>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(successMessage))
+        {
+            <div class="bg-green-100 border-l-4 border-green-500 text-green-700 p-4 mb-6" role="alert">
+                <p>@successMessage</p>
+            </div>
+        }
+
+        @if (isLoading)
+        {
+            <div class="flex justify-center items-center mb-6">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <span class="ml-2 text-gray-600">Creating account...</span>
+            </div>
+        }
+
+        <EditForm Model="Input" method="post" OnValidSubmit="RegisterUser" FormName="register">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-red-500 mb-4" role="alert" />
+
+            <!-- First Name Field -->
+            <div class="mb-4">
+                <label for="Input.FirstName" class="block text-gray-700 text-sm font-bold mb-2">First Name</label>
+                <InputText @bind-Value="Input.FirstName"
+                           id="Input.FirstName"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           placeholder="Enter your first name"
+                           disabled="@isLoading" />
+                <ValidationMessage For="() => Input.FirstName" class="text-red-500 text-sm mt-1" />
+            </div>
+
+            <!-- Last Name Field -->
+            <div class="mb-4">
+                <label for="Input.LastName" class="block text-gray-700 text-sm font-bold mb-2">Last Name *</label>
+                <InputText @bind-Value="Input.LastName"
+                           id="Input.LastName"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           placeholder="Enter your last name"
+                           disabled="@isLoading" />
+                <ValidationMessage For="() => Input.LastName" class="text-red-500 text-sm mt-1" />
+            </div>
+
+            <!-- Email Field -->
+            <div class="mb-4">
+                <label for="Input.Email" class="block text-gray-700 text-sm font-bold mb-2">Email *</label>
+                <InputText @bind-Value="Input.Email"
+                           id="Input.Email"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           placeholder="Enter your email"
+                           disabled="@isLoading" />
+                <ValidationMessage For="() => Input.Email" class="text-red-500 text-sm mt-1" />
+            </div>
+
+            <!-- Password Field -->
+            <div class="mb-4">
+                <label for="Input.Password" class="block text-gray-700 text-sm font-bold mb-2">Password *</label>
+                <InputText type="password"
+                           @bind-Value="Input.Password"
+                           id="Input.Password"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           autocomplete="new-password"
+                           placeholder="Enter your password"
+                           disabled="@isLoading" />
+                <ValidationMessage For="() => Input.Password" class="text-red-500 text-sm mt-1" />
+            </div>
+
+            <!-- Confirm Password Field -->
+            <div class="mb-6">
+                <label for="Input.ConfirmPassword" class="block text-gray-700 text-sm font-bold mb-2">Confirm Password *</label>
+                <InputText type="password"
+                           @bind-Value="Input.ConfirmPassword"
+                           id="Input.ConfirmPassword"
+                           class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                           autocomplete="new-password"
+                           placeholder="Confirm your password"
+                           disabled="@isLoading" />
+                <ValidationMessage For="() => Input.ConfirmPassword" class="text-red-500 text-sm mt-1" />
+            </div>
+
+            <!-- Register Button -->
+            <button type="submit"
+                    class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded w-full transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span>Creating Account...</span>
+                }
+                else
+                {
+                    <span>Register</span>
+                }
+            </button>
+        </EditForm>
+
+        <!-- Login Link -->
+        <div class="mt-4 text-center text-sm text-gray-600">
+            Already have an account?
+            <a href="/Account/Login" class="text-blue-500 hover:underline font-medium">Login</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isLoading = false;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    public async Task RegisterUser()
+    {
+        if (isLoading)
+            return;
+
+        try
+        {
+            isLoading = true;
+            errorMessage = null;
+            successMessage = null;
+            StateHasChanged();
+
+            Logger.LogInformation("Attempting registration for user: {Email}", Input.Email);
+
+            // Validate password confirmation
+            if (Input.Password != Input.ConfirmPassword)
+            {
+                errorMessage = "Password and confirm password do not match.";
+                return;
+            }
+
+            // Use AuthApiService for JWT registration
+            var result = await AuthApi.RegisterAsync(Input.Email, Input.Password, Input.FirstName, Input.LastName);
+
+            if (result.Success)
+            {
+                Logger.LogInformation("Registration successful for user: {Email}", Input.Email);
+                successMessage = "Registration successful! You can now log in.";
+                
+                // Redirect to login after a short delay
+                await Task.Delay(2000);
+                NavigationManager.NavigateTo("/Account/Login", forceLoad: true);
+            }
+            else
+            {
+                errorMessage = result.Message ?? "Registration failed";
+                Logger.LogWarning("Registration failed for user {Email}: {Error}", Input.Email, errorMessage);
+            }
+        }
+        catch (HttpRequestException ex)
+        {
+            Logger.LogError(ex, "Network error during registration for user {Email}", Input.Email);
+            errorMessage = "Network error. Please check your connection and try again.";
+        }
+        catch (TaskCanceledException ex)
+        {
+            Logger.LogError(ex, "Timeout during registration for user {Email}", Input.Email);
+            errorMessage = "Request timed out. Please try again.";
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Unexpected error during registration for user {Email}", Input.Email);
+            errorMessage = "An unexpected error occurred. Please try again.";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    public class InputModel
+    {
+        [MaxLength(50)]
+        public string? FirstName { get; set; }
+
+        [Required]
+        [MaxLength(50)]
+        public string LastName { get; set; } = string.Empty;
+
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = string.Empty;
+
+        [Required]
+        [MinLength(6)]
+        public string Password { get; set; } = string.Empty;
+
+        [Required]
+        [MinLength(6)]
+        public string ConfirmPassword { get; set; } = string.Empty;
+    }
+}

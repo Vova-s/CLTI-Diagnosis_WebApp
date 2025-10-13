@@ -1,0 +1,58 @@
+@page "/Account/Logout"
+@page "/logout"
+
+@using CLTI.Diagnosis.Client.Services
+@inject AuthApiService AuthApi
+@inject NavigationManager NavigationManager
+@inject ILogger<Logout> Logger
+
+<PageTitle>Logout</PageTitle>
+
+<div class="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
+    <div class="bg-white shadow-md rounded px-8 pt-6 pb-8 w-full max-w-md">
+        <h2 class="text-2xl font-bold text-center mb-6">Logout</h2>
+        
+        @if (isLoading)
+        {
+            <div class="flex justify-center items-center mb-6">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
+                <span class="ml-2 text-gray-600">Logging out...</span>
+            </div>
+        }
+        else
+        {
+            <div class="text-center">
+                <p class="text-gray-600 mb-4">You have been successfully logged out.</p>
+                <a href="/Account/Login" class="text-blue-600 hover:text-blue-800 underline">
+                    Click here to log in again
+                </a>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            Logger.LogInformation("User logout initiated");
+
+            // Call logout API
+            await AuthApi.LogoutAsync();
+
+            Logger.LogInformation("User logout completed successfully");
+
+            // Redirect to login after a short delay
+            await Task.Delay(1000);
+            NavigationManager.NavigateTo("/Account/Login", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            Logger.LogError(ex, "Error during logout");
+            isLoading = false;
+        }
+    }
+}

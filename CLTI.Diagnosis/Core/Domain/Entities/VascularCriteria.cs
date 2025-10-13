@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace CLTI.Diagnosis.Data.Entities.ValueObjects;
+namespace CLTI.Diagnosis.Core.Domain.Entities.ValueObjects;
 
 public class WifiCriteria
 {
