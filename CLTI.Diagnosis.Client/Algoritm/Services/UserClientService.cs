@@ -1,4 +1,5 @@
 ﻿// ✅ Оновлений UserClientService з JWT
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 
@@ -16,18 +17,18 @@ namespace CLTI.Diagnosis.Client.Services
     public class UserClientService : IUserClientService
     {
         private readonly HttpClient _httpClient;
-        private readonly JwtTokenService _tokenService;
         private readonly ILogger<UserClientService> _logger;
         private readonly JsonSerializerOptions _jsonOptions;
+        private readonly JwtTokenService _jwtTokenService;
 
         public UserClientService(
             HttpClient httpClient,
-            JwtTokenService tokenService,
-            ILogger<UserClientService> logger)
+            ILogger<UserClientService> logger,
+            JwtTokenService jwtTokenService)
         {
-            _httpClient = httpClient;
-            _tokenService = tokenService;
+            _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger;
+            _jwtTokenService = jwtTokenService;
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -43,16 +44,17 @@ namespace CLTI.Diagnosis.Client.Services
             {
                 _logger.LogInformation("Attempting to get current user from API with JWT");
 
-                // Отримуємо токен та додаємо до запиту
-                var token = await _tokenService.GetTokenAsync();
+                var token = await _jwtTokenService.GetTokenAsync();
                 if (string.IsNullOrEmpty(token))
                 {
-                    _logger.LogWarning("No JWT token available");
+                    _logger.LogWarning("No JWT token available in localStorage");
                     return null;
                 }
 
+                _logger.LogInformation("Retrieved JWT token (length: {Length})", token.Length);
+
                 var request = new HttpRequestMessage(HttpMethod.Get, "/api/user/current");
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
                 var response = await _httpClient.SendAsync(request);
 
@@ -80,7 +82,6 @@ namespace CLTI.Diagnosis.Client.Services
                 else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
                 {
                     _logger.LogWarning("JWT token is invalid or expired");
-                    await _tokenService.RemoveTokenAsync();
                     OnUserChanged?.Invoke(null);
                 }
                 else
@@ -118,34 +119,26 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
-                var token = await _tokenService.GetTokenAsync();
+                var token = await _jwtTokenService.GetTokenAsync();
                 if (string.IsNullOrEmpty(token))
                 {
                     _logger.LogWarning("No JWT token available for update");
                     return false;
                 }
 
-                var request = new
+                var requestObj = new { firstName, lastName, email };
+                var request = new HttpRequestMessage(HttpMethod.Put, "/api/user/update")
                 {
-                    firstName = firstName,
-                    lastName = lastName,
-                    email = email
+                    Content = JsonContent.Create(requestObj, options: _jsonOptions)
                 };
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-                _logger.LogInformation("Attempting to update user: {Email}", email);
-
-                var httpRequest = new HttpRequestMessage(HttpMethod.Put, "/api/user/update")
-                {
-                    Content = JsonContent.Create(request, options: _jsonOptions)
-                };
-                httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-                var response = await _httpClient.SendAsync(httpRequest);
+                var response = await _httpClient.SendAsync(request);
 
                 if (response.IsSuccessStatusCode)
                 {
                     _logger.LogInformation("User update successful");
-                    // Оновлюємо кешовані дані користувача
+                    // Refresh cached user data
                     await GetCurrentUserAsync();
                     return true;
                 }
@@ -166,28 +159,15 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
-                var token = await _tokenService.GetTokenAsync();
+                var token = await _jwtTokenService.GetTokenAsync();
                 if (string.IsNullOrEmpty(token))
                 {
                     _logger.LogWarning("No JWT token available for password change");
                     return false;
                 }
 
-                var request = new
-                {
-                    oldPassword = oldPassword,
-                    newPassword = newPassword
-                };
-
-                _logger.LogInformation("Attempting to change password");
-
-                var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/user/change-password")
-                {
-                    Content = JsonContent.Create(request, options: _jsonOptions)
-                };
-                httpRequest.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
-                var response = await _httpClient.SendAsync(httpRequest);
+                var requestObj = new { oldPassword, newPassword };
+                var response = await _httpClient.PostAsJsonAsync("/api/user/change-password", requestObj, _jsonOptions, cancellationToken: default);
 
                 if (response.IsSuccessStatusCode)
                 {
@@ -211,24 +191,19 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
-                var token = await _tokenService.GetTokenAsync();
+                var token = await _jwtTokenService.GetTokenAsync();
                 if (string.IsNullOrEmpty(token))
                 {
-                    _logger.LogWarning("No JWT token available for user deletion");
+                    _logger.LogWarning("No JWT token available for delete");
                     return false;
                 }
-
-                _logger.LogInformation("Attempting to delete user");
-
                 var request = new HttpRequestMessage(HttpMethod.Delete, "/api/user/delete");
-                request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
+                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 var response = await _httpClient.SendAsync(request);
 
                 if (response.IsSuccessStatusCode)
                 {
                     OnUserChanged?.Invoke(null);
-                    await _tokenService.RemoveTokenAsync();
                     _logger.LogInformation("User deleted successfully");
                     return true;
                 }

@@ -75,40 +75,44 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
+                _logger.LogDebug("JwtTokenService: GetTokenAsync called, checking JavaScript availability");
                 if (!IsJavaScriptAvailable())
                 {
-                    _logger.LogDebug("JavaScript not available, returning null token");
+                    _logger.LogWarning("JwtTokenService: JavaScript not available, returning null token");
                     return null;
                 }
 
+                _logger.LogDebug("JwtTokenService: JavaScript available, accessing localStorage");
                 var token = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", TOKEN_KEY);
 
                 if (string.IsNullOrEmpty(token))
                 {
-                    _logger.LogDebug("No token found in localStorage");
+                    _logger.LogWarning("JwtTokenService: No token found in localStorage");
                     return null;
                 }
 
                 // Перевіряємо чи токен ще дійсний
+                _logger.LogDebug("JwtTokenService: Token found, validating...");
                 if (IsTokenValid(token))
                 {
+                    _logger.LogDebug("JwtTokenService: Token is valid, returning");
                     return token;
                 }
                 else
                 {
-                    _logger.LogWarning("Token found but expired, removing from localStorage");
+                    _logger.LogWarning("JwtTokenService: Token found but expired, removing from localStorage");
                     await RemoveTokenAsync();
                     return null;
                 }
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
             {
-                _logger.LogDebug("Cannot get token during static rendering, returning null");
+                _logger.LogDebug("JwtTokenService: Cannot get token during static rendering, returning null");
                 return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting token from localStorage");
+                _logger.LogError(ex, "JwtTokenService: Error getting token from localStorage");
                 return null;
             }
         }

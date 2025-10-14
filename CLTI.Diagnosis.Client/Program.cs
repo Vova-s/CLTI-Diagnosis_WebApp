@@ -16,26 +16,30 @@ builder.Services.AddScoped<JwtAuthenticationStateProvider>();
 builder.Services.AddScoped<AuthenticationStateProvider>(provider =>
     provider.GetRequiredService<JwtAuthenticationStateProvider>());
 
-// HTTP Client for API calls - use same-origin base address
-builder.Services.AddScoped(sp =>
+// Register JWT Authorization Handler
+builder.Services.AddTransient<JwtAuthorizationHandler>();
+
+// HTTP Client for API calls with JWT authorization handler
+builder.Services.AddHttpClient("InternalApi", client =>
 {
     // Use the app's hosting origin to avoid port/host mismatches
     var baseAddress = builder.HostEnvironment.BaseAddress;
+    client.BaseAddress = new Uri(baseAddress);
+    client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Client");
+    client.Timeout = TimeSpan.FromSeconds(30);
+})
+.AddHttpMessageHandler<JwtAuthorizationHandler>();
 
-    var httpClient = new HttpClient
-    {
-        BaseAddress = new Uri(baseAddress)
-    };
-
-    httpClient.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Client");
-    httpClient.Timeout = TimeSpan.FromSeconds(30);
-
-    // Diagnostics logging
-    var logger = sp.GetRequiredService<ILogger<Program>>();
-    logger.LogInformation("HttpClient configured with BaseAddress: {BaseAddress}", httpClient.BaseAddress);
-
-    return httpClient;
-});
+// Also configure the default HttpClient with JWT authorization for services that need it
+builder.Services.AddHttpClient<HttpClient>(client =>
+{
+    // Use the app's hosting origin to avoid port/host mismatches
+    var baseAddress = builder.HostEnvironment.BaseAddress;
+    client.BaseAddress = new Uri(baseAddress);
+    client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Client");
+    client.Timeout = TimeSpan.FromSeconds(30);
+})
+.AddHttpMessageHandler<JwtAuthorizationHandler>();
 
 // API Client services
 builder.Services.AddScoped<CltiApiClient>();

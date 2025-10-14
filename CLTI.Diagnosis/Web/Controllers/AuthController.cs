@@ -336,14 +336,32 @@ namespace CLTI.Diagnosis.Controllers
                     });
                 }
 
-                // Mark old refresh token as used
-                refreshToken.IsUsed = true;
+                // Check for recent refresh tokens to prevent duplicates
+                var recentToken = await _context.SysRefreshTokens
+                    .Where(t => t.UserId == refreshToken.UserId && !t.IsUsed && !t.IsRevoked)
+                    .Where(t => t.CreatedAt > DateTime.UtcNow.AddSeconds(-5)) // Within last 5 seconds
+                    .OrderByDescending(t => t.CreatedAt)
+                    .FirstOrDefaultAsync();
+
+                string newRefreshToken;
+                if (recentToken != null)
+                {
+                    // Use existing recent token to prevent duplicates
+                    newRefreshToken = recentToken.Token;
+                    _logger.LogInformation("Using existing refresh token created {SecondsAgo} seconds ago for user {Email}",
+                        (DateTime.UtcNow - recentToken.CreatedAt).TotalSeconds, refreshToken.User.Email);
+                }
+                else
+                {
+                    // Generate new refresh token
+                    newRefreshToken = await GenerateRefreshTokenAsync(refreshToken.UserId);
+                }
 
                 // Generate new JWT token
                 var newJwtToken = GenerateJwtToken(refreshToken.User, false);
 
-                // Generate new refresh token
-                var newRefreshToken = await GenerateRefreshTokenAsync(refreshToken.UserId);
+                // Mark old refresh token as used
+                refreshToken.IsUsed = true;
 
                 // Link old token to new one for tracking
                 refreshToken.ReplacedByToken = newRefreshToken;
