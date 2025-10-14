@@ -547,16 +547,11 @@ namespace CLTI.Diagnosis.Migrations
                     b.Property<int>("SysUserId")
                         .HasColumnType("int");
 
-                    b.Property<int?>("SysUserId1")
-                        .HasColumnType("int");
-
                     b.HasKey("Id");
 
                     b.HasIndex("SysRoleId");
 
                     b.HasIndex("SysUserId");
-
-                    b.HasIndex("SysUserId1");
 
                     b.ToTable("sys_user_role", (string)null);
                 });
@@ -805,14 +800,10 @@ namespace CLTI.Diagnosis.Migrations
                         .IsRequired();
 
                     b.HasOne("CLTI.Diagnosis.Core.Domain.Entities.SysUser", "SysUser")
-                        .WithMany()
+                        .WithMany("SysUserRoles")
                         .HasForeignKey("SysUserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.HasOne("CLTI.Diagnosis.Core.Domain.Entities.SysUser", null)
-                        .WithMany("SysUserRoles")
-                        .HasForeignKey("SysUserId1");
 
                     b.Navigation("SysRole");
 

@@ -1,5 +1,6 @@
 ﻿@page "/Account/Login"
 @page "/login"
+@rendermode InteractiveServer
 
 @using System.ComponentModel.DataAnnotations
 @using CLTI.Diagnosis.Client.Services
@@ -7,6 +8,7 @@
 @inject NavigationManager NavigationManager
 @inject ILogger<Login> Logger
 @inject IJSRuntime JS
+@implements IDisposable
 
 <PageTitle>Log in</PageTitle>
 
@@ -17,7 +19,22 @@
         @if (!string.IsNullOrEmpty(errorMessage))
         {
             <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 mb-6" role="alert">
-                <p>@errorMessage</p>
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">@errorMessage</p>
+                        @if (showRetryButton)
+                        {
+                            <button type="button" @onclick="ClearError" class="mt-2 text-sm text-red-600 hover:text-red-500 underline">
+                                Try again
+                            </button>
+                        }
+                    </div>
+                </div>
             </div>
         }
 
@@ -29,7 +46,7 @@
             </div>
         }
 
-        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login" @onsubmit:preventDefault="true">
+        <EditForm Model="Input" OnValidSubmit="LoginUser" FormName="login">
             <DataAnnotationsValidator />
 
             <!-- Email field -->
@@ -102,10 +119,8 @@
 @code {
     private string? errorMessage;
     private bool isLoading = false;
-
-    // Defer redirect until app becomes interactive (to allow localStorage writes)
-    private string? _pendingRedirectUrl;
-    private bool _shouldRedirectAfterInteractive = false;
+    private bool showRetryButton = false;
+    private bool _hasRendered = false;
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();
@@ -115,8 +130,7 @@
 
     public async Task LoginUser()
     {
-        if (isLoading)
-            return;
+        if (isLoading) return;
 
         try
         {
@@ -124,48 +138,35 @@
             errorMessage = null;
             StateHasChanged();
 
-            Logger.LogInformation("Attempting JWT login for user: {Email}", Input.Email);
+            Logger.LogInformation("🔐 Attempting JWT login for user: {Email}", Input.Email);
 
-            // Використовуємо AuthApiService для JWT логіну
             var result = await AuthApi.LoginAsync(Input.Email, Input.Password, Input.RememberMe);
 
             if (result.Success)
             {
-                Logger.LogInformation("JWT Login successful for user: {Email}", Input.Email);
-
-                // Compute target URL and defer redirect until interactive phase
+                Logger.LogInformation("✅ JWT Login successful for user: {Email}", Input.Email);
+                
+                // Now we can call JavaScript directly because we have InteractiveServer mode!
+                Logger.LogInformation("💾 Storing tokens to localStorage...");
+                await AuthApi.StorePendingTokensAsync();
+                
+                // Small delay to ensure localStorage write completes before redirect
+                await Task.Delay(100);
+                
+                Logger.LogInformation("🚀 Redirecting to home page...");
                 var redirectUrl = string.IsNullOrEmpty(ReturnUrl) ? "/" : ReturnUrl;
-                _pendingRedirectUrl = redirectUrl;
-                _shouldRedirectAfterInteractive = true;
-                StateHasChanged();
+                NavigationManager.NavigateTo(redirectUrl, forceLoad: false);
             }
             else
             {
                 errorMessage = result.Message ?? "Login failed";
-                Logger.LogWarning("JWT Login failed for user {Email}: {Error}", Input.Email, errorMessage);
+                Logger.LogWarning("❌ JWT Login failed for user {Email}: {Error}", Input.Email, errorMessage);
             }
-        }
-        catch (HttpRequestException ex)
-        {
-            Logger.LogError(ex, "Network error during JWT login for user {Email}", Input.Email);
-            errorMessage = "Network error. Please check your connection and try again.";
-        }
-        catch (TaskCanceledException ex)
-        {
-            Logger.LogError(ex, "Timeout during JWT login for user {Email}", Input.Email);
-            errorMessage = "Request timed out. Please try again.";
-        }
-        catch (Microsoft.AspNetCore.Components.NavigationException)
-        {
-            // During prerender, Blazor throws NavigationException to short-circuit rendering for redirects.
-            // This is expected; rethrow so the framework can complete the redirect without showing an error.
-            Logger.LogInformation("Navigation triggered during prerender, letting framework handle redirect.");
-            throw;
         }
         catch (Exception ex)
         {
-            Logger.LogError(ex, "Unexpected error during JWT login for user {Email}", Input.Email);
-            errorMessage = "An unexpected error occurred. Please try again.";
+            Logger.LogError(ex, "💥 Error during JWT login for user {Email}", Input.Email);
+            errorMessage = "An error occurred during login. Please try again.";
         }
         finally
         {
@@ -178,42 +179,42 @@
     {
         if (firstRender)
         {
+            _hasRendered = true;
+            
+            // Flush any pending tokens if component wasn't interactive during login
             try
             {
-                await AuthApi.StorePendingTokensAsync();
+                await AuthApi.TryFlushPendingAsync();
             }
             catch (Exception ex)
             {
-                Logger.LogWarning(ex, "Login: error in initial OnAfterRenderAsync flush");
+                Logger.LogDebug(ex, "OnAfterRenderAsync: Could not flush pending tokens");
             }
         }
+    }
 
-        if (_shouldRedirectAfterInteractive && !string.IsNullOrEmpty(_pendingRedirectUrl))
-        {
-            try
-            {
-                await AuthApi.StorePendingTokensAsync();
-            }
-            catch (Exception ex)
-            {
-                Logger.LogWarning(ex, "Login: error while flushing before deferred redirect");
-            }
+    private void ClearError()
+    {
+        errorMessage = null;
+        showRetryButton = false;
+        StateHasChanged();
+    }
 
-            var url = _pendingRedirectUrl!;
-            _shouldRedirectAfterInteractive = false;
-            _pendingRedirectUrl = null;
-            NavigationManager.NavigateTo(url, forceLoad: true);
-        }
+    public void Dispose()
+    {
+        // No resources to dispose
     }
 
     private sealed class InputModel
     {
-        [Required]
-        [EmailAddress]
+        [Required(ErrorMessage = "Email is required")]
+        [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+        [StringLength(100, ErrorMessage = "Email cannot exceed 100 characters")]
         public string Email { get; set; } = "";
 
-        [Required]
+        [Required(ErrorMessage = "Password is required")]
         [DataType(DataType.Password)]
+        [StringLength(255, MinimumLength = 6, ErrorMessage = "Password must be between 6 and 255 characters")]
         public string Password { get; set; } = "";
 
         [Display(Name = "Remember me?")]

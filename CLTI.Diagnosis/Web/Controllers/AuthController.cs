@@ -35,6 +35,8 @@ namespace CLTI.Diagnosis.Controllers
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync();
+            
             try
             {
                 _logger.LogInformation("API Login attempt for user: {Email}", request.Email);
@@ -116,9 +118,28 @@ namespace CLTI.Diagnosis.Controllers
                 // Generate JWT token
                 var token = GenerateJwtToken(user, request.RememberMe);
 
-                // Generate refresh token
-                var refreshToken = await GenerateRefreshTokenAsync(user.Id);
+                // Check for recent refresh tokens to prevent duplicates
+                var recentToken = await _context.SysRefreshTokens
+                    .Where(t => t.UserId == user.Id && !t.IsUsed && !t.IsRevoked)
+                    .Where(t => t.CreatedAt > DateTime.UtcNow.AddSeconds(-5)) // Within last 5 seconds
+                    .OrderByDescending(t => t.CreatedAt)
+                    .FirstOrDefaultAsync();
 
+                string refreshToken;
+                if (recentToken != null)
+                {
+                    // Use existing recent token to prevent duplicates
+                    refreshToken = recentToken.Token;
+                    _logger.LogInformation("Using existing refresh token created {SecondsAgo} seconds ago for user {Email}", 
+                        (DateTime.UtcNow - recentToken.CreatedAt).TotalSeconds, user.Email);
+                }
+                else
+                {
+                    // Generate new refresh token
+                    refreshToken = await GenerateRefreshTokenAsync(user.Id);
+                }
+
+                await transaction.CommitAsync();
                 _logger.LogInformation("API Login successful for user: {Email} (ID: {UserId})", user.Email, user.Id);
 
                 return Ok(new ApiResponse<LoginResponse>
@@ -143,6 +164,7 @@ namespace CLTI.Diagnosis.Controllers
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync();
                 _logger.LogError(ex, "Error during API login for user {Email}", request.Email);
                 return StatusCode(500, new ApiResponse<object>
                 {

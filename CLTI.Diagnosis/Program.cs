@@ -193,10 +193,7 @@ builder.Services.AddHttpClient("OpenAI", client =>
 // ✅ HTTP CLIENT ДЛЯ ВНУТРІШНІХ API ЗАПИТІВ
 builder.Services.AddHttpClient("InternalApi", (sp, client) =>
 {
-
     var environment = sp.GetRequiredService<IWebHostEnvironment>();
-
-    var httpClient = new HttpClient();
 
     string baseUrl;
     if (environment.IsDevelopment())
@@ -208,8 +205,8 @@ builder.Services.AddHttpClient("InternalApi", (sp, client) =>
         baseUrl = "https://antsdemo02.demo.dragon-cloud.org";
     }
 
-    httpClient.BaseAddress = new Uri(baseUrl);
-    httpClient.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Client");
+    client.BaseAddress = new Uri(baseUrl);
+    client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Client");
 
 }).ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler()
 {

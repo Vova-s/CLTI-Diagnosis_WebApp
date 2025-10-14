@@ -53,6 +53,10 @@ public class ApplicationDbContext : DbContext
                 .EnableSensitiveDataLogging(false) // Set to true only in development for debugging
                 .EnableDetailedErrors();
         }
+
+        // Suppress pending model changes warning since database already exists
+        optionsBuilder.ConfigureWarnings(warnings =>
+            warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
     }
 
     public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
