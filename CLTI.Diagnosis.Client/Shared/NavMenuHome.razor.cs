@@ -37,7 +37,9 @@ namespace CLTI.Diagnosis.Client.Shared
         {
             try
             {
+                Console.WriteLine("NavMenuHome: Loading user data...");
                 currentUser = await UserService.GetCurrentUserAsync();
+                
                 if (currentUser != null)
                 {
                     username = currentUser.FullName ?? $"{currentUser.FirstName} {currentUser.LastName}".Trim();
@@ -49,7 +51,12 @@ namespace CLTI.Diagnosis.Client.Shared
                         username = currentUser.Email ?? "Користувач";
                     }
 
+                    Console.WriteLine($"NavMenuHome: User loaded - {username} ({useremail})");
                     StateHasChanged();
+                }
+                else
+                {
+                    Console.WriteLine("NavMenuHome: No user data found");
                 }
             }
             catch (Exception ex)

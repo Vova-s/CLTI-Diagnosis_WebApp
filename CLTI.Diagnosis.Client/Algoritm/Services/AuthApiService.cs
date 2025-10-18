@@ -28,12 +28,12 @@ namespace CLTI.Diagnosis.Client.Services
             _jsRuntime = jsRuntime;
             _logger = logger;
 
-            // Визначаємо базову URL напряму в сервісі
-            #if DEBUG
-                _baseUrl = "https://localhost:7124/";
-            #else
-                _baseUrl = "https://antsdemo02.demo.dragon-cloud.org/";
-            #endif
+            // Use HttpClient's BaseAddress from configuration
+            _baseUrl = _httpClient.BaseAddress?.ToString() ?? "https://localhost:7124/";
+            
+            // Ensure URL ends with slash
+            if (!_baseUrl.EndsWith("/"))
+                _baseUrl += "/";
 
             _jsonOptions = new JsonSerializerOptions
             {
