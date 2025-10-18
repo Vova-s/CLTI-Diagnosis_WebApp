@@ -1,10 +1,10 @@
-﻿@using CLTI.Diagnosis.Client.Components
+@using CLTI.Diagnosis.Client.Components
 @inject NavigationManager NavigationManager
 @inject IJSRuntime JSRuntime
 
-<Router AppAssembly="typeof(Program).Assembly" AdditionalAssemblies="new[] { typeof(Client._Imports).Assembly }">
+<Router AppAssembly="@typeof(Program).Assembly" AdditionalAssemblies="@(new[] { typeof(Client._Imports).Assembly })">
     <Found Context="routeData">
-        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="@typeof(Layout.MainLayout)">
             <NotAuthorized>
                 <RedirectToLogin />
             </NotAuthorized>
@@ -13,7 +13,7 @@
     </Found>
     <NotFound>
         <PageTitle>Page Not Found</PageTitle>
-        <LayoutView Layout="typeof(Layout.MainLayout)">
+        <LayoutView Layout="@typeof(Layout.MainLayout)">
             <NotFoundComponent />
         </LayoutView>
     </NotFound>
