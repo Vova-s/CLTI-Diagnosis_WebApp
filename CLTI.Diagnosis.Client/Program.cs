@@ -22,7 +22,8 @@ builder.Services.AddTransient<JwtAuthorizationHandler>();
 // HTTP Client for API calls with JWT authorization handler
 builder.Services.AddHttpClient("InternalApi", client =>
 {
-    // Use the app's hosting origin to avoid port/host mismatches
+    // For Blazor WebAssembly, the client and API are typically on the same server
+    // So we use the hosting origin as the base address
     var baseAddress = builder.HostEnvironment.BaseAddress;
     client.BaseAddress = new Uri(baseAddress);
     client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Client");
@@ -33,7 +34,8 @@ builder.Services.AddHttpClient("InternalApi", client =>
 // Also configure the default HttpClient with JWT authorization for services that need it
 builder.Services.AddHttpClient<HttpClient>(client =>
 {
-    // Use the app's hosting origin to avoid port/host mismatches
+    // For Blazor WebAssembly, the client and API are typically on the same server
+    // So we use the hosting origin as the base address
     var baseAddress = builder.HostEnvironment.BaseAddress;
     client.BaseAddress = new Uri(baseAddress);
     client.DefaultRequestHeaders.Add("User-Agent", "CLTI-Diagnosis-Client");

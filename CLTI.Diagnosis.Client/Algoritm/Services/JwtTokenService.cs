@@ -311,9 +311,66 @@ namespace CLTI.Diagnosis.Client.Services
 
                 var userJson = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", USER_KEY);
                 if (string.IsNullOrEmpty(userJson))
+                {
+                    _logger.LogWarning("No user data found in localStorage with key: {UserKey}", USER_KEY);
                     return null;
+                }
 
-                return JsonSerializer.Deserialize<UserInfo>(userJson);
+                _logger.LogInformation("Found user data in localStorage: {UserJson}", userJson);
+
+                // Try to deserialize as AuthUserDto first (from AuthApiService)
+                try
+                {
+                    var jsonOptions = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        PropertyNameCaseInsensitive = true
+                    };
+                    
+                    var authUserDto = JsonSerializer.Deserialize<AuthUserDto>(userJson, jsonOptions);
+                    if (authUserDto != null)
+                    {
+                        _logger.LogInformation("Successfully deserialized as AuthUserDto: {Email} (ID: {Id})", 
+                            authUserDto.Email, authUserDto.Id);
+                        return new UserInfo
+                        {
+                            Id = authUserDto.Id,
+                            FirstName = authUserDto.FirstName,
+                            LastName = authUserDto.LastName,
+                            Email = authUserDto.Email,
+                            FullName = authUserDto.FullName
+                        };
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogWarning("Failed to deserialize as AuthUserDto: {Error}", ex.Message);
+                }
+
+                // Fallback to UserInfo
+                try
+                {
+                    var jsonOptions = new JsonSerializerOptions
+                    {
+                        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+                        PropertyNameCaseInsensitive = true
+                    };
+                    
+                    var userInfo = JsonSerializer.Deserialize<UserInfo>(userJson, jsonOptions);
+                    if (userInfo != null)
+                    {
+                        _logger.LogInformation("Successfully deserialized as UserInfo: {Email} (ID: {Id})", 
+                            userInfo.Email, userInfo.Id);
+                        return userInfo;
+                    }
+                }
+                catch (JsonException ex)
+                {
+                    _logger.LogError(ex, "Failed to deserialize user data as UserInfo: {Error}", ex.Message);
+                }
+
+                _logger.LogWarning("Could not deserialize user data from localStorage");
+                return null;
             }
             catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
             {

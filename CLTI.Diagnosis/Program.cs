@@ -14,8 +14,13 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using CLTI.Diagnosis.Data;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Configure Serilog
+builder.Host.UseSerilog((context, configuration) =>
+    configuration.ReadFrom.Configuration(context.Configuration));
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
@@ -194,6 +199,7 @@ builder.Services.AddHttpClient("OpenAI", client =>
 builder.Services.AddHttpClient("InternalApi", (sp, client) =>
 {
     var environment = sp.GetRequiredService<IWebHostEnvironment>();
+    var configuration = sp.GetRequiredService<IConfiguration>();
 
     string baseUrl;
     if (environment.IsDevelopment())
@@ -202,7 +208,8 @@ builder.Services.AddHttpClient("InternalApi", (sp, client) =>
     }
     else
     {
-        baseUrl = "https://antsdemo02.demo.dragon-cloud.org";
+        // Read base URL from configuration
+        baseUrl = configuration["InternalApi:BaseUrl"] ?? "https://antsdemo08.demo.dragon-cloud.org";
     }
 
     client.BaseAddress = new Uri(baseUrl);
@@ -256,22 +263,7 @@ builder.Services.AddScoped<IClientApiKeyService, ClientApiKeyService>();
 builder.Services.AddScoped<AiChatClient>();
 builder.Services.AddScoped<AuthApiService>();
 
-// Logging
-builder.Services.AddLogging(logging =>
-{
-    logging.AddConsole();
-    logging.AddDebug();
-
-    if (builder.Environment.IsDevelopment())
-    {
-        logging.SetMinimumLevel(LogLevel.Information);
-    }
-    else
-    {
-        logging.SetMinimumLevel(LogLevel.Information);
-        logging.AddFilter("CLTI.Diagnosis", LogLevel.Information);
-    }
-});
+// Logging is now handled by Serilog configuration in appsettings
 
 // CORS
 builder.Services.AddCors(options =>

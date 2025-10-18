@@ -42,7 +42,24 @@ namespace CLTI.Diagnosis.Client.Services
         {
             try
             {
-                _logger.LogInformation("Attempting to get current user from API with JWT");
+                _logger.LogInformation("Attempting to get current user");
+
+                // First, try to get user from localStorage (fastest and most reliable)
+                _logger.LogInformation("Attempting to get user from localStorage...");
+                var storedUser = await _jwtTokenService.GetUserAsync();
+                if (storedUser != null)
+                {
+                    _logger.LogInformation("✅ Found user in localStorage: {Email} (ID: {Id})", 
+                        storedUser.Email, storedUser.Id);
+                    OnUserChanged?.Invoke(storedUser);
+                    return storedUser;
+                }
+                else
+                {
+                    _logger.LogWarning("❌ No user found in localStorage");
+                }
+
+                _logger.LogInformation("No user found in localStorage, attempting API call");
 
                 var token = await _jwtTokenService.GetTokenAsync();
                 if (string.IsNullOrEmpty(token))
@@ -69,8 +86,12 @@ namespace CLTI.Diagnosis.Client.Services
 
                     if (userInfo != null)
                     {
-                        _logger.LogInformation("Successfully retrieved user info for: {Email} (ID: {Id})",
+                        _logger.LogInformation("Successfully retrieved user info from API for: {Email} (ID: {Id})",
                             userInfo.Email, userInfo.Id);
+                        
+                        // Store the user data in localStorage for future use
+                        await _jwtTokenService.SetUserAsync(userInfo);
+                        
                         OnUserChanged?.Invoke(userInfo);
                         return userInfo;
                     }

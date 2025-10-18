@@ -20,12 +20,11 @@ namespace CLTI.Diagnosis.Client.Services
             _logger = logger;
 
             // Налаштовуємо URL-и для яких потрібна автентифікація
+            // Use only the navigation BaseUri which comes from configuration
             ConfigureHandler(
                 authorizedUrls: new[]
                 {
-                    navigation.BaseUri,
-                    "https://localhost:7124",
-                    "https://antsdemo02.demo.dragon-cloud.org"
+                    navigation.BaseUri
                 },
                 scopes: new[] { "api" }
             );
