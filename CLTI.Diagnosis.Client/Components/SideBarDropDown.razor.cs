@@ -1,5 +1,8 @@
 ﻿using Microsoft.AspNetCore.Components;
-using CLTI.Diagnosis.Client.Algoritm.Services;
+using CLTI.Diagnosis.Client.Infrastructure.Auth;
+using CLTI.Diagnosis.Client.Infrastructure.Http;
+using CLTI.Diagnosis.Client.Infrastructure.State;
+using CLTI.Diagnosis.Client.Features.Diagnosis.Services;
 
 namespace CLTI.Diagnosis.Client.Components
 {

@@ -1,0 +1,118 @@
+﻿@page "/Algoritm/Pages/WifI_fI"
+@rendermode InteractiveServer
+@using CLTI.Diagnosis.Client.Infrastructure.Auth;
+@using CLTI.Diagnosis.Client.Infrastructure.Http;
+@using CLTI.Diagnosis.Client.Infrastructure.State;
+@using CLTI.Diagnosis.Client.Features.Diagnosis.Services
+@using Microsoft.AspNetCore.Components
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+
+<div class="page-container">
+    <NavMenuAlgoritm />
+    <div class="main-content">
+        <div class="page-title">
+            Оцінка критерію <span>fI</span> (інфекція стопи) класифікації WiFI
+        </div>
+
+        <!-- Блок з основними ознаками інфекції -->
+        <div class="input-group">
+            <div class="item-title">Основні ознаки інфекції стопи</div>
+            <CheckBox Label="Місцевий набряк чи ущільнення"
+                      IsChecked="@StateService.HasLocalSwelling"
+                      IsCheckedChanged="OnLocalSwellingChanged" />
+
+            <CheckBox Label="Еритема > 0,5 см"
+                      IsChecked="@StateService.HasErythema"
+                      IsCheckedChanged="OnErythemaChanged" />
+
+            <CheckBox Label="Місцевий біль"
+                      IsChecked="@StateService.HasLocalPain"
+                      IsCheckedChanged="OnLocalPainChanged" />
+
+            <CheckBox Label="Місцеве підвищення температури"
+                      IsChecked="@StateService.HasLocalWarmth"
+                      IsCheckedChanged="OnLocalWarmthChanged" />
+
+            <CheckBox Label="Гній"
+                      IsChecked="@StateService.HasPus"
+                      IsCheckedChanged="OnPusChanged" />
+        </div>
+
+
+        <!-- Показуємо блок SIRS тільки якщо є хоча б дві ознаки інфекції -->
+        @if (StateService.HasTwoOrMoreInfectionSigns)
+        {
+            <div class="input-group">
+                <div class="item-title">Визначаємо чи є SIRS (синдром системної запальної відповіді)</div>
+
+                <CheckBox Label="Пульс > 90/хв (Мала ознака)"
+                          IsChecked="@StateService.HasTachycardia"
+                          IsCheckedChanged="OnTachycardiaChanged" />
+
+                <CheckBox Label="Частота дихання > 20/хв (Мала ознака)"
+                          IsChecked="@StateService.HasTachypnea"
+                          IsCheckedChanged="OnTachypneaChanged" />
+
+                <CheckBox Label="Температура тіла > 38 або <36°C (Велика ознака)"
+                          IsChecked="@StateService.HasTemperatureChange"
+                          IsCheckedChanged="OnTemperatureChanged" />
+
+                <CheckBox Label="Лейкоцити > 12 чи <4 × 10⁹/л чи незрілі форми >10% (Велика ознака)"
+                          IsChecked="@StateService.HasLeukocytosis"
+                          IsCheckedChanged="OnLeukocytosisChanged" />
+            </div>
+        }
+
+        <!-- Показуємо тип ураження тільки якщо є рівно 2 малі ознаки SIRS і немає великих -->
+        @if (StateService.ShouldShowSirsAbsentSection)
+        {
+            <div class="input-group">
+                <div class="item-title">Визначте тип ураження</div>
+                <div class="radio-group">
+                    <RadioButton Label="Уражені лише шкіра та підшкірна жирова клітковина"
+                                 IsSelected="@(sirsAbsent == "Шкіра")"
+                                 IsSelectedChanged="@(async selected => await OnSirsAbsentChanged("Шкіра", selected))" />
+                    <RadioButton Label="Уражені кістки, суглоби або сухожилки"
+                                 IsSelected="@(sirsAbsent == "Кістки")"
+                                 IsSelectedChanged="@(async selected => await OnSirsAbsentChanged("Кістки", selected))" />
+                </div>
+            </div>
+
+            <!-- Блок для гіперемії (показується тільки коли обрано ураження шкіри) -->
+            @if (StateService.ShouldShowHyperemiaField)
+            {
+                <div class="input-group">
+                    <div class="item-title">Величина гіперемії</div>
+                    <div class="radio-group">
+                        <RadioButton Label="Гіперемія 0,5 - 2 см"
+                                     IsSelected="@(hyperemiaSize == "0.5-2")"
+                                     IsSelectedChanged="@(async selected => await OnHyperemiaSizeChanged("0.5-2", selected))" />
+                        <RadioButton Label="Гіперемія >2 см"
+                                     IsSelected="@(hyperemiaSize == ">2")"
+                                     IsSelectedChanged="@(async selected => await OnHyperemiaSizeChanged(">2", selected))" />
+                    </div>
+                </div>
+            }
+        }
+
+        <!-- Відображення результату -->
+        @if (StateService.FILevelValue.HasValue)
+        {
+            <div class="result-section">
+                <Message Text="@GetResultMessage()"
+                         Theme="light"
+                         State="success"
+                         Size="normal" />
+            </div>
+        }
+
+        <!-- Кнопка продовжити -->
+        <div class="fixed-bottom-right">
+            <Button Label="Продовжити"
+                    Variant="@((StateService.CanContinueFI ? "active" : "disabled"))"
+                    Disabled="@(!StateService.CanContinueFI)"
+                    OnClick="@(StateService.CanContinueFI ? Continue : null)" />
+        </div>
+    </div>
+</div>

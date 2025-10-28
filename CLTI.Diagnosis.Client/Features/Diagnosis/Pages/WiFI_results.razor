@@ -1,0 +1,99 @@
+﻿@page "/Algoritm/Pages/WiFI_results"
+@rendermode InteractiveServer
+@using CLTI.Diagnosis.Client.Infrastructure.Auth;
+@using CLTI.Diagnosis.Client.Infrastructure.Http;
+@using CLTI.Diagnosis.Client.Infrastructure.State;
+@using CLTI.Diagnosis.Client.Features.Diagnosis.Services
+@using Microsoft.AspNetCore.Components
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+
+<div class="page-container">
+    <NavMenuAlgoritm />
+    <div class="main-content">
+        <div class="page-title">
+            Результати оцінки <span>WiFI</span> класифікації
+        </div>
+
+        <!-- WiFI результат -->
+        <div class="result-group">
+            <div class="item-title">WiFI Результат</div>
+            <Message Text="@GetWiFIResult()"
+                     Theme="light"
+                     State="success"
+                     Size="normal" />
+        </div>
+        <!-- Чекбокс для неможливості збереження кінцівки -->
+        <div class="input-group">
+            <CheckBox Label="Неможливо зберегти кінцівку"
+                      IsChecked="@StateService.CannotSaveLimb"
+                      IsCheckedChanged="OnCannotSaveLimbChanged" />
+        </div>
+
+        @if (!StateService.CannotSaveLimb)
+        {
+            <!-- Клінічна стадія (коли можна зберегти кінцівку) -->
+            <div class="result-group">
+                <div class="item-title">Клінічна стадія</div>
+                <Message Text="@($"Стадія {StateService.ClinicalStage}")"
+                         Theme="light"
+                         State="@GetClinicalStageState()"
+                         Size="normal" />
+                <div class="item-title">Ризик втрати кінцівки</div>
+                <Message Text="@GetClinicalStageDescription()"
+                         Theme="light"
+                         State="@GetClinicalStageState()"
+                         Size="normal" />
+            </div>
+
+            <!-- Ризик ампутації -->
+            <div class="result-group">
+                <div class="item-title">Ризик великої ампутації</div>
+                <Message Text="@GetAmputationRiskText()"
+                         Theme="light"
+                         State="@GetAmputationRiskState()"
+                         Size="normal" />
+            </div>
+
+            <!-- Користь від реваскуляризації -->
+            <div class="result-group">
+                <div class="item-title">Користь від реваскуляризації</div>
+                <Message Text="@GetRevascularizationText()"
+                         Theme="light"
+                         State="@GetRevascularizationState()"
+                         Size="normal" />
+            </div>
+        }
+        else
+        {
+            <!-- Коли неможливо зберегти кінцівку -->
+            <div class="result-group">
+                <div class="item-title">Клінічна стадія</div>
+                <Message Text="Стадія 5"
+                         Theme="light"
+                         State="error"
+                         Size="normal" />
+                <Message Text="Неможливо зберегти кінцівку"
+                         Theme="light"
+                         State="error"
+                         Size="normal" />
+            </div>
+
+            <div class="result-group">
+                <div class="item-title">Ризик великої ампутації</div>
+                <Message Text="Надзвичайно високий"
+                         Theme="light"
+                         State="error"
+                         Size="normal" />
+            </div>
+        }
+
+        <!-- Кнопка продовжити - завжди активна -->
+        <div class="fixed-bottom-right">
+            <Button Label="Продовжити"
+                    Variant="active"
+                    Disabled="false"
+                    OnClick="Continue" />
+        </div>
+    </div>
+</div>

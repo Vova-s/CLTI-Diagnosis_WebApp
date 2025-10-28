@@ -1,0 +1,113 @@
+﻿@page "/Algoritm/Pages/GLASS_InfrapoplitealSegment"
+@rendermode InteractiveServer
+@using CLTI.Diagnosis.Client.Infrastructure.Auth;
+@using CLTI.Diagnosis.Client.Infrastructure.Http;
+@using CLTI.Diagnosis.Client.Infrastructure.State;
+@using CLTI.Diagnosis.Client.Features.Diagnosis.Services
+@using Microsoft.AspNetCore.Components
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+
+<div class="page-container">
+    <NavMenuAlgoritm />
+    <div class="main-content">
+        <div class="page-title">
+            Визначення ступеня ураження <span>інфрапоплітеального сегмента</span> за GLASS
+        </div>
+
+        <!-- Ступінь 0 -->
+        <div class="input-group">
+            <RadioButton Label="Ступінь 0"
+                         IsSelected="@(selectedStage == "Stage0")"
+                         IsSelectedChanged="@(async selected => await OnStageChanged("Stage0", selected))" />
+            <div class="stage-description">
+                <p>• Відсутні стенози >50% в артерії цільового артеріального шляху</p>
+            </div>
+
+
+        <!-- Ступінь 1 -->
+
+            <RadioButton Label="Ступінь 1"
+                         IsSelected="@(selectedStage == "Stage1")"
+                         IsSelectedChanged="@(async selected => await OnStageChanged("Stage1", selected))" />
+            <div class="stage-description">
+                <p>• Локальний стеноз артерії менше ніж 3 см</p>
+            </div>
+
+
+        <!-- Ступінь 2 -->
+
+            <RadioButton Label="Ступінь 2"
+                         IsSelected="@(selectedStage == "Stage2")"
+                         IsSelectedChanged="@(async selected => await OnStageChanged("Stage2", selected))" />
+            <div class="stage-description">
+                <ul>
+                    <li>• Стеноз, що охоплює до 1/3 загальної довжини судини</li>
+                    <li>• Може включати локальну оклюзію менше ніж 3 см</li>
+                    <li>• Не поширюється на тіл поперереальний стовбур і на початкову ділянку цільової судини</li>
+                </ul>
+            </div>
+
+
+        <!-- Ступінь 3 -->
+
+            <RadioButton Label="Ступінь 3"
+                         IsSelected="@(selectedStage == "Stage3")"
+                         IsSelectedChanged="@(async selected => await OnStageChanged("Stage3", selected))" />
+            <div class="stage-description">
+                <ul>
+                    <li>• Стеноз від 1/3 до 2/3 загальної довжини судини</li>
+                    <li>• Оклюзія 1/3 загальної довжини судини (може включати початкову ділянку цільової судини, але не тіл поперереальний стовбур)</li>
+                </ul>
+            </div>
+
+
+        <!-- Ступінь 4 -->
+
+            <RadioButton Label="Ступінь 4"
+                         IsSelected="@(selectedStage == "Stage4")"
+                         IsSelectedChanged="@(async selected => await OnStageChanged("Stage4", selected))" />
+            <div class="stage-description">
+                <ul>
+                    <li>• Дифузний стеноз >2/3 загальної довжини судини</li>
+                    <li>• Оклюзія >1/3 загальної довжини судини (може включати початкову ділянку цільової судини)</li>
+                    <li>• Будь-яка оклюзія тіл поперереального стовбура, якщо передня великомідкова артерія не є цільовою артерією</li>
+                </ul>
+            </div>   
+        </div>
+
+
+            <CheckBox Label="Наявна сильна кальцифікація"
+                      IsChecked="@hasSevereCalcification"
+                      IsCheckedChanged="OnCalcificationChanged" />
+
+
+        <!-- Відображення результату -->
+        @if (!string.IsNullOrEmpty(selectedStage))
+        {
+            <div class="result-section">
+                <Message Text="@GetGLASSStageResult()"
+                         Theme="light"
+                         State="success"
+                         Size="normal" />
+
+                <Message Text="@GetStageDescription()"
+                         Theme="light"
+                         State="default"
+                         Size="normal" />
+
+                <Message Text="@GetTreatmentRecommendation()"
+                         Theme="light"
+                         State="warning"
+                         Size="normal" />
+            </div>
+        }
+
+        <div class="fixed-bottom-right">
+            <Button Label="Продовжити"
+                    Variant="@((!string.IsNullOrEmpty(selectedStage)) ? "active" : "disabled")"
+                    Disabled="@(string.IsNullOrEmpty(selectedStage))"
+                    OnClick="Continue" />
+        </div>
+    </div>
+</div>

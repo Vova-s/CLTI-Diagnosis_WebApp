@@ -1,0 +1,106 @@
+﻿@page "/Algoritm/Pages/WifI_I"
+@rendermode InteractiveServer
+@using CLTI.Diagnosis.Client.Infrastructure.Auth;
+@using CLTI.Diagnosis.Client.Infrastructure.Http;
+@using CLTI.Diagnosis.Client.Infrastructure.State;
+@using CLTI.Diagnosis.Client.Features.Diagnosis.Services
+@using Microsoft.AspNetCore.Components
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+
+<div class="page-container">
+    <NavMenuAlgoritm />
+    <div class="main-content">
+        <div class="page-title">
+            Оцінка критерію <span>I</span> (WIFI)
+        </div>
+
+        <!-- Блок з відображенням значення КПІ -->
+        <div class="input-group">
+            <div class="item-title">
+                Значення КПІ (кісточково-плечовий індекс)
+            </div>
+            <TextInput Value="@StateService.KpiValue.ToString()"
+                       Placeholder="Введіть значення"
+                       Theme="light"
+                       State="default"
+                       Disabled="true" />
+        </div>
+
+        <!-- Чекбокс для кальцифікації - показується завжди -->
+        <div class="input-group">
+            <div class="checkbox-container">
+                <CheckBox Label="Артеріальна кальцифікація перешкоджає надійному вимірюванню"
+                          IsChecked="@StateService.HasArterialCalcification"
+                          IsCheckedChanged="OnArterialCalcificationChanged" />
+            </div>
+        </div>
+
+        <!-- Блок з ПСАТ - показується тільки якщо КПІ > 1,3 -->
+        @if (StateService.ShouldShowPsatField)
+        {
+            <div class="input-group">
+                <div class="item-title">Значення ПСАТ (пальцьовий систолічний артеріальний тиск), мм рт. ст.</div>
+                <DropDown Items="@psatItems"
+                          Placeholder="Виберіть значення"
+                          Theme="light"
+                          OnSelect="OnPsatSelect" />
+            </div>
+        }
+
+        <!-- Блок з TcPO2 - показується тільки якщо є кальцифікація -->
+        @if (StateService.ShouldShowTcPO2Field)
+        {
+            <div class="input-group">
+                <div class="item-title">Значення TcPO2 (черезшкірне вимірювання кисню), мм рт. ст.</div>
+                <TextInput Value="@tcPO2Value"
+                           ValueChanged="OnTcPO2Changed"
+                           Placeholder="Введіть значення"
+                           Theme="light"
+                           State="default" />
+            </div>
+        }
+
+        <!-- Пояснення алгоритму -->
+        <div class="algorithm-explanation">
+            @if (StateService.KpiValue <= 1.3)
+            {
+                <Message Text="КПІ ≤ 1,3: оцінка критерію I здійснюється за значенням КПІ"
+                         Theme="light"
+                         State="default"
+                         Size="normal" />
+            }
+            else if (StateService.KpiValue > 1.3)
+            {
+                <Message Text="КПІ > 1,3: необхідно вимірювати ПСАТ для точної оцінки критерію I"
+                         Theme="light"
+                         State="warning"
+                         Size="normal" />
+            }
+        </div>
+
+        @if (StateService.HasArterialCalcification)
+        {
+            <Message Text="При кальцифікації артерій ступінь ішемії визначається за допомогою TcPO2"
+                     Theme="light"
+                     State="warning"
+                     Size="normal" />
+        }
+
+        <!-- Відображення результату оцінки критерію I -->
+        @if (StateService.ILevelValue.HasValue)
+        {
+            <Message Text="@($"Рівень I: I{StateService.ILevelValue}")"
+                     Theme="light"
+                     State="success"
+                     Size="normal" />
+        }
+
+        <div class="fixed-bottom-right">
+            <Button Label="Продовжити"
+                    Variant="@((StateService.CanContinueI ? "active" : "disabled"))"
+                    Disabled="@(!StateService.CanContinueI)"
+                    OnClick="@(StateService.CanContinueI ? Continue : null)" />
+        </div>
+    </div>
+</div>

@@ -1,0 +1,122 @@
+﻿@page "/Algoritm/Pages/Wifi_W"
+@rendermode InteractiveServer
+@using CLTI.Diagnosis.Client.Infrastructure.Auth;
+@using CLTI.Diagnosis.Client.Infrastructure.Http;
+@using CLTI.Diagnosis.Client.Infrastructure.State;
+@using CLTI.Diagnosis.Client.Features.Diagnosis.Services
+@using Microsoft.AspNetCore.Components
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+
+<div class="page-container">
+    <NavMenuAlgoritm />
+    <div class="main-content">
+        <div class="page-title">
+            Оцінка критерію <span>W</span> (WIFI)
+        </div>
+
+        <!-- Блок з вибором "Некроз на нижній кінцівці" -->
+        <div class="input-group">
+            <div class="item-title">Некроз на нижній кінцівці</div>
+            <div class="radio-group">
+                <RadioButton Label="Відсутній"
+                             IsSelected="@(!StateService.HasNecrosis)"
+                             IsSelectedChanged="@(async selected => await OnNecrosisChanged(false, selected))" />
+                <RadioButton Label="Присутній"
+                             IsSelected="@(StateService.HasNecrosis)"
+                             IsSelectedChanged="@(async selected => await OnNecrosisChanged(true, selected))" />
+            </div>
+        </div>
+
+        @if (StateService.HasNecrosis)
+        {
+            <div class="input-group">
+                <div class="item-title">Тип некрозу</div>
+                <DropDown Items="@necrosisTypeItems"
+                          Placeholder="Виберіть значення"
+                          Theme="light"
+                          OnSelect="OnNecrosisTypeSelect" />
+            </div>
+
+            @if (StateService.NecrosisType == "Гангрена")
+            {
+                <div class="input-group">
+                    <div class="item-title">Поширення гангрени</div>
+                    <DropDown Items="@gangreneSpreadItems"
+                              Placeholder="Виберіть значення"
+                              Theme="light"
+                              OnSelect="OnGangreneSpreadSelect" />
+                </div>
+            }
+            else if (StateService.NecrosisType == "Виразка")
+            {
+                <div class="input-group">
+                    <div class="item-title">Місцезнаходження виразки</div>
+                    <DropDown Items="@ulcerLocationItems"
+                              Placeholder="Виберіть значення"
+                              Theme="light"
+                              OnSelect="OnUlcerLocationSelect" />
+                </div>
+
+                @if (StateService.UlcerLocation == "На п'яті")
+                {
+                    <div class="input-group">
+                        <div class="item-title">Глибина виразки</div>
+                        <div class="radio-group">
+                            <RadioButton Label="До кістки"
+                                         IsSelected="@(ulcerDepth == "До кістки")"
+                                         IsSelectedChanged="@(async selected => await OnUlcerDepthChanged("До кістки", selected))" />
+                            <RadioButton Label="Не до кістки"
+                                         IsSelected="@(ulcerDepth == "Не до кістки")"
+                                         IsSelectedChanged="@(async selected => await OnUlcerDepthChanged("Не до кістки", selected))" />
+                        </div>
+                    </div>
+                }
+                else if (StateService.UlcerLocation == "Не на п'яті")
+                {
+                    <div class="input-group">
+                        <div class="item-title">Захоплення виразки</div>
+                        <div class="radio-group">
+                            <RadioButton Label="Захоплює кістки, суглоби чи сухожилки"
+                                         IsSelected="@(ulcerAffectsBone == "Захоплює")"
+                                         IsSelectedChanged="@(async selected => await OnUlcerAffectsBoneChanged("Захоплює", selected))" />
+                            <RadioButton Label="Не захоплює кістки, суглоби чи сухожилки або захоплює кістки дистальних фаланг не більше 2 пальців"
+                                         IsSelected="@(ulcerAffectsBone == "Не захоплює")"
+                                         IsSelectedChanged="@(async selected => await OnUlcerAffectsBoneChanged("Не захоплює", selected))" />
+                        </div>
+                    </div>
+
+                    @if (ulcerAffectsBone == "Захоплює")
+                    {
+                        <div class="input-group">
+                            <div class="item-title">Розташування виразки</div>
+                            <div class="radio-group">
+                                <RadioButton Label="Плесна і передплесна"
+                                             IsSelected="@(ulcerLocation2 == "Плесна і передплесна")"
+                                             IsSelectedChanged="@(async selected => await OnUlcerLocation2Changed("Плесна і передплесна", selected))" />
+                                <RadioButton Label="Дистальних фаланг 3-5 пальців або інших фаланг"
+                                             IsSelected="@(ulcerLocation2 == "Дистальних фаланг")"
+                                             IsSelectedChanged="@(async selected => await OnUlcerLocation2Changed("Дистальних фаланг", selected))" />
+                            </div>
+                        </div>
+                    }
+                }
+            }
+        }
+
+        @if (StateService.WLevelValue is not null)
+        {
+            <Message Text="@($"Рівень W: W{StateService.WLevelValue}")"
+                     Theme="light"
+                     State="success"
+                     Size="normal" />
+        }
+
+        <div class="fixed-bottom-right">
+            <Button Label="Продовжити"
+                    Variant="@((StateService.CanContinue ? "active" : "disabled"))"
+                    Disabled="@(!StateService.CanContinue)"
+                    OnClick="@(StateService.CanContinue ? Continue : null)" />
+        </div>
+    </div>
+</div>

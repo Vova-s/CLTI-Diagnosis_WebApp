@@ -1,0 +1,58 @@
+﻿@page "/Algoritm/Pages/SurgicalRisk"
+@rendermode InteractiveServer
+@using CLTI.Diagnosis.Client.Infrastructure.Auth;
+@using CLTI.Diagnosis.Client.Infrastructure.Http;
+@using CLTI.Diagnosis.Client.Infrastructure.State;
+@using CLTI.Diagnosis.Client.Features.Diagnosis.Services
+@using Microsoft.AspNetCore.Components
+@inject StateService StateService
+@inject NavigationManager NavigationManager
+
+<div class="page-container">
+    <NavMenuAlgoritm />
+    <div class="main-content">
+        <div class="page-title">
+            Ступінь <span>хірургічного ризику</span>
+        </div>
+        <div class="input-group">
+            <div class="item-title">Оцінка періпроцедуральної смертності (CRAB)</div>
+            <Message Text="@($"Загальна кількість балів CRAB: {StateService.CRABTotalScore}")"
+                     Theme="light"
+                     State="success"
+                     Size="normal" />
+
+            <Message Text="@GetCRABRiskText()"
+                     Theme="light"
+                     State="@GetCRABRiskState()"
+                     Size="normal" />
+
+            <div class="item-title">Оцінка дворічної виживаності (2YLE)</div>
+            <Message Text="@($"Загальна кількість балів 2YLE: {StateService.YLETotalScore:F1}")"
+                     Theme="light"
+                     State="success"
+                     Size="normal" />
+
+            <Message Text="@Get2YLERiskText()"
+                     Theme="light"
+                     State="@Get2YLERiskState()"
+                     Size="normal" />
+
+            <div class="item-title">Загальний хірургічний ризик</div>
+            <Message Text="@GetSurgicalRiskText()"
+                     Theme="light"
+                     State="@GetSurgicalRiskState()"
+                     Size="normal" />
+
+            <Message Text="@GetSurgicalRiskDescription()"
+                     Theme="light"
+                     State="@GetSurgicalRiskState()"
+                     Size="normal" />
+
+        </div>
+        <div class="fixed-bottom-right">
+            <Button Label="Продовжити"
+                    Variant="active"
+                    OnClick="Continue" />
+        </div>
+    </div>
+</div>

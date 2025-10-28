@@ -1,0 +1,88 @@
+﻿@page "/"
+
+@rendermode InteractiveServer
+
+@using Microsoft.AspNetCore.Authorization
+@inject IJSRuntime JS
+
+
+<div class="page-container">
+    <NavMenuHome />
+
+    <div class="frame-parent">
+        <!-- In Progress Cases -->
+        <div class="in-progress-cases-parent">
+            <div class="in-progress-cases">In progress cases</div>
+
+            <div class="frame-group">
+                <div class="text-field-parent">
+                    @foreach (var name in new[] {
+                    "Олександр Ковальчук", "Марія Гончаренко", "Андрій Литвин",
+                    "Ірина Шевченко", "Максим Павленко", "Катерина Бойко",
+                    "Володимир Соловей", "Наталія Дьяченко", "Роман Зінченко",
+                    "Анастасія Мельник", "Юрій Савчук", "Ольга Ткаченко",
+                    "Сергій Мороз", "Дарина Клименко"
+                    })
+                    {
+                        <div class="text-field" @onclick="@((MouseEventArgs e) => OpenContextMenu(e.ClientX, e.ClientY, name))">
+                            <div class="name-surname">@name</div>
+                        </div>
+                    }
+
+                </div>
+
+                <div class="text-field-parent">
+                    @foreach (var name in new[] {
+                    "Лідія Петренко", "Артем Василенко", "Вікторія Романюк"
+                    })
+                    {
+                        <div class="text-field" @onclick="@((MouseEventArgs e) => OpenContextMenu(e.ClientX, e.ClientY, name))">
+                            <div class="name-surname">@name</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Separator -->
+        <div class="frame-child"></div>
+
+        <!-- Done Cases -->
+        <div class="in-progress-cases-parent">
+            <div class="in-progress-cases">Done cases</div>
+
+            <div class="frame-group">
+                <div class="text-field-parent">
+                    @foreach (var name in new[] {
+                    "Дмитро Олійник", "Єлизавета Шаповал", "Назар Білик",
+                    "Тетяна Черненко", "Владислав Куліш", "Алла Остапчук",
+                    "Ілля Яровий", "Христина Дуброва", "Антон Герасименко",
+                    "Юлія Верес", "Степан Іванишин", "Валерія Завадська",
+                    "Марк Руденко", "Олена Березюк"
+                    })
+                    {
+                        <div class="text-field" @onclick="@((MouseEventArgs e) => OpenContextMenu(e.ClientX, e.ClientY, name))">
+                            <div class="name-surname">@name</div>
+                        </div>
+                    }
+                </div>
+
+                <div class="text-field-parent">
+                    @foreach (var name in new[] {
+                    "Софія Костенко", "Еміль Шульц", "Сара Леві",
+                    "Алекс Картер", "Мішель Бонне", "Джон Сміт",
+                    "Лаура Гарсія", "Лука Россі", "Томас Мюллер"
+                    })
+                    {
+                        <div class="text-field" @onclick="@((MouseEventArgs e) => OpenContextMenu(e.ClientX, e.ClientY, name))">
+                            <div class="name-surname">@name</div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu - placed at page level -->
+    <ContextMenu @ref="contextMenuRef" />
+</div>
