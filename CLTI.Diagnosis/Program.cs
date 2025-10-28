@@ -1,7 +1,9 @@
 // /app/CLTI.Diagnosis/Program.cs
 using CLTI.Diagnosis.Components;
-using CLTI.Diagnosis.Client.Algoritm.Services;
-using CLTI.Diagnosis.Client.Services;
+using CLTI.Diagnosis.Client.Infrastructure.Auth;
+using CLTI.Diagnosis.Client.Infrastructure.Http;
+using CLTI.Diagnosis.Client.Infrastructure.State;
+using CLTI.Diagnosis.Client.Features.Diagnosis.Services;
 using CLTI.Diagnosis.Infrastructure.Data;
 using CLTI.Diagnosis.Services;
 using CLTI.Diagnosis.Middleware;
@@ -257,7 +259,7 @@ builder.Services.AddScoped(sp =>
 
 // ✅ КЛІЄНТСЬКІ СЕРВІСИ
 builder.Services.AddScoped<CltiApiClient>();
-builder.Services.AddScoped<CLTI.Diagnosis.Client.Services.CltiCaseService>();
+builder.Services.AddScoped<CLTI.Diagnosis.Client.Features.Diagnosis.Services.CltiCaseService>();
 builder.Services.AddScoped<IUserClientService, UserClientService>();
 builder.Services.AddScoped<IClientApiKeyService, ClientApiKeyService>();
 builder.Services.AddScoped<AiChatClient>();

@@ -1,5 +1,8 @@
 ﻿using CLTI.Diagnosis.Client.Components;
-using CLTI.Diagnosis.Client.Services;
+using CLTI.Diagnosis.Client.Infrastructure.Auth;
+using CLTI.Diagnosis.Client.Infrastructure.Http;
+using CLTI.Diagnosis.Client.Infrastructure.State;
+using CLTI.Diagnosis.Client.Features.Diagnosis.Services;
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.JSInterop;
