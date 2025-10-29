@@ -25,7 +25,10 @@
     <PackageReference Include="Serilog.Enrichers.Environment" Version="3.0.1" />
     <PackageReference Include="Serilog.Enrichers.Thread" Version="4.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <!-- Тимчасова залежність для міграції з BCrypt. Будде видалено після завершення міграції всіх паролів -->
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
+    <!-- SQL Server distributed cache for session storage (production) -->
+    <PackageReference Include="Microsoft.Extensions.Caching.SqlServer" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>

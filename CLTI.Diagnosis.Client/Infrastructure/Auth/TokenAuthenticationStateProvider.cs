@@ -9,44 +9,34 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Auth
     /// <summary>
     /// Custom Authentication State Provider для роботи з JWT токенами
     /// </summary>
-    public class TokenAuthenticationStateProvider : AuthenticationStateProvider
+    public class TokenAuthenticationStateProvider(
+        IJSRuntime jsRuntime,
+        ILogger<TokenAuthenticationStateProvider> logger,
+        HttpClient httpClient)
+        : AuthenticationStateProvider
     {
-        private readonly IJSRuntime _jsRuntime;
-        private readonly ILogger<TokenAuthenticationStateProvider> _logger;
-        private readonly HttpClient _httpClient;
-
         private const string TOKEN_KEY = "authToken";
         private const string USER_KEY = "currentUser";
-
-        public TokenAuthenticationStateProvider(
-            IJSRuntime jsRuntime,
-            ILogger<TokenAuthenticationStateProvider> logger,
-            HttpClient httpClient)
-        {
-            _jsRuntime = jsRuntime;
-            _logger = logger;
-            _httpClient = httpClient;
-        }
 
         public override async Task<AuthenticationState> GetAuthenticationStateAsync()
         {
             try
             {
-                _logger.LogDebug("Getting authentication state...");
+                logger.LogDebug("Getting authentication state...");
 
                 var token = await GetTokenAsync();
                 var user = await GetUserAsync();
 
                 if (string.IsNullOrEmpty(token) || user == null)
                 {
-                    _logger.LogDebug("No valid token or user found, returning anonymous state");
+                    logger.LogDebug("No valid token or user found, returning anonymous state");
                     return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                 }
 
                 // Перевіряємо чи токен не застарілий
                 if (IsTokenExpired(token))
                 {
-                    _logger.LogWarning("Token is expired, clearing authentication");
+                    logger.LogWarning("Token is expired, clearing authentication");
                     await ClearAuthenticationAsync();
                     return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
                 }
@@ -55,14 +45,14 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Auth
                 var identity = new ClaimsIdentity(claims, "jwt");
                 var principal = new ClaimsPrincipal(identity);
 
-                _logger.LogInformation("User authenticated: {Email} (ID: {UserId})",
+                logger.LogInformation("User authenticated: {Email} (ID: {UserId})",
                     user.Email, user.Id);
 
                 return new AuthenticationState(principal);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting authentication state");
+                logger.LogError(ex, "Error getting authentication state");
                 return new AuthenticationState(new ClaimsPrincipal(new ClaimsIdentity()));
             }
         }
@@ -74,13 +64,13 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Auth
         {
             try
             {
-                _logger.LogInformation("Setting authentication for user: {Email}", user.Email);
+                logger.LogInformation("Setting authentication for user: {Email}", user.Email);
 
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, token);
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", USER_KEY, JsonSerializer.Serialize(user));
+                await jsRuntime.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, token);
+                await jsRuntime.InvokeVoidAsync("localStorage.setItem", USER_KEY, JsonSerializer.Serialize(user));
 
                 // Додаємо токен до HTTP клієнта
-                _httpClient.DefaultRequestHeaders.Authorization =
+                httpClient.DefaultRequestHeaders.Authorization =
                     new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
 
                 var claims = CreateClaimsFromUser(user);
@@ -89,11 +79,11 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Auth
 
                 NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(principal)));
 
-                _logger.LogInformation("Authentication set successfully for user: {Email}", user.Email);
+                logger.LogInformation("Authentication set successfully for user: {Email}", user.Email);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error setting authentication");
+                logger.LogError(ex, "Error setting authentication");
                 throw;
             }
         }
@@ -105,22 +95,22 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Auth
         {
             try
             {
-                _logger.LogInformation("Clearing authentication");
+                logger.LogInformation("Clearing authentication");
 
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY);
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", USER_KEY);
+                await jsRuntime.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY);
+                await jsRuntime.InvokeVoidAsync("localStorage.removeItem", USER_KEY);
 
                 // Видаляємо токен з HTTP клієнта
-                _httpClient.DefaultRequestHeaders.Authorization = null;
+                httpClient.DefaultRequestHeaders.Authorization = null;
 
                 var anonymous = new ClaimsPrincipal(new ClaimsIdentity());
                 NotifyAuthenticationStateChanged(Task.FromResult(new AuthenticationState(anonymous)));
 
-                _logger.LogInformation("Authentication cleared successfully");
+                logger.LogInformation("Authentication cleared successfully");
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error clearing authentication");
+                logger.LogError(ex, "Error clearing authentication");
                 throw;
             }
         }
@@ -132,11 +122,11 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Auth
         {
             try
             {
-                return await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", TOKEN_KEY);
+                return await jsRuntime.InvokeAsync<string?>("localStorage.getItem", TOKEN_KEY);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting token from localStorage");
+                logger.LogError(ex, "Error getting token from localStorage");
                 return null;
             }
         }
@@ -148,7 +138,7 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Auth
         {
             try
             {
-                var userJson = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", USER_KEY);
+                var userJson = await jsRuntime.InvokeAsync<string?>("localStorage.getItem", USER_KEY);
                 if (string.IsNullOrEmpty(userJson))
                     return null;
 
@@ -156,7 +146,7 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Auth
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error getting user from localStorage");
+                logger.LogError(ex, "Error getting user from localStorage");
                 return null;
             }
         }

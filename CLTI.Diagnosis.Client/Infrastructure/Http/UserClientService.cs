@@ -20,16 +20,16 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
         private readonly HttpClient _httpClient;
         private readonly ILogger<UserClientService> _logger;
         private readonly JsonSerializerOptions _jsonOptions;
-        private readonly JwtTokenService _jwtTokenService;
+        private readonly AuthApiService _authApiService;
 
         public UserClientService(
             HttpClient httpClient,
             ILogger<UserClientService> logger,
-            JwtTokenService jwtTokenService)
+            AuthApiService authApiService)
         {
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger;
-            _jwtTokenService = jwtTokenService;
+            _authApiService = authApiService;
             _jsonOptions = new JsonSerializerOptions
             {
                 PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
@@ -43,77 +43,35 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
         {
             try
             {
-                _logger.LogInformation("Attempting to get current user");
+                _logger.LogInformation("Attempting to get current user from server-side session");
 
-                // First, try to get user from localStorage (fastest and most reliable)
-                _logger.LogInformation("Attempting to get user from localStorage...");
-                var storedUser = await _jwtTokenService.GetUserAsync();
-                if (storedUser != null)
+                // ✅ Get user via API - token is automatically added by SessionTokenMiddleware
+                var result = await _authApiService.GetCurrentUserAsync();
+                
+                if (result.Success && result.Data != null)
                 {
-                    _logger.LogInformation("✅ Found user in localStorage: {Email} (ID: {Id})", 
-                        storedUser.Email, storedUser.Id);
-                    OnUserChanged?.Invoke(storedUser);
-                    return storedUser;
+                    var authUserDto = result.Data;
+                    var userInfo = new UserInfo
+                    {
+                        Id = authUserDto.Id,
+                        FirstName = authUserDto.FirstName,
+                        LastName = authUserDto.LastName,
+                        Email = authUserDto.Email,
+                        FullName = authUserDto.FullName
+                    };
+
+                    _logger.LogInformation("✅ Successfully retrieved user from server-side session: {Email} (ID: {Id})",
+                        userInfo.Email, userInfo.Id);
+                    
+                    OnUserChanged?.Invoke(userInfo);
+                    return userInfo;
                 }
                 else
                 {
-                    _logger.LogWarning("❌ No user found in localStorage");
-                }
-
-                _logger.LogInformation("No user found in localStorage, attempting API call");
-
-                var token = await _jwtTokenService.GetTokenAsync();
-                if (string.IsNullOrEmpty(token))
-                {
-                    _logger.LogWarning("No JWT token available in localStorage");
+                    _logger.LogWarning("❌ Failed to get user from server-side session: {Message}", result.Message);
+                    OnUserChanged?.Invoke(null);
                     return null;
                 }
-
-                _logger.LogInformation("Retrieved JWT token (length: {Length})", token.Length);
-
-                var request = new HttpRequestMessage(HttpMethod.Get, "/api/user/current");
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-
-                var response = await _httpClient.SendAsync(request);
-
-                _logger.LogInformation("API response status: {StatusCode}", response.StatusCode);
-
-                if (response.IsSuccessStatusCode)
-                {
-                    var responseContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogInformation("Raw response content: {Content}", responseContent);
-
-                    var userInfo = JsonSerializer.Deserialize<UserInfo>(responseContent, _jsonOptions);
-
-                    if (userInfo != null)
-                    {
-                        _logger.LogInformation("Successfully retrieved user info from API for: {Email} (ID: {Id})",
-                            userInfo.Email, userInfo.Id);
-                        
-                        // Store the user data in localStorage for future use
-                        await _jwtTokenService.SetUserAsync(userInfo);
-                        
-                        OnUserChanged?.Invoke(userInfo);
-                        return userInfo;
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Failed to deserialize user info from response");
-                    }
-                }
-                else if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
-                {
-                    _logger.LogWarning("JWT token is invalid or expired");
-                    OnUserChanged?.Invoke(null);
-                }
-                else
-                {
-                    var errorContent = await response.Content.ReadAsStringAsync();
-                    _logger.LogWarning("Failed to get current user: {StatusCode}, Content: {ErrorContent}",
-                        response.StatusCode, errorContent);
-                }
-
-                return null;
             }
             catch (HttpRequestException ex)
             {
@@ -123,11 +81,6 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
             catch (TaskCanceledException ex)
             {
                 _logger.LogError(ex, "Timeout while getting current user");
-                return null;
-            }
-            catch (JsonException ex)
-            {
-                _logger.LogError(ex, "JSON parsing error while getting current user");
                 return null;
             }
             catch (Exception ex)
@@ -141,19 +94,13 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
         {
             try
             {
-                var token = await _jwtTokenService.GetTokenAsync();
-                if (string.IsNullOrEmpty(token))
-                {
-                    _logger.LogWarning("No JWT token available for update");
-                    return false;
-                }
-
+                // ✅ Token is automatically added by SessionTokenMiddleware
                 var requestObj = new { firstName, lastName, email };
                 var request = new HttpRequestMessage(HttpMethod.Put, "/api/user/update")
                 {
                     Content = JsonContent.Create(requestObj, options: _jsonOptions)
                 };
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                // No need to manually set Authorization - SessionTokenMiddleware does it
 
                 var response = await _httpClient.SendAsync(request);
 
@@ -181,13 +128,7 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
         {
             try
             {
-                var token = await _jwtTokenService.GetTokenAsync();
-                if (string.IsNullOrEmpty(token))
-                {
-                    _logger.LogWarning("No JWT token available for password change");
-                    return false;
-                }
-
+                // ✅ Token is automatically added by SessionTokenMiddleware
                 var requestObj = new { oldPassword, newPassword };
                 var response = await _httpClient.PostAsJsonAsync("/api/user/change-password", requestObj, _jsonOptions, cancellationToken: default);
 
@@ -213,14 +154,9 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
         {
             try
             {
-                var token = await _jwtTokenService.GetTokenAsync();
-                if (string.IsNullOrEmpty(token))
-                {
-                    _logger.LogWarning("No JWT token available for delete");
-                    return false;
-                }
+                // ✅ Token is automatically added by SessionTokenMiddleware
                 var request = new HttpRequestMessage(HttpMethod.Delete, "/api/user/delete");
-                request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                // No need to manually set Authorization - SessionTokenMiddleware does it
                 var response = await _httpClient.SendAsync(request);
 
                 if (response.IsSuccessStatusCode)

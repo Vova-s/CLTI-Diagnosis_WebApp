@@ -10,6 +10,7 @@ using System.Security.Cryptography;
 using CLTI.Diagnosis.Data;
 using CLTI.Diagnosis.Core.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
+using CLTI.Diagnosis.Infrastructure.Services;
 
 namespace CLTI.Diagnosis.Controllers
 
@@ -21,15 +22,18 @@ namespace CLTI.Diagnosis.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IConfiguration _configuration;
         private readonly ILogger<AuthController> _logger;
+        private readonly ISessionStorageService _sessionStorage;
 
         public AuthController(
             ApplicationDbContext context,
             IConfiguration configuration,
-            ILogger<AuthController> logger)
+            ILogger<AuthController> logger,
+            ISessionStorageService sessionStorage)
         {
             _context = context;
             _configuration = configuration;
             _logger = logger;
+            _sessionStorage = sessionStorage;
         }
 
         [HttpPost("login")]
@@ -68,26 +72,17 @@ namespace CLTI.Diagnosis.Controllers
                     });
                 }
 
-                // Verify password with BCrypt or MD5 fallback
-                bool isPasswordValid = false;
-                bool needsRehash = false;
-
-                if (user.PasswordHashType == "BCrypt" || string.IsNullOrEmpty(user.PasswordHashType))
-                {
-                    // Try BCrypt first
-                    isPasswordValid = VerifyPassword(request.Password, user.Password);
-                }
-                else if (user.PasswordHashType == "MD5")
-                {
-                    // Try MD5 for legacy users
-                    var md5Hash = HashPasswordMD5(request.Password);
-                    isPasswordValid = user.Password == md5Hash;
-                    needsRehash = isPasswordValid; // Rehash to BCrypt if MD5 succeeds
-                }
+                // Verify password with automatic migration support (PBKDF2-SHA256)
+                var passwordHasher = HttpContext.RequestServices.GetRequiredService<IPasswordHasherService>();
+                var (isPasswordValid, needsMigration) = passwordHasher.VerifyPasswordWithMigration(
+                    request.Password, 
+                    user.Password, 
+                    user.PasswordHashType
+                );
 
                 if (!isPasswordValid)
                 {
-                    _logger.LogWarning("API Login failed for user {Email} - invalid password", request.Email);
+                    _logger.LogWarning("🔒 Login failed | Invalid password | Email: {Email}", request.Email);
                     return Unauthorized(new ApiResponse<object>
                     {
                         Success = false,
@@ -95,19 +90,19 @@ namespace CLTI.Diagnosis.Controllers
                     });
                 }
 
-                // Rehash to BCrypt if needed (MD5 user successfully logged in)
-                if (needsRehash)
+                // Migrate to PBKDF2-SHA256 if needed (from BCrypt or MD5)
+                if (needsMigration)
                 {
-                    user.Password = HashPassword(request.Password);
-                    user.PasswordHashType = "BCrypt";
+                    user.Password = passwordHasher.HashPassword(request.Password);
+                    user.PasswordHashType = "PBKDF2-SHA256";
                     await _context.SaveChangesAsync();
-                    _logger.LogInformation("Password rehashed to BCrypt for user {Email}", request.Email);
+                    _logger.LogDebug("Password migrated to PBKDF2-SHA256 for user {Email}", request.Email);
                 }
 
                 // Check user status
                 if (user.StatusEnumItem?.Name != "Active")
                 {
-                    _logger.LogWarning("API Login failed for user {Email} - account not active", request.Email);
+                    _logger.LogWarning("🔒 Login failed | Account not active | Email: {Email}", request.Email);
                     return Unauthorized(new ApiResponse<object>
                     {
                         Success = false,
@@ -139,8 +134,96 @@ namespace CLTI.Diagnosis.Controllers
                     refreshToken = await GenerateRefreshTokenAsync(user.Id);
                 }
 
+                // Store tokens and user data in server-side session (works even if cookies blocked)
+                var userDto = new UserDto
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName ?? "",
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    FullName = $"{user.FirstName} {user.LastName}".Trim()
+                };
+                
+                // ✅ IMPORTANT: Set userId cookie FIRST (before any response is sent)
+                // Set cookie directly BEFORE any other operations to ensure it's in headers
+                var httpRequest = HttpContext.Request;
+                var cookieValue = user.Id.ToString();
+                var cookieOptions = new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = httpRequest.IsHttps,
+                    SameSite = SameSiteMode.Lax,
+                    IsEssential = true,
+                    Expires = DateTimeOffset.UtcNow.AddDays(30),
+                    Path = "/",
+                    Domain = null // Let browser determine (works for localhost)
+                };
+                
+                // ✅ Method 1: Use Response.Cookies.Append (standard way)
+                Response.Cookies.Append("_userId", cookieValue, cookieOptions);
+                
+                // ✅ Method 2: ALSO manually add to Set-Cookie header as fallback
+                // Build cookie header string manually to ensure it's added
+                var cookieHeader = $"_userId={cookieValue}; Path={cookieOptions.Path}; Expires={cookieOptions.Expires:r}";
+                if (cookieOptions.Secure)
+                    cookieHeader += "; Secure";
+                if (cookieOptions.HttpOnly)
+                    cookieHeader += "; HttpOnly";
+                cookieHeader += $"; SameSite={cookieOptions.SameSite}";
+                
+                // Only add if not already present (to avoid duplicates)
+                if (!Response.Headers["Set-Cookie"].Any(h => h != null && h.Contains("_userId=")))
+                {
+                    Response.Headers.Append("Set-Cookie", cookieHeader);
+                    _logger.LogInformation("✅ Login: Manually added _userId cookie to Set-Cookie header");
+                }
+                
+                _logger.LogInformation("✅ Login: Set _userId cookie: {UserId} | Secure: {Secure} | IsHttps: {IsHttps} | Request Origin: {Origin}", 
+                    user.Id, cookieOptions.Secure, httpRequest.IsHttps, $"{httpRequest.Scheme}://{httpRequest.Host}");
+                
+                // ✅ Also set in session storage (for session/cache access)
+                _sessionStorage.SetUserId(user.Id);
+                
+                // ✅ Store tokens with userId for stability across server restarts
+                await _sessionStorage.SetTokenAsync(token, request.RememberMe, user.Id);
+                await _sessionStorage.SetRefreshTokenAsync(refreshToken, request.RememberMe, user.Id);
+                await _sessionStorage.SetUserAsync(userDto);
+
+                // ✅ IMPORTANT: Commit session BEFORE returning response
+                // This ensures userId and session data are persisted for next request
+                if (HttpContext.Session != null)
+                {
+                    await HttpContext.Session.CommitAsync();
+                    _logger.LogDebug("Session committed after login | SessionId: {SessionId}", HttpContext.Session.Id);
+                }
+
                 await transaction.CommitAsync();
-                _logger.LogInformation("API Login successful for user: {Email} (ID: {UserId})", user.Email, user.Id);
+                
+                // ✅ Verify cookie is in response headers before returning
+                var allSetCookieHeaders = Response.Headers["Set-Cookie"].ToList();
+                var userIdCookieSet = allSetCookieHeaders.Any(h => h != null && h.Contains("_userId="));
+                var setCookieHeadersString = string.Join("; ", allSetCookieHeaders);
+                
+                // Find the actual _userId cookie header for detailed logging
+                var userIdCookieHeader = allSetCookieHeaders.FirstOrDefault(h => h != null && h.Contains("_userId="));
+                
+                _logger.LogInformation("🔍 Login: Cookie verification | Total Set-Cookie headers: {Count} | _userId cookie found: {UserIdSet}", 
+                    allSetCookieHeaders.Count, userIdCookieSet);
+                if (userIdCookieHeader != null)
+                {
+                    _logger.LogInformation("✅ Login: _userId cookie header content: {Header}", userIdCookieHeader);
+                }
+                else
+                {
+                    _logger.LogWarning("⚠️ Login: _userId cookie header NOT FOUND despite being set!");
+                }
+                _logger.LogDebug("🔍 Login: All Set-Cookie headers: {Headers}", setCookieHeadersString);
+                
+                _logger.LogDebug("API Login successful for user: {Email} (ID: {UserId}) | SessionId: {SessionId}", 
+                    user.Email, user.Id, _sessionStorage.GetSessionId());
+
+                // Return response with session ID header (fallback if cookies blocked)
+                Response.Headers.Append("X-Session-Id", _sessionStorage.GetSessionId());
 
                 return Ok(new ApiResponse<LoginResponse>
                 {
@@ -148,17 +231,12 @@ namespace CLTI.Diagnosis.Controllers
                     Message = "Login successful",
                     Data = new LoginResponse
                     {
-                        Token = token,
-                        RefreshToken = refreshToken,
-                        User = new UserDto
-                        {
-                            Id = user.Id,
-                            FirstName = user.FirstName ?? "",
-                            LastName = user.LastName,
-                            Email = user.Email,
-                            FullName = $"{user.FirstName} {user.LastName}".Trim()
-                        },
-                        ExpiresAt = DateTime.UtcNow.AddHours(request.RememberMe ? 24 * 30 : 24)
+                        // Tokens stored server-side, not exposed to client
+                        Token = string.Empty,
+                        RefreshToken = string.Empty,
+                        User = userDto,
+                        ExpiresAt = DateTime.UtcNow.AddHours(request.RememberMe ? 24 * 30 : 24),
+                        SessionId = _sessionStorage.GetSessionId()
                     }
                 });
             }
@@ -208,8 +286,9 @@ namespace CLTI.Diagnosis.Controllers
                 // Get or create active status
                 var activeStatus = await GetOrCreateActiveStatusAsync();
 
-                // Hash password with BCrypt
-                var hashedPassword = HashPassword(request.Password);
+                // Hash password with PBKDF2-SHA256 (сучасний стандарт безпеки)
+                var passwordHasher = HttpContext.RequestServices.GetRequiredService<IPasswordHasherService>();
+                var hashedPassword = passwordHasher.HashPassword(request.Password);
 
                 // Create new user
                 var newUser = new SysUser
@@ -218,7 +297,7 @@ namespace CLTI.Diagnosis.Controllers
                     LastName = request.LastName,
                     Email = request.Email,
                     Password = hashedPassword,
-                    PasswordHashType = "BCrypt",
+                    PasswordHashType = "PBKDF2-SHA256",
                     CreatedAt = DateTime.UtcNow,
                     StatusEnumItemId = activeStatus.Id,
                     Guid = Guid.NewGuid()
@@ -248,11 +327,15 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpPost("logout")]
-        public IActionResult Logout()
+        public async Task<IActionResult> Logout()
         {
             try
             {
-                _logger.LogInformation("API User logout requested");
+                _logger.LogDebug("API User logout requested");
+                
+                // Clear all session data (tokens, user info) from server-side storage
+                await _sessionStorage.ClearAllAsync();
+                
                 return Ok(new ApiResponse<object>
                 {
                     Success = true,
@@ -271,11 +354,14 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpPost("refresh")]
-        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest? request = null)
         {
             try
             {
-                if (string.IsNullOrEmpty(request.RefreshToken))
+                // Get refresh token from session (preferred) or request body (backward compatibility)
+                var refreshTokenValue = request?.RefreshToken ?? await _sessionStorage.GetRefreshTokenAsync();
+                
+                if (string.IsNullOrEmpty(refreshTokenValue))
                 {
                     return BadRequest(new ApiResponse<object>
                     {
@@ -291,11 +377,11 @@ namespace CLTI.Diagnosis.Controllers
                     .Include(rt => rt.User)
                     .ThenInclude(u => u.SysUserRoles)
                     .ThenInclude(ur => ur.SysRole)
-                    .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken);
+                    .FirstOrDefaultAsync(rt => rt.Token == refreshTokenValue);
 
                 if (refreshToken == null)
                 {
-                    _logger.LogWarning("Refresh token not found: {Token}", request.RefreshToken);
+                    _logger.LogWarning("🔐 Refresh token not found | Token: {Token}", refreshTokenValue?.Substring(0, Math.Min(20, refreshTokenValue?.Length ?? 0)) + "...");
                     return Unauthorized(new ApiResponse<object>
                     {
                         Success = false,
@@ -306,7 +392,7 @@ namespace CLTI.Diagnosis.Controllers
                 // Check if token is expired
                 if (refreshToken.ExpiresAt < DateTime.UtcNow)
                 {
-                    _logger.LogWarning("Refresh token expired for user {UserId}", refreshToken.UserId);
+                    _logger.LogWarning("⏰ Refresh token expired | UserId: {UserId}", refreshToken.UserId);
                     return Unauthorized(new ApiResponse<object>
                     {
                         Success = false,
@@ -317,7 +403,7 @@ namespace CLTI.Diagnosis.Controllers
                 // Check if token is revoked or already used
                 if (refreshToken.IsRevoked || refreshToken.IsUsed)
                 {
-                    _logger.LogWarning("Refresh token is revoked or used for user {UserId}", refreshToken.UserId);
+                    _logger.LogWarning("🚫 Refresh token revoked or already used | UserId: {UserId}", refreshToken.UserId);
                     return Unauthorized(new ApiResponse<object>
                     {
                         Success = false,
@@ -328,7 +414,7 @@ namespace CLTI.Diagnosis.Controllers
                 // Check if user is still active
                 if (refreshToken.User.StatusEnumItem?.Name != "Active")
                 {
-                    _logger.LogWarning("User {UserId} is not active", refreshToken.UserId);
+                    _logger.LogWarning("⚠️ User not active | UserId: {UserId}", refreshToken.UserId);
                     return Unauthorized(new ApiResponse<object>
                     {
                         Success = false,
@@ -368,7 +454,35 @@ namespace CLTI.Diagnosis.Controllers
 
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("API Token refreshed for user: {Email}", refreshToken.User.Email);
+                // Store new tokens in server-side session
+                var userDto = new UserDto
+                {
+                    Id = refreshToken.User.Id,
+                    FirstName = refreshToken.User.FirstName ?? "",
+                    LastName = refreshToken.User.LastName,
+                    Email = refreshToken.User.Email,
+                    FullName = $"{refreshToken.User.FirstName} {refreshToken.User.LastName}".Trim()
+                };
+                
+                // ✅ Ensure userId is stored in session (needed for token retrieval)
+                _sessionStorage.SetUserId(refreshToken.User.Id);
+                
+                // ✅ Store tokens with userId for stability across server restarts
+                await _sessionStorage.SetTokenAsync(newJwtToken, false, refreshToken.User.Id);
+                await _sessionStorage.SetRefreshTokenAsync(newRefreshToken, false, refreshToken.User.Id);
+                await _sessionStorage.SetUserAsync(userDto);
+                
+                // ✅ Commit session to ensure it's saved
+                if (HttpContext.Session != null)
+                {
+                    await HttpContext.Session.CommitAsync();
+                }
+
+                _logger.LogDebug("API Token refreshed for user: {Email} | SessionId: {SessionId}", 
+                    refreshToken.User.Email, _sessionStorage.GetSessionId());
+
+                // Return response with session ID header
+                Response.Headers.Append("X-Session-Id", _sessionStorage.GetSessionId());
 
                 return Ok(new ApiResponse<LoginResponse>
                 {
@@ -376,17 +490,12 @@ namespace CLTI.Diagnosis.Controllers
                     Message = "Token refreshed successfully",
                     Data = new LoginResponse
                     {
-                        Token = newJwtToken,
-                        RefreshToken = newRefreshToken,
-                        User = new UserDto
-                        {
-                            Id = refreshToken.User.Id,
-                            FirstName = refreshToken.User.FirstName ?? "",
-                            LastName = refreshToken.User.LastName,
-                            Email = refreshToken.User.Email,
-                            FullName = $"{refreshToken.User.FirstName} {refreshToken.User.LastName}".Trim()
-                        },
-                        ExpiresAt = DateTime.UtcNow.AddHours(24)
+                        // Tokens stored server-side
+                        Token = string.Empty,
+                        RefreshToken = string.Empty,
+                        User = userDto,
+                        ExpiresAt = DateTime.UtcNow.AddHours(24),
+                        SessionId = _sessionStorage.GetSessionId()
                     }
                 });
             }
@@ -402,11 +511,14 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpPost("revoke")]
-        public async Task<IActionResult> RevokeToken([FromBody] RevokeTokenRequest request)
+        public async Task<IActionResult> RevokeToken([FromBody] RevokeTokenRequest? request = null)
         {
             try
             {
-                if (string.IsNullOrEmpty(request.RefreshToken))
+                // Get refresh token from session or request body
+                var refreshTokenValue = request?.RefreshToken ?? await _sessionStorage.GetRefreshTokenAsync();
+                
+                if (string.IsNullOrEmpty(refreshTokenValue))
                 {
                     return BadRequest(new ApiResponse<object>
                     {
@@ -417,11 +529,12 @@ namespace CLTI.Diagnosis.Controllers
 
                 // Find the refresh token in database
                 var refreshToken = await _context.SysRefreshTokens
-                    .FirstOrDefaultAsync(rt => rt.Token == request.RefreshToken);
+                    .FirstOrDefaultAsync(rt => rt.Token == refreshTokenValue);
 
                 if (refreshToken == null)
                 {
-                    _logger.LogWarning("Refresh token not found for revocation: {Token}", request.RefreshToken);
+                    _logger.LogWarning("🔐 Refresh token not found for revocation | Token: {Token}", 
+                        refreshTokenValue?.Substring(0, Math.Min(20, refreshTokenValue?.Length ?? 0)) + "...");
                     return BadRequest(new ApiResponse<object>
                     {
                         Success = false,
@@ -433,7 +546,11 @@ namespace CLTI.Diagnosis.Controllers
                 refreshToken.IsRevoked = true;
                 await _context.SaveChangesAsync();
 
-                _logger.LogInformation("Refresh token revoked for user {UserId}", refreshToken.UserId);
+                // Also clear from session
+                await _sessionStorage.ClearAllAsync();
+
+                // Token revocation - важлива security подія
+                _logger.LogWarning("🚫 Refresh token revoked by user | UserId: {UserId}", refreshToken.UserId);
 
                 return Ok(new ApiResponse<object>
                 {
@@ -453,11 +570,26 @@ namespace CLTI.Diagnosis.Controllers
         }
 
         [HttpGet("me")]
-        [Microsoft.AspNetCore.Authorization.Authorize]
+        [Microsoft.AspNetCore.Authorization.Authorize(Policy = "HybridPolicy")] // ✅ Supports both JWT Bearer and Cookies
         public async Task<IActionResult> GetCurrentUser()
         {
             try
             {
+                // Try to get user from session first (faster, no DB query needed)
+                var userDto = await _sessionStorage.GetUserAsync<UserDto>();
+                
+                if (userDto != null)
+                {
+                    _logger.LogDebug("User retrieved from session | Email: {Email}", userDto.Email);
+                    return Ok(new ApiResponse<UserDto>
+                    {
+                        Success = true,
+                        Message = "User retrieved successfully",
+                        Data = userDto
+                    });
+                }
+
+                // Fallback to JWT claims if session doesn't have user
                 var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (!int.TryParse(userIdClaim, out var userId))
                 {
@@ -481,18 +613,23 @@ namespace CLTI.Diagnosis.Controllers
                     });
                 }
 
+                userDto = new UserDto
+                {
+                    Id = user.Id,
+                    FirstName = user.FirstName ?? "",
+                    LastName = user.LastName,
+                    Email = user.Email,
+                    FullName = $"{user.FirstName} {user.LastName}".Trim()
+                };
+
+                // Store in session for next time
+                await _sessionStorage.SetUserAsync(userDto);
+
                 return Ok(new ApiResponse<UserDto>
                 {
                     Success = true,
                     Message = "User retrieved successfully",
-                    Data = new UserDto
-                    {
-                        Id = user.Id,
-                        FirstName = user.FirstName ?? "",
-                        LastName = user.LastName,
-                        Email = user.Email,
-                        FullName = $"{user.FirstName} {user.LastName}".Trim()
-                    }
+                    Data = userDto
                 });
             }
             catch (Exception ex)
@@ -603,12 +740,14 @@ namespace CLTI.Diagnosis.Controllers
                     });
                 }
 
-                // Update password with BCrypt
-                user.Password = HashPassword(request.NewPassword);
-                user.PasswordHashType = "BCrypt";
+                // Update password with PBKDF2-SHA256 (сучасний стандарт безпеки)
+                var passwordHasher = HttpContext.RequestServices.GetRequiredService<IPasswordHasherService>();
+                user.Password = passwordHasher.HashPassword(request.NewPassword);
+                user.PasswordHashType = "PBKDF2-SHA256";
                 await _context.SaveChangesAsync();
-
-                _logger.LogInformation("Password reset successful for {Email}", request.Email);
+                
+                // Password reset - важлива security подія
+                _logger.LogWarning("🔑 Password reset successful | Email: {Email}", request.Email);
 
                 return Ok(new ApiResponse<object>
                 {
@@ -731,23 +870,7 @@ namespace CLTI.Diagnosis.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-        private static string HashPassword(string password)
-        {
-            return BCrypt.Net.BCrypt.HashPassword(password);
-        }
-
-        private static bool VerifyPassword(string password, string hash)
-        {
-            return BCrypt.Net.BCrypt.Verify(password, hash);
-        }
-
-        private static string HashPasswordMD5(string password)
-        {
-            using var md5 = MD5.Create();
-            var inputBytes = Encoding.UTF8.GetBytes(password);
-            var hashBytes = md5.ComputeHash(inputBytes);
-            return Convert.ToHexString(hashBytes).ToLower();
-        }
+        // Password hashing methods removed - now using IPasswordHasherService (PBKDF2-SHA256)
 
         private async Task<string> GenerateRefreshTokenAsync(int userId)
         {
@@ -864,10 +987,11 @@ namespace CLTI.Diagnosis.Controllers
 
     public class LoginResponse
     {
-        public string Token { get; set; } = string.Empty;
-        public string RefreshToken { get; set; } = string.Empty;
+        public string Token { get; set; } = string.Empty; // Empty - stored server-side
+        public string RefreshToken { get; set; } = string.Empty; // Empty - stored server-side
         public UserDto User { get; set; } = new();
         public DateTime ExpiresAt { get; set; }
+        public string? SessionId { get; set; } // For client to use if cookies blocked
     }
 
     public class RevokeTokenRequest

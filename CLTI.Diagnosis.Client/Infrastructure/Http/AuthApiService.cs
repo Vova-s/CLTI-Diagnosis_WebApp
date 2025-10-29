@@ -14,14 +14,8 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
         private readonly ILogger<AuthApiService> _logger;
         private readonly string _baseUrl;
 
-        private const string TOKEN_KEY = "jwt_token";
-        private const string REFRESH_TOKEN_KEY = "refresh_token";
-        private const string USER_KEY = "current_user";
-
-        // Pending storage for prerendering
-        private string? _pendingToken;
-        private string? _pendingRefreshToken;
-        private AuthUserDto? _pendingUser;
+        // ✅ Tokens are stored server-side in session, not in localStorage
+        // These constants are kept for backward compatibility but not used
 
         public AuthApiService(HttpClient httpClient, IJSRuntime jsRuntime, ILogger<AuthApiService> logger)
         {
@@ -74,30 +68,39 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
 
                     if (apiResponse?.Success == true && apiResponse.Data != null)
                     {
-                        _logger.LogInformation("🎉 Login successful, processing token and user info");
-                        _logger.LogInformation("📋 Response data - Token length: {TokenLength}, RefreshToken length: {RefreshTokenLength}, User ID: {UserId}", 
-                            apiResponse.Data.Token?.Length ?? 0, 
-                            apiResponse.Data.RefreshToken?.Length ?? 0, 
-                            apiResponse.Data.User?.Id);
+                        _logger.LogInformation("🎉 Login successful | User ID: {UserId}", apiResponse.Data.User?.Id);
 
-                        // Store in pending storage during prerendering, direct storage during interactive
-                        _pendingToken = apiResponse.Data.Token;
-                        _pendingRefreshToken = apiResponse.Data.RefreshToken;
-                        _pendingUser = apiResponse.Data.User;
+                        // ✅ Try to set userId cookie via JavaScript as fallback
+                        // Browsers often block Set-Cookie headers from Fetch API responses (cross-origin restrictions)
+                        // JavaScript fallback ensures cookie is set even if header is blocked
+                        if (apiResponse.Data.User?.Id != null)
+                        {
+                            try
+                            {
+                                var userId = apiResponse.Data.User.Id;
+                                var expiresDate = DateTimeOffset.UtcNow.AddDays(30).ToUniversalTime();
+                                
+                                // Note: Cannot set HttpOnly via JavaScript, so we set it without HttpOnly
+                                // This is acceptable since userId is not sensitive (user ID is already known)
+                                var cookieValue = $"_userId={userId}; Path=/; Expires={expiresDate:r}; SameSite=Lax; Secure";
+                                
+                                // Set cookie via JavaScript
+                                await _jsRuntime.InvokeVoidAsync("eval", 
+                                    $@"(function() {{ document.cookie = '{cookieValue}'; }})();");
+                                
+                                _logger.LogInformation("✅ Set _userId cookie via JavaScript fallback: {UserId}", userId);
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogWarning(ex, "Failed to set cookie via JavaScript fallback: {Error}", ex.Message);
+                            }
+                        }
+
+                        // ✅ Tokens are stored server-side in session (not in localStorage)
+                        // The SessionTokenMiddleware will automatically add the token to API requests
+                        // No need to store tokens client-side or set Authorization header manually
                         
-                        _logger.LogInformation("💾 Pending tokens set in memory - Token: {HasToken}, RefreshToken: {HasRefreshToken}, User: {HasUser}",
-                            !string.IsNullOrEmpty(_pendingToken),
-                            !string.IsNullOrEmpty(_pendingRefreshToken),
-                            _pendingUser != null);
-
-                        // Try immediate storage (will fail during prerendering)
-                        await StoreTokenAsync(apiResponse.Data.Token);
-                        await StoreRefreshTokenAsync(apiResponse.Data.RefreshToken);
-                        await StoreUserAsync(apiResponse.Data.User);
-
-                        // Set authorization header for future requests
-                        _httpClient.DefaultRequestHeaders.Authorization =
-                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiResponse.Data.Token);
+                        _logger.LogInformation("✅ Authentication tokens stored in server-side session");
 
                         return new AuthApiResult<AuthLoginResponse>
                         {
@@ -210,22 +213,17 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
         {
             try
             {
-                // Call logout endpoint if available
+                // Call logout endpoint - this will clear server-side session
                 try
                 {
                     var logoutUrl = $"{_baseUrl}api/auth/logout";
                     await _httpClient.PostAsync(logoutUrl, null);
+                    _logger.LogInformation("✅ Logout successful - server-side session cleared");
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Error calling logout endpoint, continuing with local cleanup");
+                    _logger.LogWarning(ex, "Error calling logout endpoint: {Error}", ex.Message);
                 }
-
-                // Clear local storage
-                await RemoveTokenAsync();
-
-                // Clear authorization header
-                _httpClient.DefaultRequestHeaders.Authorization = null;
 
                 return new AuthApiResult<object>
                 {
@@ -248,40 +246,79 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
         {
             try
             {
-                var token = await GetTokenAsync();
-                if (string.IsNullOrEmpty(token))
-                {
-                    return new AuthApiResult<AuthUserDto>
-                    {
-                        Success = false,
-                        Message = "No authentication token"
-                    };
-                }
-
-                _httpClient.DefaultRequestHeaders.Authorization =
-                    new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
-
+                // ✅ Token is automatically added by SessionTokenMiddleware
+                // No need to manually set Authorization header
                 var userUrl = $"{_baseUrl}api/auth/me";
                 var response = await _httpClient.GetAsync(userUrl);
                 var content = await response.Content.ReadAsStringAsync();
 
+                _logger.LogDebug("GetCurrentUserAsync response: Status={StatusCode}, ContentLength={Length}", 
+                    response.StatusCode, content?.Length ?? 0);
+
                 if (response.IsSuccessStatusCode)
                 {
-                    var apiResponse = JsonSerializer.Deserialize<AuthApiResponse<AuthUserDto>>(content, _jsonOptions);
-
-                    return new AuthApiResult<AuthUserDto>
+                    // Check if content is empty or not valid JSON
+                    if (string.IsNullOrWhiteSpace(content))
                     {
-                        Success = apiResponse?.Success ?? false,
-                        Data = apiResponse?.Data,
-                        Message = apiResponse?.Message ?? ""
-                    };
+                        _logger.LogWarning("GetCurrentUserAsync: Empty response received");
+                        return new AuthApiResult<AuthUserDto>
+                        {
+                            Success = false,
+                            Message = "Empty response from server"
+                        };
+                    }
+
+                    try
+                    {
+                        var apiResponse = JsonSerializer.Deserialize<AuthApiResponse<AuthUserDto>>(content, _jsonOptions);
+
+                        return new AuthApiResult<AuthUserDto>
+                        {
+                            Success = apiResponse?.Success ?? false,
+                            Data = apiResponse?.Data,
+                            Message = apiResponse?.Message ?? ""
+                        };
+                    }
+                    catch (JsonException ex)
+                    {
+                        _logger.LogError(ex, "GetCurrentUserAsync: Failed to deserialize response | Content: {Content}", 
+                            content != null && content.Length > 200 ? content.Substring(0, 200) : content);
+                        return new AuthApiResult<AuthUserDto>
+                        {
+                            Success = false,
+                            Message = "Invalid response format from server"
+                        };
+                    }
                 }
 
-                var errorResponse = JsonSerializer.Deserialize<AuthApiResponse<object>>(content, _jsonOptions);
+                // Handle non-success status codes
+                _logger.LogWarning("GetCurrentUserAsync: Request failed | Status: {StatusCode}, Content: {Content}", 
+                    response.StatusCode, content != null && content.Length > 200 ? content.Substring(0, 200) : content);
+
+                // Try to parse error response if content is not empty
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    try
+                    {
+                        var errorResponse = JsonSerializer.Deserialize<AuthApiResponse<object>>(content, _jsonOptions);
+                        return new AuthApiResult<AuthUserDto>
+                        {
+                            Success = false,
+                            Message = errorResponse?.Message ?? $"Server returned {response.StatusCode}"
+                        };
+                    }
+                    catch (JsonException)
+                    {
+                        // If we can't parse the error, just return the status code message
+                    }
+                }
+
                 return new AuthApiResult<AuthUserDto>
                 {
                     Success = false,
-                    Message = errorResponse?.Message ?? "Failed to get user info"
+                    Message = response.StatusCode == System.Net.HttpStatusCode.Unauthorized 
+                        ? "Not authenticated" 
+                        : $"Server returned {response.StatusCode}"
                 };
             }
             catch (Exception ex)
@@ -295,199 +332,79 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
             }
         }
 
+        // ✅ Tokens are stored server-side in session, not in localStorage
+        // These methods are kept for backward compatibility but do nothing
         private async Task StoreTokenAsync(string token)
         {
-            try
-            {
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, token);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
-            {
-                _logger.LogWarning("Cannot store token during static rendering");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error storing token");
-            }
+            _logger.LogDebug("StoreTokenAsync called - tokens are stored server-side, no localStorage needed");
+            await Task.CompletedTask;
         }
 
         private async Task StoreRefreshTokenAsync(string refreshToken)
         {
-            try
-            {
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", REFRESH_TOKEN_KEY, refreshToken);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
-            {
-                _logger.LogWarning("Cannot store refresh token during static rendering");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error storing refresh token");
-            }
+            _logger.LogDebug("StoreRefreshTokenAsync called - tokens are stored server-side, no localStorage needed");
+            await Task.CompletedTask;
         }
 
         private async Task StoreUserAsync(AuthUserDto user)
         {
-            try
-            {
-                var userJson = JsonSerializer.Serialize(user, _jsonOptions);
-                await _jsRuntime.InvokeVoidAsync("localStorage.setItem", USER_KEY, userJson);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
-            {
-                _logger.LogWarning("Cannot store user during static rendering");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error storing user");
-            }
+            _logger.LogDebug("StoreUserAsync called - user data is stored server-side, no localStorage needed");
+            await Task.CompletedTask;
         }
 
         public async Task<string?> GetTokenAsync()
         {
-            try
-            {
-                return await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", TOKEN_KEY);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
-            {
-                _logger.LogDebug("Cannot get token during static rendering");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting token");
-                return null;
-            }
+            // ✅ Tokens are stored server-side in session, not in localStorage
+            // This method is kept for backward compatibility but always returns null
+            // The SessionTokenMiddleware automatically adds the token to requests
+            _logger.LogDebug("GetTokenAsync called - tokens are stored server-side");
+            return null;
         }
 
         public async Task<string?> GetRefreshTokenAsync()
         {
-            try
-            {
-                return await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", REFRESH_TOKEN_KEY);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
-            {
-                _logger.LogDebug("Cannot get refresh token during static rendering");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting refresh token");
-                return null;
-            }
+            // ✅ Tokens are stored server-side in session, not in localStorage
+            // This method is kept for backward compatibility but always returns null
+            _logger.LogDebug("GetRefreshTokenAsync called - tokens are stored server-side");
+            return null;
         }
 
         public async Task<AuthUserDto?> GetStoredUserAsync()
         {
-            try
-            {
-                var userJson = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", USER_KEY);
-                if (string.IsNullOrEmpty(userJson))
-                    return null;
-
-                return JsonSerializer.Deserialize<AuthUserDto>(userJson, _jsonOptions);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
-            {
-                _logger.LogDebug("Cannot get user during static rendering");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting stored user");
-                return null;
-            }
+            // ✅ User data is stored server-side in session
+            // Get user via API call instead of localStorage
+            var result = await GetCurrentUserAsync();
+            return result.Success ? result.Data : null;
         }
 
+        // ✅ Tokens are stored server-side in session
+        // Logout endpoint clears the session, no localStorage needed
         private async Task RemoveTokenAsync()
         {
-            try
-            {
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", TOKEN_KEY);
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", REFRESH_TOKEN_KEY);
-                await _jsRuntime.InvokeVoidAsync("localStorage.removeItem", USER_KEY);
-            }
-            catch (InvalidOperationException ex) when (ex.Message.Contains("statically rendered"))
-            {
-                _logger.LogWarning("Cannot remove token during static rendering");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error removing token");
-            }
+            _logger.LogDebug("RemoveTokenAsync called - tokens are stored server-side, no localStorage to clear");
+            await Task.CompletedTask;
         }
 
         public async Task<bool> IsAuthenticatedAsync()
         {
-            var token = await GetTokenAsync();
+            // ✅ Check authentication via API call to /api/auth/me
+            // This uses server-side session, not localStorage
             var user = await GetStoredUserAsync();
-            return !string.IsNullOrEmpty(token) && user != null;
+            return user != null;
         }
 
+        // ✅ Tokens are stored server-side in session
+        // These methods are kept for backward compatibility but do nothing
         public async Task StorePendingTokensAsync()
         {
-            _logger.LogInformation("📦 StorePendingTokensAsync called - PendingToken exists: {HasToken}, PendingRefreshToken exists: {HasRefreshToken}, PendingUser exists: {HasUser}", 
-                _pendingToken != null, _pendingRefreshToken != null, _pendingUser != null);
-
-            if (_pendingToken != null)
-            {
-                try
-                {
-                    await _jsRuntime.InvokeVoidAsync("localStorage.setItem", TOKEN_KEY, _pendingToken);
-                    _logger.LogInformation("✅ Token stored successfully in localStorage with key: {TokenKey}", TOKEN_KEY);
-
-                    if (_pendingRefreshToken != null)
-                    {
-                        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", REFRESH_TOKEN_KEY, _pendingRefreshToken);
-                        _logger.LogInformation("✅ Refresh token stored successfully in localStorage with key: {RefreshTokenKey}", REFRESH_TOKEN_KEY);
-                    }
-
-                    if (_pendingUser != null)
-                    {
-                        var userJson = JsonSerializer.Serialize(_pendingUser, _jsonOptions);
-                        await _jsRuntime.InvokeVoidAsync("localStorage.setItem", USER_KEY, userJson);
-                        _logger.LogInformation("✅ User data stored successfully in localStorage with key: {UserKey}", USER_KEY);
-                    }
-
-                    // Verify storage by reading back
-                    var storedToken = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", TOKEN_KEY);
-                    var storedRefreshToken = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", REFRESH_TOKEN_KEY);
-                    var storedUser = await _jsRuntime.InvokeAsync<string?>("localStorage.getItem", USER_KEY);
-                    
-                    _logger.LogInformation("🔍 Verification - Token: {TokenExists}, RefreshToken: {RefreshTokenExists}, User: {UserExists}", 
-                        !string.IsNullOrEmpty(storedToken),
-                        !string.IsNullOrEmpty(storedRefreshToken),
-                        !string.IsNullOrEmpty(storedUser));
-
-                    // Clear pending storage after successful storage
-                    _pendingToken = null;
-                    _pendingRefreshToken = null;
-                    _pendingUser = null;
-                    
-                    _logger.LogInformation("🧹 Pending tokens cleared from memory");
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "❌ Error storing pending tokens - Exception: {ExceptionType}, Message: {Message}", 
-                        ex.GetType().Name, ex.Message);
-                    throw;
-                }
-            }
-            else
-            {
-                _logger.LogWarning("⚠️ No pending tokens to store - _pendingToken is null");
-            }
+            _logger.LogDebug("StorePendingTokensAsync called - tokens are stored server-side, no action needed");
+            await Task.CompletedTask;
         }
 
         public async Task TryFlushPendingAsync()
         {
-            if (_pendingToken != null)
-            {
-                await StorePendingTokensAsync();
-            }
+            _logger.LogDebug("TryFlushPendingAsync called - tokens are stored server-side, no action needed");
+            await Task.CompletedTask;
         }
 
         public async Task<AuthApiResult<object>> ForgotPasswordAsync(string inputEmail)
@@ -523,20 +440,12 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
         {
             try
             {
-                var refreshToken = await GetRefreshTokenAsync();
-                if (string.IsNullOrEmpty(refreshToken))
-                {
-                    return new AuthApiResult<AuthLoginResponse>
-                    {
-                        Success = false,
-                        Message = "No refresh token available"
-                    };
-                }
-
-                var request = new { refreshToken = refreshToken };
+                // ✅ Refresh token is stored server-side in session
+                // Server will retrieve it automatically from session, no need to send it
                 var refreshUrl = $"{_baseUrl}api/auth/refresh";
                 
-                var response = await _httpClient.PostAsJsonAsync(refreshUrl, request, _jsonOptions);
+                // Send empty request - server will get refresh token from session
+                var response = await _httpClient.PostAsJsonAsync(refreshUrl, new { }, _jsonOptions);
                 var content = await response.Content.ReadAsStringAsync();
 
                 if (response.IsSuccessStatusCode)
@@ -545,18 +454,8 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
 
                     if (apiResponse?.Success == true && apiResponse.Data != null)
                     {
-                        // Store new tokens
-                        _pendingToken = apiResponse.Data.Token;
-                        _pendingRefreshToken = apiResponse.Data.RefreshToken;
-                        _pendingUser = apiResponse.Data.User;
-
-                        await StoreTokenAsync(apiResponse.Data.Token);
-                        await StoreRefreshTokenAsync(apiResponse.Data.RefreshToken);
-                        await StoreUserAsync(apiResponse.Data.User);
-
-                        // Update authorization header
-                        _httpClient.DefaultRequestHeaders.Authorization =
-                            new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", apiResponse.Data.Token);
+                        // ✅ New tokens are stored server-side automatically by the server
+                        _logger.LogInformation("✅ Token refreshed - new tokens stored in server-side session");
 
                         return new AuthApiResult<AuthLoginResponse>
                         {
@@ -604,10 +503,11 @@ namespace CLTI.Diagnosis.Client.Infrastructure.Http
 
     public class AuthLoginResponse
     {
-        public string Token { get; set; } = string.Empty;
-        public string RefreshToken { get; set; } = string.Empty;
+        public string Token { get; set; } = string.Empty; // Empty - stored server-side
+        public string RefreshToken { get; set; } = string.Empty; // Empty - stored server-side
         public AuthUserDto User { get; set; } = new();
         public DateTime ExpiresAt { get; set; }
+        public string? SessionId { get; set; } // For client to use if cookies blocked
     }
 
     public class AuthUserDto

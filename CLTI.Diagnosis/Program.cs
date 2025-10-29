@@ -17,6 +17,8 @@ using Microsoft.AspNetCore.Authentication;
 using System.Security.Claims;
 using CLTI.Diagnosis.Data;
 using Serilog;
+using Microsoft.Extensions.Caching.SqlServer;
+using Microsoft.AspNetCore.DataProtection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -37,6 +39,48 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+
+// ✅ DATA PROTECTION (required for session encryption)
+// Persist keys so session cookies survive app restarts
+var keysPath = Path.Combine(builder.Environment.ContentRootPath, "Keys");
+Directory.CreateDirectory(keysPath);
+
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(keysPath))
+    .SetApplicationName("CLTI.Diagnosis")
+    .SetDefaultKeyLifetime(TimeSpan.FromDays(90));
+
+// ✅ SESSION STORAGE (Server-side - works even if cookies blocked)
+// Use SQL Server distributed cache for both Development and Production
+// This ensures sessions survive server restarts (important for user experience)
+builder.Services.AddDistributedSqlServerCache(options =>
+{
+    options.ConnectionString = connectionString;
+    options.SchemaName = "dbo";
+    options.TableName = "SessionCache";
+    
+    // Optional: Cleanup old sessions automatically
+    options.DefaultSlidingExpiration = TimeSpan.FromMinutes(20);
+});
+
+// ✅ Initialize SessionCache table if it doesn't exist
+builder.Services.AddSingleton<CLTI.Diagnosis.Infrastructure.Services.SessionCacheInitializer>();
+
+// ✅ SESSION CONFIGURATION (works without cookies via headers)
+builder.Services.AddSession(options =>
+{
+    // ✅ Longer timeout - sessions persist across server restarts (using SQL Server cache)
+    options.IdleTimeout = TimeSpan.FromHours(24); // 24 hours - user stays logged in after restart
+    
+    options.Cookie.Name = ".AspNetCore.Session";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+    // ✅ Session cookie expires after 24 hours (matches idle timeout)
+    // This ensures session survives server restarts
+    // Session works via cookie OR custom header if cookies blocked
+});
 
 // JWT CONFIGURATION - PURE JWT, NO COOKIES
 var jwtKey = builder.Configuration["Jwt:Key"] ?? "your-super-secret-jwt-key-min-256-bits-long-for-security-purposes-12345";
@@ -118,6 +162,17 @@ builder.Services.AddAuthentication(options =>
     {
         OnMessageReceived = context =>
         {
+            // ✅ Read token from Authorization header (added by SessionTokenMiddleware)
+            var authHeader = context.Request.Headers["Authorization"].ToString();
+            if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+            {
+                context.Token = authHeader.Substring("Bearer ".Length).Trim();
+                var logger = context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+                logger.LogDebug("JWT token extracted from Authorization header | Path: {Path}", context.Request.Path);
+                return Task.CompletedTask;
+            }
+
+            // Fallback: read from query string for Blazor SignalR
             var accessToken = context.Request.Query["access_token"];
             var path = context.HttpContext.Request.Path;
 
@@ -185,6 +240,10 @@ builder.Services.AddSingleton<StateService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<CLTI.Diagnosis.Services.CltiCaseService>();
 builder.Services.AddScoped<JwtTokenService>();
+builder.Services.AddScoped<CLTI.Diagnosis.Infrastructure.Services.IPasswordHasherService, 
+    CLTI.Diagnosis.Infrastructure.Services.PasswordHasherService>();
+builder.Services.AddScoped<CLTI.Diagnosis.Infrastructure.Services.ISessionStorageService,
+    CLTI.Diagnosis.Infrastructure.Services.SessionStorageService>();
 
 // HttpContextAccessor
 builder.Services.AddHttpContextAccessor();
@@ -268,13 +327,36 @@ builder.Services.AddScoped<AuthApiService>();
 // Logging is now handled by Serilog configuration in appsettings
 
 // CORS
+// ✅ IMPORTANT: AllowCredentials() cannot be used with AllowAnyOrigin()
+// For cookie support, we need to specify specific origins
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
-              .AllowAnyHeader()
-              .AllowAnyMethod();
+        // ✅ Allow specific origins for development (supports both HTTP and HTTPS)
+        if (builder.Environment.IsDevelopment())
+        {
+            policy.WithOrigins(
+                "https://localhost:7124",
+                "http://localhost:5276",
+                "https://localhost:5276",
+                "http://localhost:7124"
+            )
+            .AllowCredentials() // ✅ Required for cookies to work with CORS
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+        }
+        else
+        {
+            // Production: use configuration or specific origins
+            var allowedOrigins = builder.Configuration.GetSection("Cors:Origins").Get<string[]>() 
+                ?? new[] { builder.Configuration["BaseUrl"] ?? "https://localhost:7124" };
+            
+            policy.WithOrigins(allowedOrigins)
+            .AllowCredentials() // ✅ Required for cookies to work with CORS
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+        }
     });
 });
 
@@ -296,6 +378,12 @@ app.UseStaticFiles();
 app.UseCors("AllowAll");
 app.UseRouting();
 
+// ✅ Initialize SessionCache table before using session
+var sessionCacheInitializer = app.Services.GetRequiredService<CLTI.Diagnosis.Infrastructure.Services.SessionCacheInitializer>();
+sessionCacheInitializer.EnsureCreated();
+
+app.UseSession(); // ✅ Enable session middleware (must be before UseAuthentication)
+app.UseMiddleware<CLTI.Diagnosis.Web.Middleware.SessionTokenMiddleware>(); // ✅ Auto-add session token to API requests
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseAntiforgery();
@@ -313,7 +401,7 @@ app.MapControllers();
 app.MapPost("/Account/Logout", async (HttpContext context) =>
 {
     var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
-    logger.LogInformation("User logout requested");
+    logger.LogDebug("User logout requested");
 
     await context.SignOutAsync(IdentityConstants.ApplicationScheme);
 
@@ -321,7 +409,7 @@ app.MapPost("/Account/Logout", async (HttpContext context) =>
     context.Response.Cookies.Delete(".AspNetCore.Identity.Application");
     context.Response.Cookies.Delete(".AspNetCore.Antiforgery.mYlosc6T-lA");
 
-    logger.LogInformation("User logged out successfully");
+    logger.LogDebug("User logged out successfully");
     return Results.Redirect("/");
 });
 
